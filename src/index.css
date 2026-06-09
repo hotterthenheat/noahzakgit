@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Space Grotesk", sans-serif;
+
+  /* High Density Theme Custom Color Mappings */
+  --color-black: #0A0A0B;
+  --color-zinc-950: #121214;
+  --color-zinc-900: #1A1A1B;
+  --color-zinc-850: #2A2A2D;
+  --color-zinc-800: #2A2A2D;
+  --color-zinc-750: #3A3A3D;
+  --color-zinc-700: #3A3A3D;
+  --color-zinc-650: #55555A;
+  --color-zinc-600: #66666A;
+  --color-zinc-550: #77777A;
+  --color-zinc-500: #888888;
+  --color-zinc-400: #AAAAAA;
+  --color-zinc-305: #BBBBBB;
+  --color-zinc-300: #CCCCCC;
+  --color-zinc-200: #E0E0E0;
+  --color-zinc-150: #EBEBEB;
+  --color-zinc-100: #F3F3F3;
+
+  /* Accents */
+  --color-emerald-500: #10B981;
+  --color-emerald-400: #10B981;
+  --color-emerald-450: #10B981;
+  --color-emerald-950: #064E3B;
+  --color-emerald-900: #059669;
+
+  --color-rose-500: #EF4444;
+  --color-rose-450: #EF4444;
+  --color-rose-400: #EF4444;
+  --color-rose-950: #7F1D1D;
+  --color-rose-900: #991B1B;
+
+  --color-amber-500: #D97706;
+  --color-amber-450: #D97706;
+  --color-amber-400: #D97706;
+  --color-amber-950: #78350F;
+  --color-amber-900: #92400E;
+
+  /* Radial dotted grid from the theme mockup */
+  --color-grid-dot: #1A1A1B;
+
+  /* High Density Sharp Radii Defaults */
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 3px;
+  --radius-xl: 4px;
+  --radius-2xl: 4px;
+  --radius-3xl: 4px;
+  --radius-full: 9999px;
+}
+
+/* Custom global overrides for specialized High Density look and feel */
+body {
+  background-color: #0A0A0B;
+  color: #E0E0E0;
+  background-image: radial-gradient(#1A1A1B 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0A0A0B;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2A2A2D;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3A3A3D;
+}
+

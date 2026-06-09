@@ -1,0 +1,6 @@
+{
+  "name": "Arbors Capital",
+  "description": "SkyVision V11 - Institutional Quantitative Decision Engine Workstation",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
