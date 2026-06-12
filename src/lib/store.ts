@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { AssetInfo, Candle, V8TradeRecord, TimeframeVal } from '../types';
+import { AssetInfo, Candle, V8TradeRecord, TimeframeVal, ServerStatePayload } from '../types';
 import { ASSET_LIST } from '../data';
 
 export type PinLevel = {
@@ -33,8 +33,8 @@ interface MarketState {
 
 interface ContractStore {
   // Navigation & View Tabs
-  activeTab: 'home' | 'skyvision' | 'pinpoint' | 'discovery' | 'auditor';
-  setActiveTab: (tab: 'home' | 'skyvision' | 'pinpoint' | 'discovery' | 'auditor') => void;
+  activeTab: 'home' | 'skyvision' | 'pinpoint' | 'discovery' | 'auditor' | 'dealerflow';
+  setActiveTab: (tab: 'home' | 'skyvision' | 'pinpoint' | 'discovery' | 'auditor' | 'dealerflow') => void;
 
   // Selected parameters
   selectedAsset: AssetInfo;
@@ -46,7 +46,7 @@ interface ContractStore {
   // State caches and broad items
   activeContract: ContractState | null;
   contractCache: Record<string, ContractState>;
-  serverState: any | null;
+  serverState: ServerStatePayload | null;
   trades: V8TradeRecord[];
 
   // Market status timer
@@ -57,12 +57,13 @@ interface ContractStore {
   setSelectedTimeframe: (tf: TimeframeVal) => void;
   setSelectedOptionType: (type: 'C' | 'P') => void;
   setSelectedStrike: (strike: number | null) => void;
+  selectContractAtomically: (asset: AssetInfo, strike: number, isCall: boolean) => void;
   setIsPositionOpen: (open: boolean) => void;
   setTrades: (trades: V8TradeRecord[]) => void;
   
   // High-latency prevention: selectContract set instantly!
   selectContract: (ticker: string, strike: number, isCall: boolean) => void;
-  updateFromSSE: (payload: any) => void;
+  updateFromSSE: (payload: ServerStatePayload) => void;
   tickMarketState: () => void;
 }
 
@@ -144,14 +145,16 @@ export const useContractStore = create<ContractStore>((set, get) => ({
   marketState: getMarketState(),
 
   setSelectedAsset: (asset) => {
-    set({ selectedAsset: asset, selectedStrike: null });
-    // Proactively preload heuristic active state if none exists in cache yet
-    get().selectContract(asset.ticker, asset.defaultPrice, get().selectedOptionType === 'C');
+    const step = asset.defaultPrice > 1000 ? 100 : asset.defaultPrice > 150 ? 5 : 1;
+    const initialStrike = Math.round(asset.defaultPrice / step) * step;
+    set({ selectedAsset: asset, selectedStrike: initialStrike });
+    get().selectContract(asset.ticker, initialStrike, get().selectedOptionType === 'C');
   },
   setSelectedTimeframe: (tf) => set({ selectedTimeframe: tf }),
   setSelectedOptionType: (type) => {
+    const step = get().selectedAsset.defaultPrice > 1000 ? 100 : get().selectedAsset.defaultPrice > 150 ? 5 : 1;
+    const currentStrike = get().selectedStrike || Math.round(get().selectedAsset.defaultPrice / step) * step;
     set({ selectedOptionType: type });
-    const currentStrike = get().selectedStrike || Math.round(get().selectedAsset.defaultPrice / 10) * 10;
     get().selectContract(get().selectedAsset.ticker, currentStrike, type === 'C');
   },
   setSelectedStrike: (strike) => {
@@ -159,6 +162,14 @@ export const useContractStore = create<ContractStore>((set, get) => ({
     if (strike) {
       get().selectContract(get().selectedAsset.ticker, strike, get().selectedOptionType === 'C');
     }
+  },
+  selectContractAtomically: (asset, strike, isCall) => {
+    set({
+      selectedAsset: asset,
+      selectedStrike: strike,
+      selectedOptionType: isCall ? 'C' : 'P'
+    });
+    get().selectContract(asset.ticker, strike, isCall);
   },
   setIsPositionOpen: (open) => set({ isPositionOpen: open }),
   setTrades: (trades) => set({ trades }),
@@ -203,31 +214,47 @@ export const useContractStore = create<ContractStore>((set, get) => ({
     }
   },
 
-  updateFromSSE: (payload: any) => {
+  updateFromSSE: (payload: ServerStatePayload) => {
     if (!payload) return;
+
+    // 1. Race condition guard: Ensure the received payload is for the currently selected asset, option type, and strike!
+    const payloadTicker = payload.contract.replace('-', ' ').split(' ')[0];
+    const currentTicker = get().selectedAsset.ticker;
+
+    const payloadIsCall = payload.provenance?.inputs?.option_type === 'C';
+    const currentIsCall = get().selectedOptionType === 'C';
+
+    const payloadStrike = payload.optionStrike;
+    const currentStrike = get().selectedStrike;
+
+    if (payloadTicker !== currentTicker) {
+      console.warn(`[SSE Race Condition Guard] Ignored stale payload for ${payloadTicker} (active: ${currentTicker})`);
+      return;
+    }
+    if (payloadIsCall !== currentIsCall) {
+      console.warn(`[SSE Race Condition Guard] Ignored stale payload for type ${payloadIsCall ? 'C' : 'P'} (active: ${currentIsCall ? 'C' : 'P'})`);
+      return;
+    }
+    if (currentStrike !== null && payloadStrike !== currentStrike) {
+      console.warn(`[SSE Race Condition Guard] Ignored stale payload for strike ${payloadStrike} (active: ${currentStrike})`);
+      return;
+    }
 
     const contractKey = payload.contract.replace(/\s+/g, '-'); // e.g. "SPX-7620C"
     
-    // Parse pinpoint levels properly mapped to PinLevel (Bug #3)
+    // Pinpoint levels: dollars come straight from the server's per-strike
+    // net GEX computation (real chain when live, deterministic mock offline).
     const rawLevels = payload.pinpoint_map?.levels || [];
-    const mappedLevels: PinLevel[] = rawLevels.map((lvl: any) => {
-      // Calculate high-fidelity actual dollar volumes based on market positioning
-      let dollars = lvl.strength * 70000000;
-      if (lvl.label === 'support' || lvl.isPutWall) dollars = lvl.strength * 82000000 + 500000000;
-      if (lvl.label === 'resistance' || lvl.isCallWall) dollars = lvl.strength * 95000000 + 400000000;
-      if (lvl.label === 'zone' || lvl.isGammaFlip) dollars = lvl.strength * 60000000 + 200000000;
-
-      return {
-        strike: lvl.strike,
-        dollars,
-        strength: lvl.strength,
-        type: lvl.label === 'support' || lvl.isPutWall
-          ? 'support'
-          : lvl.label === 'resistance' || lvl.isCallWall
-          ? 'resistance'
-          : 'magnet'
-      };
-    });
+    const mappedLevels: PinLevel[] = rawLevels.map((lvl: any) => ({
+      strike: lvl.strike,
+      dollars: Math.abs(Number(lvl.gexDollars) || 0),
+      strength: lvl.strength,
+      type: lvl.label === 'support' || lvl.isPutWall
+        ? 'support'
+        : lvl.label === 'resistance' || lvl.isCallWall
+        ? 'resistance'
+        : 'magnet'
+    }));
 
     const newContractState: ContractState = {
       contract: payload.contract,

@@ -20,6 +20,7 @@ import {
 import { AssetInfo, Candle, FairValueGap, LiquidityEvent, TargetLevel, SystemScore } from '../types';
 import { InteractiveChart } from './InteractiveChart';
 import { SkyVisionV11Cockpit } from './SkyVisionV11Cockpit';
+import { useContractStore } from '../lib/store';
 
 interface TradeIntelligenceWorkspaceProps {
   selectedAsset: AssetInfo;
@@ -74,6 +75,7 @@ export function TradeIntelligenceWorkspace({
   setTickSpeed,
   clickedContractOverride
 }: TradeIntelligenceWorkspaceProps) {
+  const serverState = useContractStore(s => s.serverState);
   const currentCandle = candles[candles.length - 1] || {
     timestamp: Date.now(),
     open: 100,
@@ -397,11 +399,13 @@ export function TradeIntelligenceWorkspace({
             <div className="flex items-center gap-2 mb-3 border-b border-zinc-900 pb-2">
               <Sliders className="w-4 text-zinc-400" />
               <h3 className="font-mono font-bold text-xs uppercase tracking-wider text-zinc-200 flex items-center gap-2">
-                Order Flow Sandbox Console
+                {serverState?.data_source !== 'SANDBOX_SYNTHETIC' ? 'Real-Time Order Flow Tapes' : 'Order Flow Sandbox Console'}
               </h3>
             </div>
             <p className="text-[10.5px] font-mono text-zinc-500 mb-4 leading-normal">
-              Inject custom orders block directly into liquidity streams to force-test living thesis outcomes.
+              {serverState?.data_source !== 'SANDBOX_SYNTHETIC' 
+                ? 'Displaying consolidated options transactions live from the OPRA exchange tapes network.' 
+                : 'Inject custom orders block directly into liquidity streams to force-test living thesis outcomes.'}
             </p>
 
             <div className="grid grid-cols-2 gap-2 mb-3">

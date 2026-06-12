@@ -5,9 +5,10 @@ import { AssetInfo } from './types';
 
 // Import Workspace Modular Views
 import { SkyVisionView } from './components/SkyVisionView';
-import { PinpointAIView } from './components/PinpointAIView';
+import PinpointAI from './components/PinpointAI';
 import { QuantAuditView } from './components/QuantAuditView';
 import { DiscoveryView } from './components/DiscoveryView';
+import { DealerFlowView } from './components/DealerFlowView';
 import SlayerIntro from './components/SlayerIntro';
 
 import {
@@ -16,7 +17,8 @@ import {
   Compass,
   Dna,
   Lock,
-  LogOut
+  LogOut,
+  Waves
 } from 'lucide-react';
 
 export default function App() {
@@ -156,9 +158,11 @@ export default function App() {
     }
   };
 
-  const handleSelectOpportunity = (asset: AssetInfo, type: 'C' | 'P') => {
-    setSelectedAsset(asset);
-    setSelectedOptionType(type);
+  const handleSelectOpportunity = (asset: AssetInfo, type: 'C' | 'P', strike?: number) => {
+    const step = asset.defaultPrice > 1000 ? 100 : asset.defaultPrice > 150 ? 5 : 1;
+    const targetStrike = strike || Math.round(asset.defaultPrice / step) * step;
+    
+    useContractStore.getState().selectContractAtomically(asset, targetStrike, type === 'C');
     setActiveTab('skyvision');
   };
 
@@ -197,15 +201,198 @@ export default function App() {
   }));
 
   return (
-    <div className="min-h-screen bg-black text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased">
+    <div className="min-h-screen bg-[#050506] text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative">
       
-      {/* Upper ecosystem gouverning top banner overlay */}
-      <header className="border-b border-zinc-900 bg-black px-6 py-4.5 flex flex-col sm:flex-row justify-between items-center select-none font-mono gap-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-white select-none animate-pulse" />
-          <span className="text-xs font-black tracking-widest text-[#FFFFFF] uppercase">
-            SLAYER <span className="text-zinc-650 font-normal">/ BY ARBOR CAPITAL</span>
-          </span>
+      {/* Liquid background elements mirroring Apple macOS/iOS fluid updates */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full bg-[#30d158]/8 blur-[120px] animate-fluid-blob-1" />
+        <div className="absolute bottom-[-15%] right-[-10%] w-[65%] h-[60%] rounded-full bg-[#ff9f0a]/4 blur-[140px] animate-fluid-blob-2" />
+        <div className="absolute top-[35%] right-[20%] w-[45%] h-[45%] rounded-full bg-indigo-550/5 blur-[110px] animate-fluid-blob-3" />
+      </div>
+      
+      {/* Upper ecosystem workstation cockpit core header */}
+      <header className="sticky top-0 z-50 bg-[#050506]/80 backdrop-blur-xl border-b border-zinc-900/60 px-6 py-3 flex flex-col sm:flex-row justify-between items-center select-none font-mono gap-4">
+        <div className="flex flex-wrap items-center gap-3.5">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            <span className="text-xs font-black tracking-widest text-[#FFFFFF] uppercase whitespace-nowrap">
+              ARBOR CAPITAL GROUP
+            </span>
+          </div>
+
+          {serverState?.data_source === 'TRADIER_POLYGON_COMPLEMENTARY' ? (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-[8.5px] font-black tracking-widest uppercase rounded-xs">
+              <span className="relative flex h-1.5 w-1.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>
+              </span>
+              <span>COMPLEMENTARY FEED (POLYGON + TRADIER) ACTIVE</span>
+            </div>
+          ) : serverState?.data_source === 'TRADIER_LIVE' ? (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-500/10 border border-blue-500/25 text-blue-400 text-[8.5px] font-black tracking-widest uppercase rounded-xs">
+              <span className="relative flex h-1.5 w-1.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-450 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
+              </span>
+              <span>LIVE TRADIER STREAM ACTIVE</span>
+            </div>
+          ) : serverState?.data_source === 'POLYGON_LIVE' ? (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[8.5px] font-black tracking-widest uppercase rounded-xs">
+              <span className="relative flex h-1.5 w-1.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+              </span>
+              <span>LIVE POLYGON STREAM ACTIVE</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-500/10 border border-amber-500/25 text-amber-500 text-[8.5px] font-black tracking-widest uppercase rounded-xs" title="Provide TRADIER_API_KEY inside workspace configuration to activate live Tradier OPRA contracts">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+              <span>SANDBOX SIMULATION MODE</span>
+            </div>
+          )}
+
+          <span className="text-zinc-800 text-xs hidden sm:inline">/</span>
+
+          {/* Active Workstation selector dropdown on hover */}
+          <div className="relative group py-1">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 hover:text-white cursor-pointer select-none bg-zinc-950/80 hover:bg-zinc-900 border border-zinc-850 px-3 py-1.5 rounded-md transition-all">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>ACTIVE ENGINE: <span className="text-white uppercase font-black">
+                {activeTab === 'home' && 'Ecosystem Introduction'}
+                {activeTab === 'skyvision' && 'Slayer // SkyVision'}
+                {activeTab === 'pinpoint' && 'Slayer // Pinpoint'}
+                {activeTab === 'discovery' && 'Slayer // Discovery'}
+                {activeTab === 'auditor' && 'Trust Archive'}
+                {activeTab === 'dealerflow' && 'Dealer Flow'}
+              </span></span>
+              <span className="text-[8px] text-zinc-600 group-hover:text-white transition-transform duration-200">▼</span>
+            </div>
+            
+            {/* Hover options list */}
+            <div className="absolute top-full left-0 mt-1 w-72 bg-[#09090b] border border-zinc-850 rounded-sm shadow-2xl opacity-0 scale-95 origin-top-left invisible group-hover:opacity-100 group-hover:scale-100 group-hover:visible transition-all duration-150 z-50 p-2 space-y-1">
+              <div className="text-[8px] text-zinc-600 font-black tracking-widest px-2 py-1 border-b border-[#121214] uppercase mb-1">
+                SELECT COGNITIVE CORE
+              </div>
+              
+              <button
+                onClick={() => setActiveTab('home')}
+                className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
+                  activeTab === 'home'
+                    ? 'bg-zinc-900 text-white font-bold border-l-2 border-white pl-2'
+                    : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-white'
+                }`}
+              >
+                <span>1. ECOSYSTEM INTRODUCTION</span>
+                <span className="text-[8px] text-zinc-650">LANDING PAGE</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('skyvision')}
+                className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
+                  activeTab === 'skyvision'
+                    ? 'bg-zinc-900 text-white font-bold border-l-2 border-emerald-450 pl-2'
+                    : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-white'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Sparkles className="w-3 h-3 text-amber-500 animate-pulse" />
+                  <span>2. SLAYER // SKYVISION</span>
+                </span>
+                <span className="text-[8px] text-zinc-650">DECISION ENGINE</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('pinpoint')}
+                className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
+                  activeTab === 'pinpoint'
+                    ? 'bg-zinc-900 text-white font-bold border-l-2 border-emerald-450 pl-2'
+                    : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-white'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Dna className="w-3 h-3 text-emerald-400" />
+                  <span>3. SLAYER // PINPOINT</span>
+                </span>
+                <span className="text-[8px] text-zinc-650">MARKET INTEL</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('discovery')}
+                className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
+                  activeTab === 'discovery'
+                    ? 'bg-zinc-900 text-white font-bold border-l-2 border-emerald-450 pl-2'
+                    : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-white'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Compass className="w-3 h-3 text-indigo-400" />
+                  <span>4. SLAYER // DISCOVERY</span>
+                </span>
+                <span className="text-[8px] text-zinc-650">OPPORTUNITY</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('auditor')}
+                className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
+                  activeTab === 'auditor'
+                    ? 'bg-zinc-900 text-white font-bold border-l-2 border-emerald-450 pl-2'
+                    : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-white'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Database className="w-3 h-3 text-zinc-500" />
+                  <span>5. TRUST ARCHIVE</span>
+                </span>
+                <span className="text-[8px] text-zinc-650">AUDIT LOGS</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('dealerflow')}
+                className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
+                  activeTab === 'dealerflow'
+                    ? 'bg-zinc-900 text-white font-bold border-l-2 border-emerald-450 pl-2'
+                    : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-white'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Waves className="w-3 h-3 text-emerald-400" />
+                  <span>6. DEALER FLOW</span>
+                </span>
+                <span className="text-[8px] text-zinc-650">GAMMA FLOW</span>
+              </button>
+            </div>
+          </div>
+
+          <span className="text-zinc-850 text-xs hidden sm:inline">•</span>
+
+          {/* Asset & Timeframe Global pickers merged directly inside header strip */}
+          <div className="flex items-center gap-1.5">
+            <select
+              value={selectedAsset.ticker}
+              onChange={(e) => {
+                const targetAsset = ASSET_LIST.find(a => a.ticker === e.target.value);
+                if (targetAsset) {
+                  setSelectedAsset(targetAsset);
+                }
+              }}
+              className="bg-black border border-zinc-800 text-[10px] font-black py-1 px-2.5 text-white rounded-xs focus:outline-none focus:border-zinc-700 cursor-pointer"
+            >
+              {ASSET_LIST.map(a => (
+                <option key={a.ticker} value={a.ticker}>{a.ticker}</option>
+              ))}
+            </select>
+            <select
+              value={selectedTimeframe}
+              onChange={(e) => setSelectedTimeframe(e.target.value as any)}
+              className="bg-black border border-zinc-800 text-[10px] font-black py-1 px-2.5 text-white rounded-xs focus:outline-none focus:border-zinc-700 cursor-pointer"
+            >
+              <option value="5m">5m</option>
+              <option value="15m">15m</option>
+              <option value="1h">1h</option>
+              <option value="4h">4h</option>
+              <option value="1d">1d</option>
+            </select>
+          </div>
         </div>
 
         {/* Real HTTP OAuth Action segment header (Bug #9) */}
@@ -229,11 +416,11 @@ export default function App() {
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-zinc-600 block uppercase font-black text-[8.5px] mr-2">SANDBOX SYSTEM:</span>
+            <div className="flex items-[#center] gap-2">
+              <span className="text-zinc-600 hidden md:block uppercase font-black text-[8.5px] mr-2">SANDBOX SYSTEM:</span>
               <a 
                 href="/api/auth/sandbox" 
-                className="px-3 py-1 border border-zinc-850 hover:border-zinc-755 bg-zinc-950 text-zinc-450 hover:text-white uppercase font-black transition-colors flex items-center gap-1.5 text-[9px] rounded-xs"
+                className="px-3 py-1.5 border border-zinc-850 hover:border-zinc-755 bg-zinc-950 text-zinc-450 hover:text-white uppercase font-black transition-colors flex items-center gap-1.5 text-[9px] rounded-xs"
               >
                 <span>◌</span>
                 <span>ACTIVATE OFFLINE SANDBOX SESSION</span>
@@ -242,110 +429,9 @@ export default function App() {
           )}
         </div>
       </header>
-
-      {/* Main Mode Navigation Bar (Separate product branding accents) */}
-      <nav className="bg-[#050505] border-b border-zinc-900 px-6 py-2 flex flex-wrap justify-between items-center gap-2 select-none">
-        <div className="flex flex-wrap gap-2">
-          {/* HOME LANDING */}
-          <button
-            onClick={() => setActiveTab('home')}
-            className={`px-3.5 py-1.5 text-[10px] font-bold cursor-pointer transition-all border uppercase rounded-xs ${
-              activeTab === 'home'
-                ? 'bg-zinc-900 text-white border-zinc-800'
-                : 'bg-black/35 border-transparent hover:border-zinc-850 text-zinc-500 hover:text-zinc-300'
-            }`}
-          >
-            <span>Ecosystem Introduction</span>
-          </button>
-
-          {/* 1. SKYVISION */}
-          <button
-            onClick={() => setActiveTab('skyvision')}
-            className={`px-3.5 py-1.5 text-[10px] font-bold cursor-pointer transition-all border uppercase flex items-center gap-1.5 rounded-xs ${
-              activeTab === 'skyvision'
-                ? 'bg-white text-black border-white font-extrabold shadow-md'
-                : 'bg-black/35 border-transparent hover:border-zinc-850 text-zinc-500 hover:text-zinc-300'
-            }`}
-          >
-            <Sparkles className="w-3 h-3" />
-            <span>Slayer // SkyVision</span>
-          </button>
-
-          {/* 2. PINPOINT */}
-          <button
-            onClick={() => setActiveTab('pinpoint')}
-            className={`px-3.5 py-1.5 text-[10px] font-bold cursor-pointer transition-all border uppercase flex items-center gap-1.5 rounded-xs ${
-              activeTab === 'pinpoint'
-                ? 'bg-zinc-900 text-white border-zinc-850'
-                : 'bg-black/35 border-transparent hover:border-zinc-850 text-zinc-500 hover:text-zinc-300'
-            }`}
-          >
-            <Dna className="w-3 h-3" />
-            <span>Slayer // Pinpoint</span>
-          </button>
-
-          {/* 3. DISCOVERY */}
-          <button
-            onClick={() => setActiveTab('discovery')}
-            className={`px-3.5 py-1.5 text-[10px] font-bold cursor-pointer transition-all border uppercase flex items-center gap-1.5 rounded-xs ${
-              activeTab === 'discovery'
-                ? 'bg-zinc-900 text-white border-zinc-850'
-                : 'bg-black/35 border-transparent hover:border-zinc-850 text-zinc-500 hover:text-zinc-300'
-            }`}
-          >
-            <Compass className="w-3 h-3" />
-            <span>Slayer // Discovery</span>
-          </button>
-
-          {/* 4. TRADE ARCHIVE */}
-          <button
-            onClick={() => setActiveTab('auditor')}
-            className={`px-3.5 py-1.5 text-[10px] font-bold cursor-pointer transition-all border uppercase flex items-center gap-1.5 rounded-xs ${
-              activeTab === 'auditor'
-                ? 'bg-zinc-900 text-white border-zinc-850'
-                : 'bg-black/35 border-transparent hover:border-zinc-850 text-zinc-500 hover:text-zinc-300'
-            }`}
-          >
-            <Database className="w-3 h-3" />
-            <span>Trust Archive</span>
-          </button>
-        </div>
-
-        {/* Quick config settings dropdowns for immediate workspace access */}
-        <div className="flex items-center gap-4 text-xs font-mono">
-          <div className="flex items-center gap-2 select-none">
-            <span className="text-[9px] text-zinc-550 uppercase">INDEX</span>
-            <select
-              value={selectedAsset.ticker}
-              onChange={(e) => {
-                const targetAsset = ASSET_LIST.find(a => a.ticker === e.target.value);
-                if (targetAsset) {
-                  setSelectedAsset(targetAsset);
-                }
-              }}
-              className="bg-black border border-zinc-850 text-[10.5px] py-1 px-2 text-zinc-300 rounded-xs focus:outline-none focus:border-zinc-700 cursor-pointer"
-            >
-              {ASSET_LIST.map(a => (
-                <option key={a.ticker} value={a.ticker}>{a.ticker}</option>
-              ))}
-            </select>
-            <select
-              value={selectedTimeframe}
-              onChange={(e) => setSelectedTimeframe(e.target.value as any)}
-              className="bg-black border border-zinc-850 text-[10.5px] py-1 px-2 text-zinc-300 rounded-xs focus:outline-none focus:border-zinc-700 cursor-pointer"
-            >
-              <option value="5m">5m</option>
-              <option value="15m">15m</option>
-              <option value="1h">1h</option>
-              <option value="4h">4h</option>
-              <option value="1d">1d</option>
-            </select>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main workspace frame */}
-      <main className="flex-1 p-4 md:p-6 flex flex-col gap-6 max-w-7xl w-full mx-auto justify-start">
+ 
+       {/* Main workspace frame */}
+       <main className="flex-1 p-4 md:p-6 flex flex-col gap-6 w-full max-w-full justify-start">
         {/* TAB 1: HOME */}
         {activeTab === 'home' && (
           <div className="animate-fadeIn">
@@ -360,8 +446,8 @@ export default function App() {
               bestOpportunity={bestOpportunity}
               topSub10Calls={topSub10Calls}
               topSub10Puts={topSub10Puts}
-              onSelectOpportunity={(asset, type) => {
-                handleSelectOpportunity(asset, type);
+              onSelectOpportunity={(asset, type, strike) => {
+                handleSelectOpportunity(asset, type, strike);
               }}
               renderTerminalWorkspace={() => null}
             />
@@ -370,38 +456,54 @@ export default function App() {
 
         {/* TAB 2: SKYVISION (DECISION ENGINE) */}
         {activeTab === 'skyvision' && (
-          <SkyVisionView />
+          <div className="view-enter">
+            <SkyVisionView />
+          </div>
         )}
 
         {/* TAB 3: PINPOINT AI (MARKET INTELLIGENCE) */}
         {activeTab === 'pinpoint' && (
-          <PinpointAIView />
+          <div className="view-enter border border-zinc-900 bg-[#060607]/80 rounded-md p-1 drop-shadow-2xl">
+            <PinpointAI 
+              selectedAsset={selectedAsset}
+              systemScore={serverState.system_score}
+            />
+          </div>
         )}
 
         {/* TAB 4: DISCOVERY (OPPORTUNITY ENGINE) */}
         {activeTab === 'discovery' && (
-          <DiscoveryView
-            systemScore={serverState.system_score}
-            discovery={serverState.discovery}
-            onSelectContract={(asset, strike, isCall) => {
-              setSelectedAsset(asset);
-              setCustomStrike(strike);
-              setSelectedOptionType(isCall ? 'C' : 'P');
-              setActiveTab('skyvision');
-            }}
-          />
+          <div className="view-enter">
+            <DiscoveryView
+              systemScore={serverState.system_score}
+              discovery={serverState.discovery}
+              onSelectContract={(asset, strike, isCall) => {
+                useContractStore.getState().selectContractAtomically(asset, strike, isCall);
+                setActiveTab('skyvision');
+              }}
+            />
+          </div>
         )}
 
         {/* TAB 5: AUDIT (TRUST ENGINE) */}
         {activeTab === 'auditor' && (
-          <QuantAuditView
-            selectedAsset={selectedAsset}
-            isCall={selectedOptionType === 'C'}
-            systemScore={serverState.system_score}
-            optionPremium={serverState.optionPremiumFloat}
-            trades={serverState.trade_archive}
-            onClearTrades={clearV8Trades}
-          />
+          <div className="view-enter">
+            <QuantAuditView
+              selectedAsset={selectedAsset}
+              isCall={selectedOptionType === 'C'}
+              systemScore={serverState.system_score}
+              optionPremium={serverState.optionPremiumFloat}
+              trades={serverState.trade_archive}
+              onClearTrades={clearV8Trades}
+            />
+          </div>
+        )}
+
+        {/* TAB 6: DEALER FLOW */}
+        {activeTab === 'dealerflow' && (
+          <div className="view-enter">
+            <DealerFlowView />
+          </div>
         )}
       </main>
 

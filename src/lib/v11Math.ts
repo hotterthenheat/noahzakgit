@@ -57,7 +57,14 @@ export function computeNetOptionPnL(
   const slippage = bidAskSpread * 100 * contractsCount;
   
   const netPnL = grossPnL - commissions - slippage;
-  const netReturnPct = (exitOptionPrice - entryOptionPrice - slippage / 100) / (entryOptionPrice + slippage / 100);
+
+  // Calculate per-share net parameters:
+  const commissionPerShare = COMMISSION_PER_CONTRACT / 100;
+  const halfSpread = bidAskSpread / 2;
+  const netEntryPrice = entryOptionPrice + halfSpread + commissionPerShare;
+  const netExitPrice = exitOptionPrice - halfSpread - commissionPerShare;
+
+  const netReturnPct = netEntryPrice > 0 ? (netExitPrice - netEntryPrice) / netEntryPrice : 0;
 
   return {
     grossPnL,
@@ -141,13 +148,16 @@ export function calculateAnalyticGreeks(
     theta = -(spot * nd1 * sigma) / (2 * Math.sqrt(T)) + r * strike * Math.exp(-r * T) * stdNormalCDF(-d2);
   }
 
-  // Cross-sensitivities (Vanna and Charm)
-  const vanna = (nd1 / sigma) * (1 - d1 / (sigma * Math.sqrt(T)));
-  const charm = isCall 
-    ? -nd1 * (r / (sigma * Math.sqrt(T)) - d2 / (2 * T))
-    : -nd1 * (r / (sigma * Math.sqrt(T)) + d2 / (2 * T));
+  // Convert theta to daily (÷365) to represent standard options daily decay rate
+  const dailyTheta = theta / 365;
 
-  return { delta, gamma, vega, theta, vanna, charm };
+  // Cross-sensitivities (Vanna and Charm)
+  // Correct Vanna: nd1 * sqrt(T) * (1 - d1 / (sigma * sqrt(T)))
+  const vanna = nd1 * Math.sqrt(T) * (1 - d1 / (sigma * Math.sqrt(T)));
+  // Correct Charm: put charm equals call charm in dividend-free BSM
+  const charm = -nd1 * (r / (sigma * Math.sqrt(T)) - d2 / (2 * Math.max(0.0001, T)));
+
+  return { delta, gamma, vega, theta: dailyTheta, vanna, charm };
 }
 
 export function calculateWilderRSI(candles: Candle[]): number[] {
@@ -280,23 +290,65 @@ export function computeStructure01(
     return 0.33;
   }
 
-  // Down-legs definition
-  const lastDownLeg = lastH - lastL;
-  const priorDownLeg = prevH - prevL;
-  const shrinkingDownLeg = lastDownLeg < priorDownLeg;
+  // Group all pivots and sort them in chronological order of printing
+  const allPivots: Pivot[] = [];
+  pHighs.forEach(h => allPivots.push(h));
+  pLows.forEach(l => allPivots.push(l));
+  allPivots.sort((a, b) => a.index - b.index);
 
-  if (dir > 0) { // Call
+  // Group into alternating sequence of legs
+  const altPivots: Pivot[] = [];
+  for (const p of allPivots) {
+    if (altPivots.length === 0) {
+      altPivots.push(p);
+    } else {
+      const last = altPivots[altPivots.length - 1];
+      if (last.type !== p.type) {
+        altPivots.push(p);
+      } else {
+        // Keep the more extreme pivot if sequential same-type
+        if (p.type === 'high') {
+          if (p.price > last.price) altPivots[altPivots.length - 1] = p;
+        } else {
+          if (p.price < last.price) altPivots[altPivots.length - 1] = p;
+        }
+      }
+    }
+  }
+
+  // Verify that we have alternating pivots to form structural legs
+  let lastLegSize = lastH - lastL;
+  let priorLegSize = prevH - prevL;
+  let shrinkingLeg = Math.abs(lastLegSize) < Math.abs(priorLegSize);
+
+  if (altPivots.length >= 3) {
+    const leg1_end = altPivots[altPivots.length - 1];
+    const leg1_start = altPivots[altPivots.length - 2];
+    const leg2_start = altPivots[altPivots.length - 3];
+    lastLegSize = leg1_end.price - leg1_start.price;
+    priorLegSize = leg1_start.price - leg2_start.price;
+    shrinkingLeg = Math.abs(lastLegSize) < Math.abs(priorLegSize);
+  }
+
+  if (dir > 0) { // Bullish up-structure
     const HH = lastH > prevH;
     const HL = lastL > prevL;
-    if (HH && HL && shrinkingDownLeg) return 1.00;
+    // Check if the last parsed alternating leg was a shrinking pullback (downward leg)
+    const activePulldown = altPivots.length >= 2 && altPivots[altPivots.length - 1].type === 'low';
+    const hasShrinkingPullback = activePulldown && shrinkingLeg;
+    
+    if (HH && HL && hasShrinkingPullback) return 1.00;
     if (HH || HL) return 0.66;
     if (lastL < prevL && lastH < prevH) return 0.00;
     return 0.33;
-  } else { // Put
+  } else { // Bearish down-structure
     const LH = lastH < prevH;
     const LL = lastL < prevL;
-    const shrinkingUpLeg = Math.abs(lastDownLeg) < Math.abs(priorDownLeg);
-    if (LH && LL && shrinkingUpLeg) return 1.00;
+    // Check if the last parsed alternating leg was a shrinking corrective up-leg (upward leg)
+    const activePullup = altPivots.length >= 2 && altPivots[altPivots.length - 1].type === 'high';
+    const hasShrinkingPullup = activePullup && shrinkingLeg;
+
+    if (LH && LL && hasShrinkingPullup) return 1.00;
     if (LH || LL) return 0.66;
     if (lastL > prevL && lastH > prevH) return 0.00;
     return 0.33;
@@ -354,10 +406,10 @@ export function calculateSystemScoreFromCandles(
   const rsiSlope = dir * (currentRSI - rsi_5);
   const momVel = dir * (last.close - close_10) / currentATR;
 
-  // 3. RVOL
+  // 3. RVOL (excludes current, unfinished tick candle n-1 from baseline)
   let rvolSum = 0;
-  const rvolLookback = Math.min(20, n);
-  for (let i = 1; i <= rvolLookback; i++) {
+  const rvolLookback = Math.min(20, n - 1);
+  for (let i = 2; i <= rvolLookback + 1; i++) {
     rvolSum += candles[n - i] ? candles[n - i].volume : 0;
   }
   const meanVol = rvolSum / (rvolLookback || 1);
@@ -470,6 +522,25 @@ export interface DealerPosEngineResult {
   gexStrikes: { strike: number; gex: number }[];
   expectedMovePct: number;
 }
+function quickGamma(S: number, K: number, dte: number, iv: number): number {
+  const T = Math.max(0.0001, dte / 365);
+  const sigma = Math.max(0.01, iv);
+  const d1 = (Math.log(S / K) + (0.05 + (sigma * sigma) / 2) * T) / (sigma * Math.sqrt(T));
+  return stdNormalPDF(d1) / (S * sigma * Math.sqrt(T));
+}
+
+function totalGammaAtSpot(S: number, chain: ChainContract[], dte = 1): number {
+  let sumGex = 0;
+  chain.forEach(c => {
+    // Standard dealer convention: calls positive, puts negative GEX contribution
+    const sign = c.type === 'call' ? 1 : -1;
+    const g = quickGamma(S, c.strike, dte, c.iv);
+    // GEX = gamma * OI * 100 * S * S * 0.01 * sign
+    const gex = g * c.openInterest * 100 * (S * S) * 0.01 * sign;
+    sumGex += gex;
+  });
+  return sumGex;
+}
 
 export function computeDealerInventory(
   chain: ChainContract[],
@@ -492,11 +563,12 @@ export function computeDealerInventory(
 
   // Walk and aggregate strikes within +/- 10 around spot window
   chain.forEach(c => {
-    // sign: -1 for calls, +1 for puts
-    const sign = c.type === 'call' ? -1 : 1;
+    // sign: +1 for calls, -1 for puts
+    const sign = c.type === 'call' ? 1 : -1;
     
     const GEX_strike = c.gamma * c.openInterest * 100 * (spot * spot) * 0.01 * sign;
-    const DEX_strike = c.delta * c.openInterest * 100 * sign;
+    // Delta exposure matches the long call (+1) / short put (-1) inventory position sign.
+    const DEX_strike = c.delta * c.openInterest * 100 * spot * sign;
     const VEX_strike = c.vanna * c.openInterest * 100 * sign;
     const Charm_strike = c.charm * c.openInterest * 100 * sign;
 
@@ -513,33 +585,27 @@ export function computeDealerInventory(
     gexPerStrike[c.strike] = (gexPerStrike[c.strike] || 0) + GEX_strike;
   });
 
-  // Linear Interpolation for Gamma Flip (Part 3.4)
-  const sortedStrikes = Object.keys(gexPerStrike)
-    .map(Number)
-    .sort((a, b) => a - b);
-  
+  // Mathematically correct grid search solver for Gamma Flip (S*) crossing level
   let gammaFlip = spot * 0.995; // default fallback
-  let crossed = false;
+  const gridPoints: { S: number; gex: number }[] = [];
+  const minSpot = spot * 0.85;
+  const maxSpot = spot * 1.15;
+  const intervals = 60;
+  for (let i = 0; i <= intervals; i++) {
+    const S = minSpot + (i / intervals) * (maxSpot - minSpot);
+    const gex = totalGammaAtSpot(S, chain, dte);
+    gridPoints.push({ S, gex });
+  }
 
-  // Walk cumulative GEX
-  let cumGexBefore = 0;
-  for (let i = 0; i < sortedStrikes.length - 1; i++) {
-    const s_a = sortedStrikes[i];
-    const s_b = sortedStrikes[i+1];
-    
-    const gex_a = gexPerStrike[s_a];
-    const gex_b = gexPerStrike[s_b];
-
-    const cumGexAfter = cumGexBefore + gex_a;
-    const nextCum = cumGexAfter + gex_b;
-
-    if (Math.sign(cumGexAfter) !== Math.sign(nextCum) && Math.sign(cumGexAfter) !== 0) {
-      const frac = Math.abs(cumGexAfter) / Math.abs(nextCum - cumGexAfter || 1);
-      gammaFlip = s_a + frac * (s_b - s_a);
-      crossed = true;
+  // Find where the total net GEX crosses 0
+  for (let i = 0; i < gridPoints.length - 1; i++) {
+    const ptA = gridPoints[i];
+    const ptB = gridPoints[i + 1];
+    if (Math.sign(ptA.gex) !== Math.sign(ptB.gex) && ptA.gex !== 0) {
+      const t = -ptA.gex / (ptB.gex - ptA.gex);
+      gammaFlip = ptA.S + t * (ptB.S - ptA.S);
       break;
     }
-    cumGexBefore = cumGexAfter;
   }
 
   // Find walls - select the strike with the maximum absolute Gamma Exposure (GEX)
@@ -549,7 +615,7 @@ export function computeDealerInventory(
   let maxPutGexAbs = -1;
 
   chain.forEach(c => {
-    const sign = c.type === 'call' ? -1 : 1;
+    const sign = c.type === 'call' ? 1 : -1;
     const GEX_strike = c.gamma * c.openInterest * 100 * (spot * spot) * 0.01 * sign;
     const absGex = Math.abs(GEX_strike);
     if (c.type === 'call' && absGex > maxCallGexAbs) {
@@ -572,9 +638,9 @@ export function computeDealerInventory(
   const DSI = w1 * dir * e_GEX + w2 * dir * e_DEX + w3 * dir * e_VEX;
   const dealer01 = Math.min(1, Math.max(0, 0.5 * (DSI + 1)));
 
-  // Expected move calculation (§3.7)
+  // Expected move calculation (§3.7) - returns as fractional rate to prevent double scaling
   const atmIV = chain.length > 0 ? chain[Math.floor(chain.length / 2)].iv : 0.15;
-  const expectedMovePct = atmIV * Math.sqrt(dte / 365) * 100;
+  const expectedMovePct = atmIV * Math.sqrt(dte / 365);
 
   return {
     netGex,
@@ -1170,15 +1236,18 @@ export function calculateV11Metrics(
   isCall: boolean,
   systemScore: SystemScore,
   optionPremiumFloat: number,
-  optionStrike?: number
+  optionStrike?: number,
+  liveChain?: ChainContract[],
+  liveSpot?: number
 ): V11MathResult {
   const dir = isCall ? 1 : -1;
-  const step = asset.defaultPrice > 1000 ? 100 : asset.defaultPrice > 150 ? 5 : 1;
-  const determinedStrike = optionStrike || Math.round(asset.defaultPrice / step) * step + (isCall ? step : -step);
+  const spotUsed = liveSpot || asset.defaultPrice;
+  const step = spotUsed > 1000 ? 100 : spotUsed > 150 ? 5 : 1;
+  const determinedStrike = optionStrike || Math.round(spotUsed / step) * step + (isCall ? step : -step);
 
-  // Generate deterministic mock options chain with specified strikes
-  const mockChain = generateMockOptionsChain(asset.defaultPrice, asset.volatility);
-  const dealerRes = computeDealerInventory(mockChain, asset.defaultPrice, dir);
+  // Use the live options chain if provided, otherwise generate a mathematically conforming mock chain
+  const actualChain = liveChain || generateMockOptionsChain(spotUsed, asset.volatility);
+  const dealerRes = computeDealerInventory(actualChain, spotUsed, dir);
 
   // 1. Data Integrity Score
   const reasons: string[] = [];
@@ -1299,10 +1368,10 @@ export function calculateV11Metrics(
       { label: '14DTE', iv: asset.volatility * 0.97 },
       { label: '30DTE', iv: asset.volatility * 0.94 }
     ],
-    skewCurve: mockChain.slice(0, 5).map(c => ({
+    skewCurve: actualChain.slice(0, 5).map(c => ({
       strike: c.strike,
       iv: c.iv,
-      label: c.strike < asset.defaultPrice ? 'OTM PUT' : 'OTM CALL'
+      label: c.strike < spotUsed ? 'OTM PUT' : 'OTM CALL'
     })),
     smileSymmetricFactor: 0.12,
     ivRank: Math.round(35 + asset.volatility * 100),
@@ -1349,7 +1418,7 @@ export function calculateV11Metrics(
   const targets: TargetV11[] = [
     {
       label: 'TARGET 1',
-      price: asset.defaultPrice * (isCall ? 1 + t1_pct * 0.15 : 1 - t1_pct * 0.15),
+      price: spotUsed * (isCall ? 1 + dealerRes.expectedMovePct * 0.35 : 1 - dealerRes.expectedMovePct * 0.35),
       optionValue: optionPremiumFloat * (1 + t1_pct),
       probability: Number((t1_wil[0] * 100).toFixed(1)),
       expectedTimeMinutes: 14,
@@ -1360,7 +1429,7 @@ export function calculateV11Metrics(
     },
     {
       label: 'TARGET 2',
-      price: asset.defaultPrice * (isCall ? 1 + t2_pct * 0.15 : 1 - t2_pct * 0.15),
+      price: spotUsed * (isCall ? 1 + dealerRes.expectedMovePct * 0.70 : 1 - dealerRes.expectedMovePct * 0.70),
       optionValue: optionPremiumFloat * (1 + t2_pct),
       probability: Number((t2_wil[0] * 100).toFixed(1)),
       expectedTimeMinutes: 28,
@@ -1371,7 +1440,7 @@ export function calculateV11Metrics(
     },
     {
       label: 'TARGET 3',
-      price: asset.defaultPrice * (isCall ? 1 + t3_pct * 0.15 : 1 - t3_pct * 0.15),
+      price: spotUsed * (isCall ? 1 + dealerRes.expectedMovePct * 1.20 : 1 - dealerRes.expectedMovePct * 1.20),
       optionValue: optionPremiumFloat * (1 + t3_pct),
       probability: Number((t3_wil[0] * 100).toFixed(1)),
       expectedTimeMinutes: 45,
@@ -1382,7 +1451,7 @@ export function calculateV11Metrics(
     },
     {
       label: 'STRETCH TARGET',
-      price: asset.defaultPrice * (isCall ? 1 + stretch_pct * 0.15 : 1 - stretch_pct * 0.15),
+      price: spotUsed * (isCall ? 1 + dealerRes.expectedMovePct * 2.00 : 1 - dealerRes.expectedMovePct * 2.00),
       optionValue: optionPremiumFloat * (1 + stretch_pct),
       probability: Number((stretch_wil[0] * 100).toFixed(1)),
       expectedTimeMinutes: 95,
@@ -1429,7 +1498,7 @@ export function calculateV11Metrics(
   const xgbAdjustPct = Number(((systemScore.total - 75) * 0.08).toFixed(2));
 
   // Compute option pricing using real Black-Scholes metrics for fair value valuation
-  const optionModelPrice = computeBlackScholesPrice(asset.defaultPrice, determinedStrike, 1, asset.volatility, isCall);
+  const optionModelPrice = computeBlackScholesPrice(spotUsed, determinedStrike, 1, asset.volatility, isCall);
   const premiumSurchargePct = Number((((optionPremiumFloat - optionModelPrice) / (optionModelPrice || 1)) * 100).toFixed(2));
   
   let valuationLabel: 'UNDERVALUED' | 'FAIRLY_PRICED' | 'OVERVALUED' = 'FAIRLY_PRICED';
@@ -1487,9 +1556,12 @@ export function calculateV10Metrics(
   asset: AssetInfo,
   isCall: boolean,
   systemScore: SystemScore,
-  optionPremiumFloat: number
+  optionPremiumFloat: number,
+  optionStrike?: number,
+  liveChain?: ChainContract[],
+  liveSpot?: number
 ) {
-  const v11 = calculateV11Metrics(asset, isCall, systemScore, optionPremiumFloat);
+  const v11 = calculateV11Metrics(asset, isCall, systemScore, optionPremiumFloat, optionStrike, liveChain, liveSpot);
   
   // Dynamic offset decomposition to prevent credibility gaps
   const baseWin = Number(v11.baseWinRate.toFixed(1));

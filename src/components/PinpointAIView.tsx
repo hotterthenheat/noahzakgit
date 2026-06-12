@@ -7,6 +7,7 @@ export function PinpointAIView() {
   const activeContract = useContractStore(s => s.activeContract);
   const selectedAsset = useContractStore(s => s.selectedAsset);
   const score = useContractStore(s => s.serverState?.system_score);
+  const serverState = useContractStore(s => s.serverState);
   const marketState = useContractStore(s => s.marketState);
 
   // Derive pinpoint map parameters
@@ -30,6 +31,21 @@ export function PinpointAIView() {
       { strike: center - step * 2, dollars: 9400000000, strength: 94, type: 'support' }
     ];
   }, [rawLevels, selectedAsset]);
+
+  const liveMetrics = useMemo(() => {
+    const step = spotPrice > 1000 ? 100 : spotPrice > 150 ? 5 : 1;
+    const center = Math.round(spotPrice / step) * step;
+    return {
+      bias: serverState?.deep_intelligence?.dealer_metrics?.bias || 'LONG GAMMA',
+      volState: serverState?.deep_intelligence?.dealer_metrics?.volState || 'COMPRESSED',
+      magnetStrike: serverState?.deep_intelligence?.dealer_metrics?.magnetStrike || center,
+      flipLevel: serverState?.deep_intelligence?.dealer_metrics?.flipLevel || (center - step),
+      callWall: serverState?.deep_intelligence?.dealer_metrics?.callWall || (center + step * 2),
+      putWall: serverState?.deep_intelligence?.dealer_metrics?.putWall || (center - step * 2),
+      dealerScore: serverState?.deep_intelligence?.dealer_metrics?.dealerScore || 84,
+      expectedMovePct: serverState?.expected_move?.pct || '±1.1%'
+    };
+  }, [serverState, spotPrice]);
 
   // Determine standard bounds for absolute Y placement
   const { maxStrike, minStrike, strikeRange } = useMemo(() => {
@@ -113,10 +129,66 @@ export function PinpointAIView() {
         </div>
       </div>
 
+      {/* ENHANCED REAL-TIME INSTITUTIONAL STATE PANEL */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-2.5 bg-[#050505] border border-zinc-900 p-3 rounded-sm mb-4 text-left select-none text-[10px]">
+        <div className="border border-zinc-900/60 p-2.5 rounded bg-zinc-950/40">
+          <span className="text-zinc-500 uppercase font-black block text-[7px] tracking-wider mb-0.5">Dealer Bias</span>
+          <span className={`font-black uppercase text-[11px] ${liveMetrics.bias === 'LONG GAMMA' ? 'text-[#00ff88]' : 'text-rose-400'} flex items-center gap-1.5`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${liveMetrics.bias === 'LONG GAMMA' ? 'bg-[#00ff88]' : 'bg-rose-400'} animate-pulse`} />
+            {liveMetrics.bias}
+          </span>
+        </div>
+        <div className="border border-zinc-900/60 p-2.5 rounded bg-zinc-950/40">
+          <span className="text-zinc-500 uppercase font-black block text-[7px] tracking-wider mb-0.5">Expected Move</span>
+          <span className="text-[#ff4545] font-black text-[11px] uppercase">
+            {liveMetrics.expectedMovePct}
+          </span>
+        </div>
+        <div className="border border-zinc-900/60 p-2.5 rounded bg-zinc-950/40">
+          <span className="text-zinc-500 uppercase font-black block text-[7px] tracking-wider mb-0.5">Volatility State</span>
+          <span className="text-zinc-200 font-extrabold text-[11px] uppercase">
+            {liveMetrics.volState}
+          </span>
+        </div>
+        <div className="border border-zinc-900/60 p-2.5 rounded bg-zinc-950/40">
+          <span className="text-zinc-500 uppercase font-black block text-[7px] tracking-wider mb-0.5">Magnet Strike</span>
+          <span className="text-[#4f8cff] font-extrabold text-[11px] font-mono">
+            {Number(liveMetrics.magnetStrike ?? 0).toFixed(2)}
+          </span>
+        </div>
+        <div className="border border-zinc-900/60 p-2.5 rounded bg-zinc-950/40">
+          <span className="text-zinc-500 uppercase font-black block text-[7px] tracking-wider mb-0.5">Call Wall</span>
+          <span className="text-white font-extrabold text-[11px] font-mono">
+            {Number(liveMetrics.callWall ?? 0).toFixed(2)}
+          </span>
+        </div>
+        <div className="border border-zinc-900/60 p-2.5 rounded bg-zinc-950/40">
+          <span className="text-zinc-500 uppercase font-black block text-[7px] tracking-wider mb-0.5">Put Wall</span>
+          <span className="text-white font-extrabold text-[11px] font-mono">
+            {Number(liveMetrics.putWall ?? 0).toFixed(2)}
+          </span>
+        </div>
+        <div className="border border-zinc-900/60 p-2.5 rounded bg-zinc-950/40">
+          <span className="text-zinc-500 uppercase font-black block text-[7px] tracking-wider mb-0.5">Gamma Flip</span>
+          <span className="text-rose-400 font-extrabold text-[11px] font-mono">
+            {Number(liveMetrics.flipLevel ?? 0).toFixed(2)}
+          </span>
+        </div>
+        <div className="border border-zinc-900/60 p-2.5 rounded bg-zinc-950/40 col-span-2 flex flex-col justify-between">
+          <div className="flex justify-between items-center text-[7.5px] font-bold">
+            <span className="text-zinc-500 uppercase tracking-wider">Dealer Score</span>
+            <span className="text-[#4f8cff] font-black">{liveMetrics.dealerScore}/100</span>
+          </div>
+          <div className="w-full bg-black h-1 rounded-full overflow-hidden mt-1.5">
+            <div className="bg-[#4f8cff] h-full" style={{ width: `${liveMetrics.dealerScore}%` }} />
+          </div>
+        </div>
+      </div>
+
       {/* REQUIRED LAYOUT GRAPH ENGINE
           display:grid; grid-template-columns: 20% 60% 20%; height:100vh; */}
       <div 
-        className="w-full max-w-7xl mx-auto flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 h-full"
+        className="w-full max-w-full flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 h-full"
         style={{ minHeight: '520px' }}
       >
         
@@ -130,25 +202,36 @@ export function PinpointAIView() {
               </h3>
             </div>
             
-            <p className="text-[10px] leading-relaxed text-zinc-400 font-sans">
-              The {selectedAsset.ticker} spot price is currently tracking inside an institutional hedging zone. Overhead options exposure reveals a major resistance barrier centering on OTM calls. 
-            </p>
+            {serverState?.deep_intelligence?.commentary && serverState.deep_intelligence.commentary.length > 0 ? (
+              <div className="space-y-2.5 font-sans text-[10px] leading-relaxed text-zinc-400">
+                {serverState.deep_intelligence.commentary.map((point: string, i: number) => (
+                  <div key={i} className="flex gap-2 items-start bg-zinc-950/40 p-2 rounded border border-zinc-900/40">
+                    <span className="text-[#4f8cff] shrink-0 mt-0.5">●</span>
+                    <p className="leading-normal">{point}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[10px] leading-relaxed text-zinc-400 font-sans">
+                The {selectedAsset.ticker} spot price is currently tracking inside an institutional hedging zone. Overhead options exposure reveals a major resistance barrier centering on OTM calls. 
+              </p>
+            )}
             
             <div className="space-y-2.5 pt-2 text-[10px] font-mono">
               <div className="flex justify-between items-center pb-2 border-b border-zinc-950">
                 <span className="text-zinc-500 uppercase text-[8.5px]">Control Regime</span>
                 <span className="text-[#00ff88] font-bold uppercase bg-[#00ff88]/5 px-2 py-0.5 border border-[#00ff88]/10 rounded-xs">
-                  {score?.rsiCascade >= 6 ? 'Buyers' : 'Sellers'}
+                  {liveMetrics.bias === 'LONG GAMMA' ? 'Buyers' : 'Sellers'}
                 </span>
               </div>
               <div className="flex justify-between items-center pb-2 border-b border-zinc-950">
                 <span className="text-zinc-500 uppercase text-[8.5px]">Expected Range</span>
-                <span className="text-zinc-300 font-bold">±{activeContract?.expectedMove || 1.1}%</span>
+                <span className="text-zinc-300 font-bold">{liveMetrics.expectedMovePct}</span>
               </div>
               <div className="flex justify-between items-center pb-2 border-b border-zinc-950">
                 <span className="text-zinc-500 uppercase text-[8.5px]">Gamma State</span>
                 <span className="text-zinc-300 font-bold truncate max-w-[120px]">
-                  {score?.liquiditySweep >= 5 ? 'Stable Positive Gamma' : 'Negative Gamma Flip'}
+                  {liveMetrics.bias === 'LONG GAMMA' ? 'Stable Positive Gamma' : 'Negative Gamma Flip'}
                 </span>
               </div>
             </div>
@@ -236,7 +319,7 @@ export function PinpointAIView() {
                 {/* Floating glider banner */}
                 <div className="absolute right-0 -top-8 bg-white text-black px-2.5 py-1 rounded-xs font-sans font-black text-[9.5px] uppercase shadow-2xl flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-[#00ff88] rounded-full animate-ping" />
-                  <span>SPOT PRICE: {spotPrice.toFixed(2)}</span>
+                  <span>SPOT PRICE: {(spotPrice ?? 0).toFixed(2)}</span>
                 </div>
               </div>
             </motion.div>
@@ -280,15 +363,23 @@ export function PinpointAIView() {
               <div className="space-y-2 pt-1">
                 <div className="flex justify-between items-center pb-1.5 border-b border-zinc-950">
                   <span className="text-zinc-500 text-[8.5px] uppercase">G Greeks</span>
-                  <span className="text-zinc-300 font-bold font-mono">DAMPENED</span>
+                  <span className={`font-bold font-mono ${liveMetrics.volState === 'EXPANDED' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                    {liveMetrics.volState === 'EXPANDED' ? 'EXPANDING' : 'DAMPENED'}
+                  </span>
                 </div>
-                <div className="flex justify-between items-center pb-1.5 border-b border-zinc-950">
+                <div className="flex justify-between items-center pb-1.5 border-b border-[#0f0f12]">
                   <span className="text-zinc-500 text-[8.5px] uppercase">Market Flow Rate</span>
-                  <span className="text-zinc-300 font-bold">14.2 / s</span>
+                  <span className="text-zinc-300 font-bold text-xs">
+                    {serverState?.metricsV11?.flow?.flowRate 
+                      ? `${serverState.metricsV11.flow.flowRate.toFixed(1)} / s` 
+                      : '14.2 / s'}
+                  </span>
                 </div>
-                <div className="flex justify-between items-center pb-1.5 border-b border-zinc-950">
-                  <span className="text-zinc-500 text-[8.5px] uppercase">Heuristic Moat</span>
-                  <span className="text-indigo-400 font-bold">STABLE ({activeContract?.health || 88})</span>
+                <div className="flex justify-between items-center pb-1.5 border-b border-[#0f0f12]">
+                  <span className="text-zinc-500 text-[8.5px] uppercase">Decision Score</span>
+                  <span className="text-[#4f8cff] font-bold">
+                    {serverState?.trade_health || activeContract?.health || 88}/100
+                  </span>
                 </div>
               </div>
             </div>

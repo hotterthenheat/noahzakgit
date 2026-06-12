@@ -76,7 +76,7 @@ export function SmsDispatcherPanel({
         setIsDispatching(false);
 
         // Record the actual sent alert details to display on our mock mobile device screen!
-        const alertMsg = `[SLAYER.TRADE ALERT] Best Contract detected: ${activeContractTicker} | Buy Zone: $${metrics.entryZoneMin.toFixed(2)}-S${metrics.entryZoneMax.toFixed(2)} | Current: $${optionPremiumFloat.toFixed(2)} | Bayesian Win Prob: ${metrics.posteriorWinRate}% | Expected Value (EV): +${metrics.expectedValuePct.toFixed(1)}% | GEX Support: supportive. Track at slayer.trade.`;
+        const alertMsg = `[SLAYER.TRADE ALERT] Best Contract detected: ${activeContractTicker} | Buy Zone: $${(metrics.entryZoneMin ?? 0).toFixed(2)}-$${(metrics.entryZoneMax ?? 0).toFixed(2)} | Current: $${(optionPremiumFloat ?? 0).toFixed(2)} | Bayesian Win Prob: ${metrics.posteriorWinRate}% | Expected Value (EV): +${(metrics.expectedValuePct ?? 0).toFixed(1)}% | GEX Support: supportive. Track at slayer.trade.`;
         setSentAlerts((prev) => [
           {
             phone: phoneNumber,

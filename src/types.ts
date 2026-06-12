@@ -191,3 +191,196 @@ export interface SystemScore {
   premiumDiscount: number;
   momentumAcceleration: number;
 }
+
+export interface GexStrikeDetail {
+  strike: number;
+  callGex: number;
+  putGex: number;
+  netGex: number;
+  callOi: number;
+  putOi: number;
+  callVolume: number;
+  putVolume: number;
+}
+
+export interface GexProfileData {
+  spot?: number;
+  netGex?: number;
+  callWall?: number;
+  putWall?: number;
+  gammaFlip?: number;
+  magnet?: number;
+  totalCallOi?: number;
+  totalPutOi?: number;
+  callPutOiRatio?: string;
+  expectedMovePct?: number;
+  feed?: string;
+  strikes?: GexStrikeDetail[];
+}
+
+export interface DealerComponent {
+  name: string;
+  detail: string;
+  value: number;
+  weight: number;
+}
+
+export interface DealerFlowData {
+  bias?: string;
+  pressure?: number;
+  headline?: string;
+  components?: DealerComponent[];
+}
+
+export interface VolatilityData {
+  energy?: number;
+  atrPercentile?: number | string;
+  atrSlope?: number;
+  regime?: string;
+  squeeze?: boolean;
+}
+
+export interface StructureEvent {
+  id: string;
+  kind: string;
+  direction: string;
+  price: number;
+}
+
+export interface MarketStructure {
+  trend?: string;
+  pricePosition?: string;
+  events?: StructureEvent[];
+}
+
+export interface DisplacementZone {
+  id: string;
+  type: string;
+  bottom: number;
+  top: number;
+  state: string;
+  atrMultiple: number;
+  bodyDominance: number;
+  score: number;
+}
+
+export interface DisplacementData {
+  volatility?: VolatilityData;
+  structure?: MarketStructure;
+  zones?: DisplacementZone[];
+  fvgs?: FairValueGap[];
+  sweeps?: LiquidityEvent[];
+}
+
+export interface ExpectedMoveData {
+  pct?: string;
+  [key: string]: any;
+}
+
+export interface PinpointLevel {
+  strike: number;
+  gexDollars?: number;
+  strength: number;
+  label?: string;
+  isPutWall?: boolean;
+  isCallWall?: boolean;
+}
+
+export interface PinpointMapData {
+  levels?: PinpointLevel[];
+  spot_price?: number;
+  step?: number;
+}
+
+export interface ProvenanceInputs {
+  option_type?: 'C' | 'P';
+  underlying_price?: number;
+  [key: string]: any;
+}
+
+export interface ProvenanceData {
+  inputs?: ProvenanceInputs;
+  audit_id?: string;
+  [key: string]: any;
+}
+
+export interface DealerMetricsData {
+  bias?: string;
+  volState?: string;
+  magnetStrike?: number;
+  flipLevel?: number;
+  callWall?: number;
+  putWall?: number;
+  dealerScore?: number;
+}
+
+export interface StrikeMetricsData {
+  gammaContribution?: string;
+  totalOi?: number;
+  netExposure?: string;
+  callPutRatio?: string;
+  hedgeSensitivity?: string;
+  dealerExposure?: string;
+  deltaContribution?: string;
+}
+
+export interface ImpactContract {
+  rank: number;
+  contract: string;
+  expiration: string;
+  oi: number;
+  volume: number;
+  deltaNotional: string;
+  gammaContribution: string;
+}
+
+export interface WhaleDirectionData {
+  contract: string;
+  size: string;
+}
+
+export interface WhaleDetectionData {
+  bullish?: WhaleDirectionData;
+  bearish?: WhaleDirectionData;
+  largestCall?: string;
+  largestPut?: string;
+}
+
+export interface FlowFeedItem {
+  id: string;
+  type: string;
+  contract: string;
+  desc: string;
+}
+
+export interface DeepIntelligenceData {
+  dealer_metrics?: DealerMetricsData;
+  strike_metrics?: StrikeMetricsData;
+  commentary?: string[];
+  impact_contracts?: ImpactContract[];
+  whale_detection?: WhaleDetectionData;
+  flow_feed?: FlowFeedItem[];
+}
+
+export interface ServerStatePayload {
+  [key: string]: any;
+  contract: string;
+  recommendation: 'ENTER' | 'HOLD' | 'REDUCE' | 'EXIT';
+  optionPremiumFloat: number;
+  optionStrike: number;
+  data_source: string;
+  api_status_message?: string;
+  trade_health: number;
+  expected_move?: ExpectedMoveData;
+  targets?: any[];
+  candles?: Candle[];
+  trade_archive?: V8TradeRecord[];
+  gex_profile?: GexProfileData;
+  dealer_flow?: DealerFlowData;
+  displacement?: DisplacementData;
+  candle_feed?: string;
+  pinpoint_map?: PinpointMapData;
+  provenance?: ProvenanceData;
+  deep_intelligence?: DeepIntelligenceData;
+}
+

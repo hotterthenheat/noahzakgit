@@ -172,7 +172,7 @@ export function InteractiveChart({
           position: 'aboveBar',
           color: '#4f8cff',
           shape: 'pin',
-          text: `${tgt.label}: ${tgt.price.toFixed(1)}`
+          text: `${tgt.label}: ${(tgt.price ?? 0).toFixed(1)}`
         });
       });
     }
