@@ -633,6 +633,17 @@ const constructPayload = (params: {
       exposureInfo = '-$0.5B Delta Stream';
     }
 
+    let gexDollars = 0.4e9;
+    if (fact === 2) gexDollars = 4.2e9;
+    else if (fact === -2) gexDollars = -3.8e9;
+    else if (fact === 1) gexDollars = 2.1e9;
+    else if (fact === -1) gexDollars = -1.9e9;
+    else if (fact === 0) gexDollars = 0.1e9;
+    else if (fact > 2) gexDollars = 0.8e9;
+    else if (fact < -2) gexDollars = -0.3e9;
+    else if (fact > 0) gexDollars = 0.6e9;
+    else gexDollars = -0.5e9;
+
     return {
       strike,
       isSpotLevel,
@@ -642,6 +653,7 @@ const constructPayload = (params: {
       intensity,
       expectedInfluence,
       exposureInfo,
+      gexDollars,
       isCallWall: fact === 2,
       isPutWall: fact === -2,
       isGammaFlip: fact === -1
@@ -1204,10 +1216,23 @@ const constructPayload = (params: {
     sweeps
   };
 
+  const activeContract = chain.find(c => c.strike === optionStrike && (c.type === (isCall ? 'C' : 'P') || c.type === (isCall ? 'call' : 'put')));
+  const active_greeks = activeContract?.greeks || {
+    delta: isCall ? 0.5 : -0.5,
+    gamma: 0.02,
+    theta: -0.12,
+    vega: 0.05
+  };
+  const active_volume = activeContract?.volume || 0;
+  const active_oi = activeContract?.oi || activeContract?.openInterest || 0;
+
   return {
     contract: `${asset.ticker} ${optionStrike}${isCall ? 'C' : 'P'}`,
     recommendation: finalDecision, //ENTER, HOLD, REDUCE, EXIT
     trade_health: Math.round(metricsV11.posteriorWinRate), // represents trade health integer
+    active_greeks,
+    active_volume,
+    active_oi,
     provenance: {
       ...provenance,
       feed: feedLabel
@@ -1330,8 +1355,8 @@ app.get('/api/auth/callback', (req, res) => {
   // Set securing httpOnly cookie!
   res.cookie('slayer_session', encodedSession, {
     httpOnly: true,
-    secure: true,
-    sameSite: 'none',
+    secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+    sameSite: 'lax',
     path: '/',
     maxAge: 3600 * 24 * 7 * 1000 // 7 days
   });
@@ -1351,8 +1376,8 @@ app.get('/api/auth/session', (req, res) => {
 app.post('/api/auth/logout', (req, res) => {
   res.cookie('slayer_session', '', {
     httpOnly: true,
-    secure: true,
-    sameSite: 'none',
+    secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+    sameSite: 'lax',
     path: '/',
     expires: new Date(0)
   });

@@ -31,7 +31,7 @@ export function SkyVisionView() {
 
   // Render the preloaded Strikes Chain Centered on Spot but display them as list of OptionCards (Bug #4)
   const strikesList = useMemo(() => {
-    const step = spotPrice > 1000 ? 50 : spotPrice > 150 ? 5 : 1;
+    const step = serverState?.pinpoint_map?.step || (spotPrice > 1000 ? 100 : spotPrice > 150 ? 5 : 1);
     const center = Math.round(spotPrice / step) * step;
     
     // Generate 10 strike rows centered on active Spot Price
@@ -472,23 +472,43 @@ export function SkyVisionView() {
             <div className="grid grid-cols-5 gap-2 text-[10px] font-mono">
               <div>
                 <span className="block text-[8px] text-zinc-600 mb-0.5 tracking-widest">DELTA</span>
-                <span className={`font-bold ${selectedOptionType === 'C' ? 'text-[#00ff88]' : 'text-rose-400'}`}>{selectedOptionType === 'C' ? '0.54' : '-0.46'}</span>
+                <span className={`font-bold ${serverState?.active_greeks?.delta !== undefined ? (serverState.active_greeks.delta >= 0 ? 'text-[#00ff88]' : 'text-rose-400') : (selectedOptionType === 'C' ? 'text-[#00ff88]' : 'text-rose-400')}`}>
+                  {serverState?.active_greeks?.delta !== undefined 
+                    ? serverState.active_greeks.delta.toFixed(3) 
+                    : (selectedOptionType === 'C' ? '0.540' : '-0.460')}
+                </span>
               </div>
               <div>
                 <span className="block text-[8px] text-zinc-600 mb-0.5 tracking-widest">GAMMA</span>
-                <span className="text-white font-bold">{selectedOptionType === 'C' ? '0.024' : '0.028'}</span>
+                <span className="text-white font-bold">
+                  {serverState?.active_greeks?.gamma !== undefined 
+                    ? serverState.active_greeks.gamma.toFixed(4) 
+                    : (selectedOptionType === 'C' ? '0.0240' : '0.0280')}
+                </span>
               </div>
               <div>
                 <span className="block text-[8px] text-zinc-600 mb-0.5 tracking-widest">THETA</span>
-                <span className="text-amber-400 font-bold">{selectedOptionType === 'C' ? '-0.81' : '-0.68'}</span>
+                <span className="text-amber-400 font-bold">
+                  {serverState?.active_greeks?.theta !== undefined 
+                    ? serverState.active_greeks.theta.toFixed(3) 
+                    : (selectedOptionType === 'C' ? '-0.810' : '-0.680')}
+                </span>
               </div>
               <div>
                 <span className="block text-[8px] text-zinc-600 mb-0.5 tracking-widest">VEGA</span>
-                <span className="text-white font-bold">{selectedOptionType === 'C' ? '0.14' : '0.18'}</span>
+                <span className="text-white font-bold">
+                  {serverState?.active_greeks?.vega !== undefined 
+                    ? serverState.active_greeks.vega.toFixed(3) 
+                    : (selectedOptionType === 'C' ? '0.140' : '0.180')}
+                </span>
               </div>
               <div className="border-l border-zinc-900 pl-3">
                 <span className="block text-[8px] text-zinc-600 mb-0.5 tracking-widest">VOLUME</span>
-                <span className="text-white font-bold">{selectedOptionType === 'C' ? '14,204' : '22,401'}</span>
+                <span className="text-white font-bold">
+                  {serverState?.active_volume !== undefined 
+                    ? serverState.active_volume.toLocaleString() 
+                    : (selectedOptionType === 'C' ? '14,204' : '22,401')}
+                </span>
               </div>
             </div>
           </div>

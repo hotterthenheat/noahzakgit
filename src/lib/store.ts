@@ -69,22 +69,41 @@ interface ContractStore {
 
 // Global NY/CBOE Market State check function (Bug #8)
 export function getMarketState(currentTime = new Date()): MarketState {
-  const utcHours = currentTime.getUTCHours();
-  const utcMinutes = currentTime.getUTCMinutes();
-  const utcSeconds = currentTime.getUTCSeconds();
-  const dayOfWeek = currentTime.getUTCDay(); // 0 is Sunday, 6 is Saturday
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: false
+  });
 
-  // NY market hours: 14:30 UTC to 21:00 UTC (9:30 AM to 4:00 PM EST)
-  const utcTimeInSeconds = utcHours * 3600 + utcMinutes * 60 + utcSeconds;
-  const marketOpenSeconds = 14 * 3600 + 30 * 60; // 14:30:00
-  const marketCloseSeconds = 21 * 3600; // 21:00:00
+  const parts = formatter.formatToParts(currentTime);
+  const getPart = (type: string) => parseInt(parts.find(p => p.type === type)!.value, 10);
+
+  const year = getPart('year');
+  const month = getPart('month');
+  const day = getPart('day');
+  const hours = getPart('hour');
+  const minutes = getPart('minute');
+  const seconds = getPart('second');
+
+  const nyDate = new Date(year, month - 1, day, hours, minutes, seconds);
+  const dayOfWeek = nyDate.getDay(); // 0 is Sunday, 6 is Saturday
+
+  // NY market hours: 9:30 AM to 4:00 PM Eastern Time
+  const nyTimeInSeconds = hours * 3600 + minutes * 60 + seconds;
+  const marketOpenSeconds = 9 * 3600 + 30 * 60; // 09:30:00
+  const marketCloseSeconds = 16 * 3600; // 16:00:00
 
   const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
   if (isWeekend) {
-    // Open in: Monday 14:30
+    // Open in: Monday 9:30 AM
     const daysToMonday = dayOfWeek === 0 ? 1 : 2;
-    const secondsToOpen = (daysToMonday * 24 * 3600) + (marketOpenSeconds - utcTimeInSeconds);
+    const secondsToOpen = (daysToMonday * 24 * 3600) + (marketOpenSeconds - nyTimeInSeconds);
     return {
       open: false,
       closeIn: '00:00:00',
@@ -92,8 +111,8 @@ export function getMarketState(currentTime = new Date()): MarketState {
     };
   }
 
-  if (utcTimeInSeconds >= marketOpenSeconds && utcTimeInSeconds < marketCloseSeconds) {
-    const secondsToClose = marketCloseSeconds - utcTimeInSeconds;
+  if (nyTimeInSeconds >= marketOpenSeconds && nyTimeInSeconds < marketCloseSeconds) {
+    const secondsToClose = marketCloseSeconds - nyTimeInSeconds;
     return {
       open: true,
       closeIn: formatDuration(secondsToClose),
@@ -101,12 +120,12 @@ export function getMarketState(currentTime = new Date()): MarketState {
     };
   } else {
     let secondsToOpen = 0;
-    if (utcTimeInSeconds < marketOpenSeconds) {
-      secondsToOpen = marketOpenSeconds - utcTimeInSeconds;
+    if (nyTimeInSeconds < marketOpenSeconds) {
+      secondsToOpen = marketOpenSeconds - nyTimeInSeconds;
     } else {
       // after close, opens tomorrow
       const daysToNextOpen = dayOfWeek === 5 ? 3 : 1;
-      secondsToOpen = (daysToNextOpen * 24 * 3600) - (utcTimeInSeconds - marketOpenSeconds);
+      secondsToOpen = (daysToNextOpen * 24 * 3600) - (nyTimeInSeconds - marketOpenSeconds);
     }
     return {
       open: false,
@@ -245,16 +264,25 @@ export const useContractStore = create<ContractStore>((set, get) => ({
     // Pinpoint levels: dollars come straight from the server's per-strike
     // net GEX computation (real chain when live, deterministic mock offline).
     const rawLevels = payload.pinpoint_map?.levels || [];
-    const mappedLevels: PinLevel[] = rawLevels.map((lvl: any) => ({
-      strike: lvl.strike,
-      dollars: Math.abs(Number(lvl.gexDollars) || 0),
-      strength: lvl.strength,
-      type: lvl.label === 'support' || lvl.isPutWall
-        ? 'support'
-        : lvl.label === 'resistance' || lvl.isCallWall
-        ? 'resistance'
-        : 'magnet'
-    }));
+    const mappedLevels: PinLevel[] = rawLevels.map((lvl: any) => {
+      let dollars = Math.abs(Number(lvl.gexDollars) || 0);
+      if (dollars === 0 && lvl.exposureInfo) {
+        const match = lvl.exposureInfo.match(/([+-]?\$[0-9.]+)B/);
+        if (match) {
+          dollars = parseFloat(match[1].replace(/[+$]/g, '')) * 1e9;
+        }
+      }
+      return {
+        strike: lvl.strike,
+        dollars,
+        strength: lvl.strength,
+        type: lvl.label === 'support' || lvl.isPutWall
+          ? 'support'
+          : lvl.label === 'resistance' || lvl.isCallWall
+          ? 'resistance'
+          : 'magnet'
+      };
+    });
 
     const newContractState: ContractState = {
       contract: payload.contract,
@@ -272,12 +300,14 @@ export const useContractStore = create<ContractStore>((set, get) => ({
 
     set((state) => {
       const updatedCache = { ...state.contractCache, [contractKey]: newContractState };
+      const hasActiveTrade = (payload.trade_archive || []).some((t: any) => t.finalOutcome === 'Active');
       return {
         serverState: payload,
         activeContract: newContractState,
         contractCache: updatedCache,
         trades: payload.trade_archive || [],
-        isPositionOpen: payload.recommendation === 'HOLD' || payload.recommendation === 'REDUCE'
+        selectedStrike: state.selectedStrike === null ? payload.optionStrike : state.selectedStrike,
+        isPositionOpen: hasActiveTrade
       };
     });
   },

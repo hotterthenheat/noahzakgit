@@ -5,7 +5,7 @@ import { AssetInfo } from './types';
 
 // Import Workspace Modular Views
 import { SkyVisionView } from './components/SkyVisionView';
-import PinpointAI from './components/PinpointAI';
+import { PinpointAIView } from './components/PinpointAIView';
 import { QuantAuditView } from './components/QuantAuditView';
 import { DiscoveryView } from './components/DiscoveryView';
 import { DealerFlowView } from './components/DealerFlowView';
@@ -464,10 +464,7 @@ export default function App() {
         {/* TAB 3: PINPOINT AI (MARKET INTELLIGENCE) */}
         {activeTab === 'pinpoint' && (
           <div className="view-enter border border-zinc-900 bg-[#060607]/80 rounded-md p-1 drop-shadow-2xl">
-            <PinpointAI 
-              selectedAsset={selectedAsset}
-              systemScore={serverState.system_score}
-            />
+            <PinpointAIView />
           </div>
         )}
 
