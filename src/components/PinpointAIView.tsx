@@ -9,6 +9,8 @@ export function PinpointAIView() {
   const score = useContractStore(s => s.serverState?.system_score);
   const serverState = useContractStore(s => s.serverState);
   const marketState = useContractStore(s => s.marketState);
+  const themeMode = useContractStore(s => s.themeMode);
+  const isLight = themeMode === 'light';
 
   // Derive pinpoint map parameters
   const spotPrice = activeContract?.pinpoint?.spotPrice || selectedAsset.defaultPrice;
@@ -76,7 +78,11 @@ export function PinpointAIView() {
     const opacity = strength / 100;
     
     // Exact requested HEX hex codes
-    const color = type === 'support' ? '#00ff88' : type === 'resistance' ? '#ff4545' : '#4f8cff';
+    const color = type === 'support' 
+      ? '#00ff88' 
+      : type === 'resistance' 
+        ? '#ff4545' 
+        : isLight ? '#1d4ed8' : '#4f8cff';
 
     return (
       <div className="flex items-center gap-4 py-3 border-b border-zinc-900/35 relative group hover:bg-zinc-950/20 px-2 transition-colors">
