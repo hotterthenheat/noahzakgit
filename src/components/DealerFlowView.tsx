@@ -156,7 +156,7 @@ function GexProfileChart({ profile, decimals }: { profile: any; decimals: number
                 {/* Put side */}
                 <div className="relative group/put flex-1 flex justify-end items-center h-full pr-[1px]">
                   <div
-                    className={`h-[11px] rounded-l-[2px] ${isPutWall ? 'bg-rose-405' : 'bg-rose-500/55'} cursor-help`}
+                    className={`h-[11px] rounded-l-[2px] ${isPutWall ? 'bg-rose-500' : 'bg-rose-500/55'} cursor-help`}
                     style={{ width: `${putW}%` }}
                   />
                   
@@ -183,7 +183,7 @@ function GexProfileChart({ profile, decimals }: { profile: any; decimals: number
                 {/* Call side */}
                 <div className="relative group/call flex-1 flex items-center h-full pl-[1px]">
                   <div
-                    className={`h-[11px] rounded-r-[2px] ${isCallWall ? 'bg-emerald-405' : 'bg-emerald-500/55'} cursor-help`}
+                    className={`h-[11px] rounded-r-[2px] ${isCallWall ? 'bg-emerald-500' : 'bg-emerald-500/55'} cursor-help`}
                     style={{ width: `${callW}%` }}
                   />
 

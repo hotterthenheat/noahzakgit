@@ -881,8 +881,14 @@ const constructPayload = (params: {
   let largestCall = isChainLive ? `${asset.ticker} ${optionStrike + (step * 3)}C` : 'N/A (CALCULATED FROM MODEL)';
   let largestPut = isChainLive ? `${asset.ticker} ${optionStrike - (step * 3)}P` : 'N/A (CALCULATED FROM MODEL)';
 
-  const calls = chain.filter((c: any) => c.type === 'C' || c.type === 'call');
-  const puts = chain.filter((c: any) => c.type === 'P' || c.type === 'put');
+  const calls = chain.filter((c: any) => {
+    const t = (c.type || '').toString().toUpperCase();
+    return t === 'C' || t === 'CALL';
+  });
+  const puts = chain.filter((c: any) => {
+    const t = (c.type || '').toString().toUpperCase();
+    return t === 'P' || t === 'PUT';
+  });
 
   const netGex = metricsV11.dealer.netGex;
   const netDex = metricsV11.dealer.netDex;
@@ -1092,13 +1098,14 @@ const constructPayload = (params: {
         putVolume: 0,
       };
     }
-    const sign = (c.type === 'C' || c.type === 'call') ? 1 : -1;
+    const isCallType = (c.type || '').toString().toUpperCase() === 'C' || (c.type || '').toString().toUpperCase() === 'CALL';
+    const sign = isCallType ? 1 : -1;
     const gammaVal = typeof c.gamma === 'number' ? c.gamma : (c.greeks?.gamma || 0.01);
     const oiVal = typeof c.oi === 'number' ? c.oi : (c.openInterest || 0);
     const volVal = typeof c.volume === 'number' ? c.volume : 0;
     const gexAmt = gammaVal * oiVal * 100 * (lastPrice * lastPrice) * 0.01 * sign;
 
-    if (c.type === 'C' || c.type === 'call') {
+    if (isCallType) {
       strikesMap[stk].callGex += gexAmt;
       strikesMap[stk].callOi += oiVal;
       strikesMap[stk].callVolume += volVal;
@@ -1242,7 +1249,12 @@ const constructPayload = (params: {
     sweeps
   };
 
-  const activeContract = chain.find(c => c.strike === optionStrike && (c.type === (isCall ? 'C' : 'P') || c.type === (isCall ? 'call' : 'put')));
+  const activeContract = chain.find(c => {
+    if (c.strike !== optionStrike) return false;
+    const t = (c.type || '').toString().toUpperCase();
+    const isCallType = t === 'C' || t === 'CALL';
+    return isCallType === isCall;
+  });
   const active_greeks = activeContract?.greeks || {
     delta: isCall ? 0.5 : -0.5,
     gamma: 0.02,

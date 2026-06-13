@@ -36,7 +36,8 @@ export function buildGexProfile(
   let netGex = 0, totalCallOi = 0, totalPutOi = 0;
 
   for (const c of chain) {
-    const sign = c.type === 'C' ? 1 : -1;
+    const isCallType = (c.type || '').toString().toUpperCase() === 'C' || (c.type || '').toString().toUpperCase() === 'CALL';
+    const sign = isCallType ? 1 : -1;
     const gex = (c.greeks?.gamma || 0) * c.oi * 100 * spot * spot * 0.01 * sign;
     netGex += gex;
     let row = byStrike.get(c.strike);
@@ -44,7 +45,7 @@ export function buildGexProfile(
       row = { strike: c.strike, callGex: 0, putGex: 0, netGex: 0, callOi: 0, putOi: 0, callVolume: 0, putVolume: 0 };
       byStrike.set(c.strike, row);
     }
-    if (c.type === 'C') { row.callGex += gex; row.callOi += c.oi; row.callVolume += c.volume; totalCallOi += c.oi; }
+    if (isCallType) { row.callGex += gex; row.callOi += c.oi; row.callVolume += c.volume; totalCallOi += c.oi; }
     else { row.putGex += gex; row.putOi += c.oi; row.putVolume += c.volume; totalPutOi += c.oi; }
     row.netGex = row.callGex + row.putGex;
   }
@@ -77,9 +78,23 @@ export function buildGexProfile(
   const atm = chain.reduce((b, c) => Math.abs(c.strike - spot) < Math.abs(b.strike - spot) ? c : b, chain[0]);
   const expectedMovePct = Math.max(0.0005, atm.impliedVolatility * Math.sqrt(Math.max(tauYears, 0.0001)));
   const windowRows = allRows.filter(r => Math.abs(r.strike - spot) / spot <= windowPct);
+  const sourceRows = windowRows.length >= 5 ? windowRows : allRows;
+  let centerIdx = 0;
+  let best = Infinity;
+  sourceRows.forEach((r, i) => {
+    const d = Math.abs(r.strike - spot);
+    if (d < best) {
+      best = d;
+      centerIdx = i;
+    }
+  });
+  const startIdx = Math.max(0, centerIdx - 40);
+  const endIdx = Math.min(sourceRows.length, startIdx + 80);
+  const adjustedStartIdx = Math.max(0, endIdx - 80);
+  const strikesSlice = sourceRows.slice(adjustedStartIdx, endIdx);
 
   return {
-    spot, strikes: (windowRows.length >= 5 ? windowRows : allRows).slice(0, 80),
+    spot, strikes: strikesSlice,
     netGex, netGexBn: Number((netGex / 1e9).toFixed(3)),
     callWall, putWall, gammaFlip: Number(gammaFlip.toFixed(2)), magnet,
     totalCallOi, totalPutOi,

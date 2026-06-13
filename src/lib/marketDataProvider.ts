@@ -168,7 +168,7 @@ export async function fetchLiveOptionChain(asset: AssetInfo, spotPrice: number):
       const day = item.day || {};
       
       const parsedStrike = details.strike_price || 0;
-      const type = details.contract_type === 'call' ? 'C' : 'P';
+      const type = (details.contract_type || '').toString().toLowerCase() === 'call' ? 'C' : 'P';
       const parsedOi = item.open_interest || 0;
       const parsedVol = day.volume || 0;
       const parsedIv = item.implied_volatility || 0.15;

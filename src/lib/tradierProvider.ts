@@ -280,7 +280,8 @@ export async function fetchTradierOptionChain(asset: AssetInfo, spotPrice: numbe
       const options = Array.isArray(optionData) ? optionData : [optionData];
 
       const contracts: LiveOptionContract[] = options.map((item: any) => {
-        const type: 'C' | 'P' = item.type === 'call' || item.type === 'C' ? 'C' : 'P';
+        const rawType = (item.option_type || item.type || '').toString().toUpperCase();
+        const type: 'C' | 'P' = rawType === 'CALL' || rawType === 'C' ? 'C' : 'P';
         const strike = Number(item.strike) || 0;
         const oi = Number(item.open_interest) || 0;
         const volume = Number(item.volume) || 0;

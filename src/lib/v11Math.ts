@@ -533,7 +533,8 @@ function totalGammaAtSpot(S: number, chain: ChainContract[], dte = 1): number {
   let sumGex = 0;
   chain.forEach(c => {
     // Standard dealer convention: calls positive, puts negative GEX contribution
-    const sign = c.type === 'call' ? 1 : -1;
+    const isCallType = c.type === 'call' || c.type === 'C' || c.type === 'CALL';
+    const sign = isCallType ? 1 : -1;
     const g = quickGamma(S, c.strike, dte, c.iv);
     // GEX = gamma * OI * 100 * S * S * 0.01 * sign
     const gex = g * c.openInterest * 100 * (S * S) * 0.01 * sign;
@@ -564,7 +565,8 @@ export function computeDealerInventory(
   // Walk and aggregate strikes within +/- 10 around spot window
   chain.forEach(c => {
     // sign: +1 for calls, -1 for puts
-    const sign = c.type === 'call' ? 1 : -1;
+    const isCallType = c.type === 'call' || c.type === 'C' || c.type === 'CALL';
+    const sign = isCallType ? 1 : -1;
     
     const GEX_strike = c.gamma * c.openInterest * 100 * (spot * spot) * 0.01 * sign;
     // Delta exposure matches the long call (+1) / short put (-1) inventory position sign.
@@ -615,14 +617,16 @@ export function computeDealerInventory(
   let maxPutGexAbs = -1;
 
   chain.forEach(c => {
-    const sign = c.type === 'call' ? 1 : -1;
+    const isCallType = c.type === 'call' || c.type === 'C' || c.type === 'CALL';
+    const isPutType = c.type === 'put' || c.type === 'P' || c.type === 'PUT';
+    const sign = isCallType ? 1 : -1;
     const GEX_strike = c.gamma * c.openInterest * 100 * (spot * spot) * 0.01 * sign;
     const absGex = Math.abs(GEX_strike);
-    if (c.type === 'call' && absGex > maxCallGexAbs) {
+    if (isCallType && absGex > maxCallGexAbs) {
       maxCallGexAbs = absGex;
       callWall = c.strike;
     }
-    if (c.type === 'put' && absGex > maxPutGexAbs) {
+    if (isPutType && absGex > maxPutGexAbs) {
       maxPutGexAbs = absGex;
       putWall = c.strike;
     }
