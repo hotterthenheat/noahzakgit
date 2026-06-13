@@ -310,10 +310,10 @@ export default function App() {
         {!showColoredBg && (
           <>
             <div className={`absolute inset-0 ${isLight ? 'bg-gradient-to-b from-black/[0.005] via-transparent to-white/[0.05]' : 'bg-gradient-to-b from-white/[0.012] via-transparent to-black/[0.12]'} backdrop-blur-[1px] pointer-events-none transition-all duration-700`} />
-            <div className={`absolute top-[-10%] left-[-10%] w-[52%] h-[52%] rounded-full ${isLight ? 'bg-blue-300/10' : 'bg-white/6'} blur-[120px] animate-fluid-blob-1 transition-all duration-700`} />
-            <div className={`absolute bottom-[-15%] right-[-10%] w-[60%] h-[55%] rounded-full ${isLight ? 'bg-zinc-300/10' : 'bg-zinc-400/5'} blur-[140px] animate-fluid-blob-2 transition-all duration-700`} />
-            <div className={`absolute top-[35%] right-[20%] w-[40%] h-[40%] rounded-full ${isLight ? 'bg-zinc-400/6' : 'bg-zinc-650/4'} blur-[110px] animate-fluid-blob-3 transition-all duration-700`} />
-            <div className={`absolute top-[10%] right-[40%] w-[35%] h-[35%] rounded-full ${isLight ? 'bg-blue-300/5' : 'bg-white/3'} blur-[90px] animate-pulse transition-all duration-700`} />
+            <div className={`absolute top-[-10%] left-[-10%] w-[52%] h-[52%] rounded-full ${isLight ? 'bg-zinc-950/10' : 'bg-white/6'} blur-[120px] animate-fluid-blob-1 transition-all duration-700`} />
+            <div className={`absolute bottom-[-15%] right-[-10%] w-[60%] h-[55%] rounded-full ${isLight ? 'bg-slate-900/10' : 'bg-zinc-400/5'} blur-[140px] animate-fluid-blob-2 transition-all duration-700`} />
+            <div className={`absolute top-[35%] right-[20%] w-[40%] h-[40%] rounded-full ${isLight ? 'bg-zinc-900/8' : 'bg-zinc-650/4'} blur-[110px] animate-fluid-blob-3 transition-all duration-700`} />
+            <div className={`absolute top-[10%] right-[40%] w-[35%] h-[35%] rounded-full ${isLight ? 'bg-indigo-950/10' : 'bg-white/3'} blur-[90px] animate-pulse transition-all duration-700`} />
           </>
         )}
       </div>
