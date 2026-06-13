@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import React from 'react';
 
-export function AnimatedBorder({ radius = 16, color = '#ffffff', duration = 5 }) {
+export function AnimatedBorder({ radius = 16, color = '#ffffff', duration = 5, isHovered = false }) {
   return (
     <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" style={{ borderRadius: 'inherit' }}>
       <rect
@@ -25,10 +25,8 @@ export function AnimatedBorder({ radius = 16, color = '#ffffff', duration = 5 })
         strokeWidth="1.5"
         pathLength={1}
         strokeDasharray="0.16 0.84"
-        animate={{
-          strokeDashoffset: [0, -1],
-        }}
-        transition={{
+        animate={isHovered ? { strokeDashoffset: 0 } : { strokeDashoffset: [0, -1] }}
+        transition={isHovered ? { duration: 0.15 } : {
           repeat: Infinity,
           duration: duration,
           ease: "linear",

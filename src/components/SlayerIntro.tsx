@@ -479,64 +479,69 @@ export default function SlayerIntro({
         whileInView={{ opacity: 1, y: 0, scale: 1 }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 py-10 px-6 max-w-4xl mx-auto w-full border-t border-zinc-900"
+        className="relative z-10 py-10 px-6 max-w-6xl mx-auto w-full border-t border-zinc-900"
       >
-        <div className="text-center space-y-2 mb-8">
-          <span className="text-zinc-500 text-[9px] font-mono uppercase tracking-[0.3em] block">
+        <div className="text-center space-y-2 mb-10">
+          <span className="text-zinc-500 text-[10px] font-mono uppercase tracking-[0.3em] block">
             SUBSCRIPTION MODELS & PLATFORM SERVICES
           </span>
-          <h2 className="text-xl font-black text-white uppercase tracking-tight font-sans">
+          <h2 className="text-2xl font-black text-white uppercase tracking-tight font-sans">
             Simple Subscriptions
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-mono items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 font-mono items-stretch">
           
           {/* DISCORD CARD */}
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            whileHover={{ scale: 1.02, y: -4, boxShadow: "0 25px 50px -12px rgba(52, 199, 89, 0.08)" }}
-            className="apple-glass rounded-2xl p-6 flex flex-col justify-between relative transition-all duration-300"
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 28,
+              opacity: { duration: 0.6, delay: 0.1 }
+            }}
+            whileHover={{ scale: 1.05, y: -10, boxShadow: "0 30px 60px -15px rgba(52, 199, 89, 0.12)" }}
+            className="apple-glass rounded-2xl p-10 flex flex-col justify-between relative transition-all duration-150"
           >
             <div className="space-y-4">
-              <div className="flex justify-between items-baseline border-b border-zinc-900/40 pb-3">
+              <div className="flex justify-between items-baseline border-b border-zinc-900/40 pb-4">
                 <div>
-                  <span className="text-zinc-500 text-[8.5px] uppercase tracking-wider block font-bold">Platform</span>
-                  <span className="text-[10px] font-mono font-black text-rose-400 block mt-1">COMMUNITY CHAT</span>
+                  <span className="text-zinc-500 text-[10px] uppercase tracking-wider block font-bold">Platform</span>
+                  <span className="text-[12px] font-mono font-black text-rose-400 block mt-1">COMMUNITY CHAT</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[#A1A1AA] text-[10px] block font-bold">DISCORD</span>
-                  <span className="text-xl font-black text-white">$49</span>
-                  <span className="text-[8px] text-zinc-650 block">/ Month</span>
+                  <span className="text-[#A1A1AA] text-xs block font-bold">DISCORD</span>
+                  <span className="text-4xl font-black text-white">$49</span>
+                  <span className="text-[10px] text-zinc-650 block">/ Month</span>
                 </div>
               </div>
 
-              <div className="space-y-2 text-[10px] font-sans">
-                <span className="text-[9px] text-[#71717A] block uppercase font-mono tracking-wider font-bold">Inclusions:</span>
-                <ul className="space-y-2 font-mono text-[9px]">
-                  <li className="flex gap-2 items-center">
-                    <Check className="w-3 h-3 text-[#30d158] shrink-0" />
+              <div className="space-y-3.5 text-xs font-sans">
+                <span className="text-[11px] text-[#71717A] block uppercase font-mono tracking-wider font-bold">Inclusions:</span>
+                <ul className="space-y-2.5 font-mono text-xs text-zinc-300">
+                  <li className="flex gap-2.5 items-center">
+                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
                     <span>Real-time Discord Chat & Alerts</span>
                   </li>
-                  <li className="flex gap-2 items-center">
-                    <Check className="w-3 h-3 text-[#30d158] shrink-0" />
+                  <li className="flex gap-2.5 items-center">
+                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
                     <span>Daily Option Discovery Reports</span>
                   </li>
-                  <li className="flex gap-2 items-center">
-                    <Check className="w-3 h-3 text-[#30d158] shrink-0" />
+                  <li className="flex gap-2.5 items-center">
+                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
                     <span>Verified Historic Trade Archive</span>
                   </li>
                 </ul>
               </div>
             </div>
 
-            <div className="pt-5">
+            <div className="pt-6">
               <button 
                 onClick={() => onEnterApp('arbor')}
-                className="w-full py-2.5 bg-zinc-900/90 hover:bg-white hover:text-black border border-zinc-800 text-zinc-300 font-bold uppercase tracking-widest text-[9px] rounded-lg transition-all duration-300 cursor-pointer"
+                className="w-full py-4 bg-zinc-900/90 hover:bg-white hover:text-black border border-zinc-800 text-zinc-350 font-bold uppercase tracking-widest text-[11px] rounded-lg transition-all duration-150 cursor-pointer"
               >
                 Subscribe to Discord
               </button>
@@ -548,58 +553,63 @@ export default function SlayerIntro({
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.25 }}
-            whileHover={{ scale: 1.04, y: -6 }}
-            className="apple-glass-bright rounded-2xl p-6 flex flex-col justify-between relative shadow-2xl transition-all duration-300 border-2 border-white/25"
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 28,
+              opacity: { duration: 0.6, delay: 0.25 }
+            }}
+            whileHover={{ scale: 1.07, y: -12, boxShadow: "0 30px 60px -15px rgba(99, 102, 241, 0.25)" }}
+            className="apple-glass-bright rounded-2xl p-10 flex flex-col justify-between relative shadow-2xl transition-all duration-150 border-2 border-white/25"
           >
-            <div className="absolute top-0 right-10 -translate-y-1/2 bg-white text-black text-[7px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg">
+            <div className="absolute top-0 right-10 -translate-y-1/2 bg-white text-black text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
               RECOMMENDED SUBSCRIPTION
             </div>
 
             <div className="space-y-4">
-              <div className="flex justify-between items-baseline border-b border-white/10 pb-3">
+              <div className="flex justify-between items-baseline border-b border-white/10 pb-4">
                 <div>
-                  <span className="text-zinc-500 text-[8.5px] uppercase tracking-wider block font-bold">Dashboard</span>
-                  <span className="text-[10px] font-mono font-black text-indigo-400 block mt-1 uppercase">DECISION ENGINE</span>
+                  <span className="text-zinc-500 text-[10px] uppercase tracking-wider block font-bold">Dashboard</span>
+                  <span className="text-[12px] font-mono font-black text-indigo-400 block mt-1 uppercase">DECISION ENGINE</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-white text-[10px] block font-black">SKYVISION</span>
-                  <span className="text-xl font-black text-white">$99</span>
-                  <span className="text-[8px] text-zinc-450 block">/ Month</span>
+                  <span className="text-white text-xs block font-black">SKYVISION</span>
+                  <span className="text-4xl font-black text-white">$99</span>
+                  <span className="text-[10px] text-zinc-450 block">/ Month</span>
                 </div>
               </div>
 
-              <div className="space-y-2 text-[10px] font-sans">
-                <span className="text-[9px] text-[#71717A] block uppercase font-mono tracking-wider font-bold">Inclusions:</span>
-                <ul className="space-y-2 font-mono text-[9px]">
-                  <li className="flex gap-2 items-center">
-                    <Check className="w-3 h-3 text-indigo-400 shrink-0" />
+              <div className="space-y-3.5 text-xs font-sans">
+                <span className="text-[11px] text-[#71717A] block uppercase font-mono tracking-wider font-bold">Inclusions:</span>
+                <ul className="space-y-2.5 font-mono text-xs text-zinc-300">
+                  <li className="flex gap-2.5 items-center">
+                    <Check className="w-4 h-4 text-indigo-400 shrink-0" />
                     <span className="font-medium text-white">Full Discord Integration</span>
                   </li>
-                  <li className="flex gap-2 items-center">
-                    <Check className="w-3 h-3 text-[#30d158] shrink-0" />
+                  <li className="flex gap-2.5 items-center">
+                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
                     <span>SkyVision Decision Dashboard</span>
                   </li>
-                  <li className="flex gap-2 items-center">
-                    <Check className="w-3 h-3 text-[#30d158] shrink-0" />
+                  <li className="flex gap-2.5 items-center">
+                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
                     <span>Real-time Trade Health Indexes</span>
                   </li>
-                  <li className="flex gap-2 items-center">
-                    <Check className="w-3 h-3 text-[#30d158] shrink-0" />
+                  <li className="flex gap-2.5 items-center">
+                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
                     <span>Option Goalposts (T1, T2, T3)</span>
                   </li>
-                  <li className="flex gap-2 items-center">
-                    <Check className="w-3 h-3 text-[#30d158] shrink-0" />
+                  <li className="flex gap-2.5 items-center">
+                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
                     <span>Expected P&L Calculations</span>
                   </li>
                 </ul>
               </div>
             </div>
 
-            <div className="pt-5">
+            <div className="pt-6">
               <button 
                 onClick={() => onEnterApp('skyvision')}
-                className="w-full py-2.5 bg-white text-black font-extrabold uppercase tracking-widest text-[9px] rounded-lg hover:bg-zinc-200 hover:scale-[1.01] transition-all duration-300 cursor-pointer shadow-lg"
+                className="w-full py-4 bg-white text-black font-extrabold uppercase tracking-widest text-[11px] rounded-lg hover:bg-zinc-200 hover:scale-[1.01] transition-all duration-150 cursor-pointer shadow-lg"
               >
                 Subscribe to SkyVision
               </button>
@@ -611,54 +621,59 @@ export default function SlayerIntro({
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            whileHover={{ scale: 1.02, y: -4, boxShadow: "0 25px 50px -12px rgba(16, 185, 129, 0.08)" }}
-            className="apple-glass rounded-2xl p-6 flex flex-col justify-between relative transition-all duration-300"
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 28,
+              opacity: { duration: 0.6, delay: 0.4 }
+            }}
+            whileHover={{ scale: 1.05, y: -10, boxShadow: "0 30px 60px -15px rgba(16, 185, 129, 0.12)" }}
+            className="apple-glass rounded-2xl p-10 flex flex-col justify-between relative transition-all duration-150"
           >
             <div className="space-y-4">
-              <div className="flex justify-between items-baseline border-b border-zinc-900/40 pb-3">
+              <div className="flex justify-between items-baseline border-b border-zinc-900/40 pb-4">
                 <div>
-                  <span className="text-zinc-500 text-[8.5px] uppercase tracking-wider block font-bold">Automated GEX</span>
-                  <span className="text-[10px] font-mono font-black text-emerald-400 block mt-1 uppercase">POSITION TRACKING</span>
+                  <span className="text-zinc-500 text-[10px] uppercase tracking-wider block font-bold">Automated GEX</span>
+                  <span className="text-[12px] font-mono font-black text-emerald-450 block mt-1 uppercase">POSITION TRACKING</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[#A1A1AA] text-[10px] block font-bold">PINPOINT GEXBOT</span>
-                  <span className="text-xl font-black text-white">$249</span>
-                  <span className="text-[8px] text-zinc-650 block">/ Month</span>
+                  <span className="text-[#A1A1AA] text-xs block font-bold">PINPOINT GEXBOT</span>
+                  <span className="text-4xl font-black text-white">$249</span>
+                  <span className="text-[10px] text-zinc-650 block">/ Month</span>
                 </div>
               </div>
 
-              <div className="space-y-2 text-[10px] font-sans">
-                <span className="text-[9px] text-[#71717A] block uppercase font-mono tracking-wider font-bold">Inclusions:</span>
-                <ul className="space-y-2 font-mono text-[9px]">
-                  <li className="flex gap-2 items-center">
-                    <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+              <div className="space-y-3.5 text-xs font-sans">
+                <span className="text-[11px] text-[#71717A] block uppercase font-mono tracking-wider font-bold">Inclusions:</span>
+                <ul className="space-y-2.5 font-mono text-xs text-zinc-300">
+                  <li className="flex gap-2.5 items-center">
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span className="font-medium text-white">Full SkyVision Features</span>
                   </li>
-                  <li className="flex gap-2 items-center">
-                    <Check className="w-3 h-3 text-[#30d158] shrink-0" />
+                  <li className="flex gap-2.5 items-center">
+                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
                     <span>Pinpoint Gexbot Live Feed</span>
                   </li>
-                  <li className="flex gap-2 items-center">
-                    <Check className="w-3 h-3 text-[#30d158] shrink-0" />
+                  <li className="flex gap-2.5 items-center">
+                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
                     <span>Live Gamma Exposure Grids</span>
                   </li>
-                  <li className="flex gap-2 items-center">
-                    <Check className="w-3 h-3 text-[#30d158] shrink-0" />
+                  <li className="flex gap-2.5 items-center">
+                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
                     <span>Dealer Positioning Heatmaps</span>
                   </li>
-                  <li className="flex gap-2 items-center">
-                    <Check className="w-3 h-3 text-[#30d158] shrink-0" />
+                  <li className="flex gap-2.5 items-center">
+                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
                     <span>Boundary Expiration Pin Zones</span>
                   </li>
                 </ul>
               </div>
             </div>
 
-            <div className="pt-5">
+            <div className="pt-6">
               <button 
                 onClick={() => onEnterApp('pinpoint')}
-                className="w-full py-2.5 bg-zinc-900/90 hover:bg-white hover:text-black border border-zinc-800 text-zinc-300 font-bold uppercase tracking-widest text-[9px] rounded-lg transition-all duration-300 cursor-pointer"
+                className="w-full py-4 bg-zinc-900/90 hover:bg-white hover:text-black border border-zinc-800 text-zinc-350 font-bold uppercase tracking-widest text-[11px] rounded-lg transition-all duration-150 cursor-pointer"
               >
                 Access Pinpoint Gexbot
               </button>

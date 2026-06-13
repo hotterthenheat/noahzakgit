@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { useContractStore, ContractState } from '../lib/store';
 import { InteractiveChart } from './InteractiveChart';
@@ -31,6 +31,7 @@ export function SkyVisionView() {
 
   const isDeepSkyseyeExpanded = useContractStore(s => s.isDeepSkyseyeExpanded);
   const setIsDeepSkyseyeExpanded = useContractStore(s => s.setIsDeepSkyseyeExpanded);
+
 
   // Render the preloaded Strikes Chain Centered on Spot but display them as list of OptionCards (Bug #4)
   const strikesList = useMemo(() => {
@@ -376,7 +377,7 @@ export function SkyVisionView() {
                 stroke="rgba(255, 255, 255, 0.05)"
                 strokeWidth="1"
               />
-              <motion.rect
+              <rect
                 x="0.75"
                 y="0.75"
                 width="calc(100% - 1.5px)"
@@ -387,14 +388,7 @@ export function SkyVisionView() {
                 strokeWidth="1.5"
                 pathLength={1}
                 strokeDasharray="0.16 0.84"
-                animate={{
-                  strokeDashoffset: [0, -1],
-                }}
-                transition={{
-                  repeat: Infinity,
-                  duration: 5,
-                  ease: "linear",
-                }}
+                className="animated-svg-border-rect"
               />
             </svg>
 

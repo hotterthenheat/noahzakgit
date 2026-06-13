@@ -100,6 +100,38 @@ div.apple-glass-dark::before {
   z-index: 0;
 }
 
+/* Pause the border rotation animation on hover */
+.animated-border-box:hover::before,
+div.apple-glass:hover::before,
+div.apple-glass-bright:hover::before,
+div.apple-glass-dark:hover::before {
+  animation-play-state: paused;
+}
+
+/* SVG stroke rotation animation */
+@keyframes svg-stroke-rotate {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -1;
+  }
+}
+
+.animated-svg-border-rect {
+  animation: svg-stroke-rotate 5s linear infinite;
+}
+
+/* Pause the SVG border stroke animation on hover of any parent cards or container */
+.apple-glass:hover .animated-svg-border-rect,
+.apple-glass-bright:hover .animated-svg-border-rect,
+.apple-glass-dark:hover .animated-svg-border-rect,
+.animated-border-box:hover .animated-svg-border-rect,
+div:hover > svg > .animated-svg-border-rect {
+  animation-play-state: paused;
+}
+
+
 .apple-glass {
   background: rgba(10, 10, 12, 0.65);
   backdrop-filter: blur(24px) saturate(190%);
