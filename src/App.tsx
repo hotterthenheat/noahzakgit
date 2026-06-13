@@ -578,36 +578,7 @@ export default function App() {
             </div>
           </div>
 
-          <span className="text-zinc-855 text-xs hidden sm:inline">•</span>
 
-          {/* Asset & Timeframe Global pickers merged directly inside header strip */}
-          <div className="flex items-center gap-1.5">
-            <select
-              value={selectedAsset.ticker}
-              onChange={(e) => {
-                const targetAsset = ASSET_LIST.find(a => a.ticker === e.target.value);
-                if (targetAsset) {
-                  setSelectedAsset(targetAsset);
-                }
-              }}
-              className="bg-black border border-zinc-800 text-[10px] font-black py-1 px-2.5 text-white rounded-xs focus:outline-none focus:border-zinc-700 cursor-pointer"
-            >
-              {ASSET_LIST.map(a => (
-                <option key={a.ticker} value={a.ticker}>{a.ticker}</option>
-              ))}
-            </select>
-            <select
-              value={selectedTimeframe}
-              onChange={(e) => setSelectedTimeframe(e.target.value as any)}
-              className="bg-black border border-zinc-800 text-[10px] font-black py-1 px-2.5 text-white rounded-xs focus:outline-none focus:border-zinc-700 cursor-pointer"
-            >
-              <option value="5m">5m</option>
-              <option value="15m">15m</option>
-              <option value="1h">1h</option>
-              <option value="4h">4h</option>
-              <option value="1d">1d</option>
-            </select>
-          </div>
         </div>
 
         {/* Real HTTP OAuth Action segment header (Bug #9) */}
@@ -650,6 +621,59 @@ export default function App() {
  
        {/* Main workspace frame */}
        <main className="flex-1 p-4 md:p-6 flex flex-col gap-6 w-full max-w-full justify-start">
+        {/* Global Asset & Timeframe pickers rendered at the top of the active page layout */}
+        {activeTab !== 'home' && (
+          <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-lg border gap-3 ${
+            isLight 
+              ? 'bg-zinc-50 border-zinc-200 text-zinc-900 shadow-sm' 
+              : 'bg-[#09090b]/80 border-zinc-900 text-zinc-100'
+          }`}>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className={`text-[10px] font-mono uppercase tracking-wider font-bold ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                Active Workstation Controls // {selectedAsset.name} ({selectedAsset.ticker})
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`text-[9px] font-mono uppercase font-black ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>ACTIVE TARGET:</span>
+              <select
+                value={selectedAsset.ticker}
+                onChange={(e) => {
+                  const targetAsset = ASSET_LIST.find(a => a.ticker === e.target.value);
+                  if (targetAsset) {
+                    setSelectedAsset(targetAsset);
+                  }
+                }}
+                className={`border text-[10px] font-black py-1 px-3 rounded-md focus:outline-none focus:border-zinc-500 cursor-pointer transition-all ${
+                  isLight 
+                    ? 'bg-white border-zinc-300 text-zinc-800 hover:border-zinc-400' 
+                    : 'bg-black border-zinc-800 text-white focus:border-zinc-700'
+                }`}
+              >
+                {ASSET_LIST.map(a => (
+                  <option key={a.ticker} value={a.ticker}>{a.ticker}</option>
+                ))}
+              </select>
+              <span className="text-zinc-800 text-xs hidden sm:inline">|</span>
+              <span className={`text-[9px] font-mono uppercase font-black ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>TIMEFRAME:</span>
+              <select
+                value={selectedTimeframe}
+                onChange={(e) => setSelectedTimeframe(e.target.value as any)}
+                className={`border text-[10px] font-black py-1 px-3 rounded-md focus:outline-none focus:border-zinc-500 cursor-pointer transition-all ${
+                  isLight 
+                    ? 'bg-white border-zinc-300 text-zinc-800 hover:border-zinc-400' 
+                    : 'bg-black border-zinc-800 text-white focus:border-zinc-700'
+                }`}
+              >
+                <option value="5m">5m</option>
+                <option value="15m">15m</option>
+                <option value="1h">1h</option>
+                <option value="4h">4h</option>
+                <option value="1d">1d</option>
+              </select>
+            </div>
+          </div>
+        )}
         {/* TAB 1: HOME */}
         {activeTab === 'home' && (
           <div className="animate-fadeIn">
