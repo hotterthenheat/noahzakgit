@@ -322,10 +322,13 @@ export default function App() {
       {/* Upper ecosystem workstation cockpit core header */}
       <header className="sticky top-0 z-50 bg-[#050506]/80 backdrop-blur-xl border-b border-zinc-900/60 px-6 py-3 flex flex-col sm:flex-row justify-between items-center select-none font-mono gap-4">
         <div className="flex flex-wrap items-center gap-3.5">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-            <span className="text-xs font-black tracking-widest text-[#FFFFFF] uppercase whitespace-nowrap">
-              ARBOR CAPITAL GROUP
+          <div 
+            onClick={() => setActiveTab('home')}
+            className="flex items-center gap-2 cursor-pointer group"
+          >
+            <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse group-hover:bg-emerald-450 transition-colors" />
+            <span className="text-xs font-black tracking-widest text-[#FFFFFF] uppercase whitespace-nowrap group-hover:text-emerald-400 transition-colors">
+              slayertrade
             </span>
           </div>
 
