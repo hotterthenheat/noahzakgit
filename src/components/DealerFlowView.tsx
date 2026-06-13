@@ -132,19 +132,49 @@ function GexProfileChart({ profile, decimals }: { profile: any; decimals: number
               </div>
               <div className="flex-1 flex items-center h-full">
                 {/* Put side */}
-                <div className="flex-1 flex justify-end items-center h-full pr-[1px]">
+                <div className="relative group/put flex-1 flex justify-end items-center h-full pr-[1px]">
                   <div
-                    className={`h-[11px] rounded-l-[2px] ${isPutWall ? 'bg-rose-405' : 'bg-rose-500/55'}`}
+                    className={`h-[11px] rounded-l-[2px] ${isPutWall ? 'bg-rose-405' : 'bg-rose-500/55'} cursor-help`}
                     style={{ width: `${putW}%` }}
                   />
+                  
+                  {/* Left Hover details for Put GEX */}
+                  <div className="absolute left-0 top-full mt-0.5 z-30 hidden group-hover/put:block bg-[#050506]/95 border border-rose-500/35 rounded-[4px] p-2 text-[9px] font-mono whitespace-nowrap shadow-2xl backdrop-blur-md pointer-events-none ring-1 ring-rose-500/10">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+                      <span className="text-rose-400 font-black tracking-widest uppercase text-[8px]">PUT GEX OVERLAY</span>
+                      <span className="text-zinc-600">|</span>
+                      <span className="text-white font-bold">STRIKE {r.strike.toFixed(decimals > 1 ? 2 : 0)}</span>
+                    </div>
+                    <div className="space-y-0.5 text-zinc-300">
+                      <div>GEX: <span className="text-rose-300 font-extrabold">{fmtBn(r.putGex)}</span></div>
+                      <div>Open Interest: <span className="text-zinc-100 font-bold">{r.putOi.toLocaleString()}</span></div>
+                      <div>Volume: <span className="text-zinc-100 font-bold">{r.putVolume.toLocaleString()}</span></div>
+                    </div>
+                  </div>
                 </div>
                 <div className="w-px self-stretch bg-zinc-800" />
                 {/* Call side */}
-                <div className="flex-1 flex items-center h-full pl-[1px]">
+                <div className="relative group/call flex-1 flex items-center h-full pl-[1px]">
                   <div
-                    className={`h-[11px] rounded-r-[2px] ${isCallWall ? 'bg-emerald-405' : 'bg-emerald-500/55'}`}
+                    className={`h-[11px] rounded-r-[2px] ${isCallWall ? 'bg-emerald-405' : 'bg-emerald-500/55'} cursor-help`}
                     style={{ width: `${callW}%` }}
                   />
+
+                  {/* Right Hover details for Call GEX */}
+                  <div className="absolute right-0 top-full mt-0.5 z-30 hidden group-hover/call:block bg-[#050506]/95 border border-emerald-500/35 rounded-[4px] p-2 text-[9px] font-mono whitespace-nowrap shadow-2xl backdrop-blur-md pointer-events-none ring-1 ring-emerald-500/10">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-emerald-400 font-black tracking-widest uppercase text-[8px]">CALL GEX OVERLAY</span>
+                      <span className="text-zinc-600">|</span>
+                      <span className="text-white font-bold">STRIKE {r.strike.toFixed(decimals > 1 ? 2 : 0)}</span>
+                    </div>
+                    <div className="space-y-0.5 text-zinc-300">
+                      <div>GEX: <span className="text-emerald-300 font-extrabold">{fmtBn(r.callGex)}</span></div>
+                      <div>Open Interest: <span className="text-zinc-100 font-bold">{r.callOi.toLocaleString()}</span></div>
+                      <div>Volume: <span className="text-zinc-100 font-bold">{r.callVolume.toLocaleString()}</span></div>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div
@@ -165,13 +195,6 @@ function GexProfileChart({ profile, decimals }: { profile: any; decimals: number
                 <div className="flex-1 border-t border-dashed border-amber-500/60" />
               </div>
             )}
-
-            {/* Hover details */}
-            <div className="absolute left-[76px] top-full mt-0.5 z-30 hidden group-hover:block bg-black border border-zinc-800 rounded-sm px-2.5 py-1.5 text-[8.5px] font-mono whitespace-nowrap shadow-2xl">
-              <span className="text-emerald-400 font-bold">C: {fmtBn(r.callGex)} · OI {r.callOi.toLocaleString()} · Vol {r.callVolume.toLocaleString()}</span>
-              <span className="text-zinc-650 mx-1.5">|</span>
-              <span className="text-rose-400 font-bold">P: {fmtBn(r.putGex)} · OI {r.putOi.toLocaleString()} · Vol {r.putVolume.toLocaleString()}</span>
-            </div>
           </div>
         );
       })}
@@ -371,12 +394,74 @@ export function DealerFlowView() {
   const selectedStrike = useContractStore(s => s.selectedStrike);
   const isContractLocked = useContractStore(s => s.isContractLocked);
   const activeTab = useContractStore(s => s.activeTab);
+  const themeMode = useContractStore(s => s.themeMode);
+  const isLight = themeMode === 'light';
 
   const isConSelected = isContractLocked && activeTab === 'skyvision';
   const isCall = selectedOptionType === 'C';
 
   // Dynamic Theme Styling Object (Neutral Glass-White vs calls green vs puts red)
   const theme = useMemo(() => {
+    if (isLight) {
+      if (!isConSelected) {
+        return {
+          accent: 'black',
+          text: 'text-zinc-650',
+          border: 'border-zinc-200 hover:border-zinc-350',
+          cardBg: 'bg-white border border-zinc-200 shadow-[0_4px_24px_rgba(0,0,0,0.02)]',
+          chipBg: 'bg-zinc-100 border border-zinc-200 text-zinc-650',
+          iconColor: 'text-zinc-550',
+          headerIconBg: 'bg-zinc-100 border border-zinc-200',
+          glow: 'rgba(0, 0, 0, 0.01)',
+          primaryText: 'text-zinc-900',
+          buttonActive: 'bg-zinc-900 border border-zinc-950 text-white shadow-sm',
+          buttonInactive: 'bg-zinc-50 border border-zinc-250 text-zinc-500 hover:text-zinc-800 hover:border-zinc-350',
+          gexNetPlus: 'text-emerald-600 font-bold',
+          gexNetMinus: 'text-rose-600',
+          themeSuffix: 'neutral',
+          headerColor: 'text-zinc-900',
+        };
+      }
+      
+      if (isCall) {
+        return {
+          accent: 'emerald',
+          text: 'text-emerald-700',
+          border: 'border-emerald-200 hover:border-emerald-350',
+          cardBg: 'bg-[#e6fcf0] border border-emerald-200/80 shadow-[0_4px_24px_rgba(16,185,129,0.03)]',
+          chipBg: 'bg-emerald-100 border border-emerald-200 text-emerald-800',
+          iconColor: 'text-emerald-600',
+          headerIconBg: 'bg-emerald-100 border border-emerald-200',
+          glow: 'rgba(16, 185, 129, 0.04)',
+          primaryText: 'text-emerald-950',
+          buttonActive: 'bg-emerald-600 border border-emerald-750 text-white shadow-sm',
+          buttonInactive: 'bg-emerald-50 border border-emerald-250 text-emerald-600 hover:bg-emerald-100',
+          gexNetPlus: 'text-emerald-600 font-bold',
+          gexNetMinus: 'text-rose-600',
+          themeSuffix: 'call',
+          headerColor: 'text-emerald-950',
+        };
+      } else {
+        return {
+          accent: 'rose',
+          text: 'text-rose-700',
+          border: 'border-rose-200 hover:border-rose-350',
+          cardBg: 'bg-[#fdf2f2] border border-rose-200/80 shadow-[0_4px_24px_rgba(244,63,94,0.03)]',
+          chipBg: 'bg-rose-100 border border-rose-200 text-rose-800',
+          iconColor: 'text-rose-600',
+          headerIconBg: 'bg-rose-100 border border-rose-200',
+          glow: 'rgba(244, 63, 94, 0.04)',
+          primaryText: 'text-rose-955',
+          buttonActive: 'bg-rose-600 border border-rose-750 text-white shadow-sm',
+          buttonInactive: 'bg-rose-50 border border-rose-250 text-rose-650 hover:bg-rose-100',
+          gexNetPlus: 'text-emerald-600 font-bold',
+          gexNetMinus: 'text-rose-600',
+          themeSuffix: 'put',
+          headerColor: 'text-rose-955',
+        };
+      }
+    }
+
     if (!isConSelected) {
       return {
         accent: 'white',
