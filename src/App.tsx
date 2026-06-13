@@ -370,19 +370,14 @@ export default function App() {
           {/* Active Workstation selector dropdown on hover */}
           <div className="relative group py-1">
             <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 hover:text-white cursor-pointer select-none bg-zinc-950/80 hover:bg-zinc-900 border border-zinc-850 px-3 py-1.5 rounded-md transition-all">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className={`w-1.5 h-1.5 rounded-full ${['home', 'skyvision', 'pinpoint', 'auditor', 'dealerflow'].includes(activeTab) ? 'animate-pulse bg-emerald-400' : 'bg-zinc-650'}`} />
               <span>ACTIVE ENGINE: <span className="text-white uppercase font-black">
                 {activeTab === 'home' && 'Ecosystem Introduction'}
                 {activeTab === 'skyvision' && 'Slayer // SkyVision'}
                 {activeTab === 'pinpoint' && 'Slayer // Pinpoint'}
                 {activeTab === 'auditor' && 'Trust Archive & Registry'}
                 {activeTab === 'dealerflow' && 'Dealer Flow'}
-                {activeTab === 'dashboard' && 'Executive Dashboard'}
-                {activeTab === 'alerts' && 'Realtime Alerts'}
-                {activeTab === 'automation' && 'SMS Auto-Dispatch'}
-                {activeTab === 'reports' && 'Compliance Reports'}
-                {activeTab === 'settings' && 'Workspace Config'}
-                {activeTab === 'arbor' && 'Research & Community'}
+                {!['home', 'skyvision', 'pinpoint', 'auditor', 'dealerflow'].includes(activeTab) && 'SELECT'}
               </span></span>
               <span className="text-[8px] text-zinc-650 group-hover:text-white transition-transform duration-200">▼</span>
             </div>
@@ -464,9 +459,31 @@ export default function App() {
                 </span>
                 <span className="text-[8px] text-zinc-650">GAMMA FLOW</span>
               </button>
+            </div>
+          </div>
 
-              <div className="text-[8px] text-zinc-650 font-black tracking-widest px-2 py-1 border-t border-b border-[#121214] uppercase my-1">
-                MORE POWER TOOLS
+          <span className="text-zinc-800 text-xs hidden sm:inline">/</span>
+
+          {/* More Power Tools selector dropdown on hover */}
+          <div className="relative group py-1">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 hover:text-white cursor-pointer select-none bg-zinc-950/80 hover:bg-zinc-900 border border-zinc-850 px-3 py-1.5 rounded-md transition-all">
+              <span className={`w-1.5 h-1.5 rounded-full ${['dashboard', 'alerts', 'automation', 'reports', 'arbor', 'settings'].includes(activeTab) ? 'animate-pulse bg-cyan-450' : 'bg-zinc-655'}`} />
+              <span>MORE POWER TOOLS: <span className="text-white uppercase font-black">
+                {activeTab === 'dashboard' && 'Executive Dashboard'}
+                {activeTab === 'alerts' && 'Realtime Alerts'}
+                {activeTab === 'automation' && 'SMS Auto-Dispatch'}
+                {activeTab === 'reports' && 'Compliance Reports'}
+                {activeTab === 'arbor' && 'Research & Community'}
+                {activeTab === 'settings' && 'Workspace Config'}
+                {!['dashboard', 'alerts', 'automation', 'reports', 'arbor', 'settings'].includes(activeTab) && 'SELECT'}
+              </span></span>
+              <span className="text-[8px] text-zinc-650 group-hover:text-white transition-transform duration-200">▼</span>
+            </div>
+            
+            {/* Hover options list */}
+            <div className="absolute top-full left-0 mt-1 w-[22rem] bg-[#09090b] border border-zinc-850 rounded-sm shadow-2xl opacity-0 scale-95 origin-top-left invisible group-hover:opacity-100 group-hover:scale-100 group-hover:visible transition-all duration-150 z-50 p-2 space-y-1 max-h-[80vh] overflow-y-auto">
+              <div className="text-[8px] text-zinc-650 font-black tracking-widest px-2 py-1 border-b border-[#121214] uppercase mb-1">
+                SELECT POWER TOOL
               </div>
 
               <button
@@ -478,7 +495,7 @@ export default function App() {
                 }`}
               >
                 <span className="flex items-center gap-1.5">
-                  <Activity className="w-3 h-3 text-emerald-450" />
+                  <Activity className="w-3 h-3 text-emerald-455" />
                   <span>6. EXECUTIVE DASHBOARD</span>
                 </span>
                 <span className="text-[8px] text-zinc-650">OVERVIEW</span>
@@ -561,7 +578,7 @@ export default function App() {
             </div>
           </div>
 
-          <span className="text-zinc-850 text-xs hidden sm:inline">•</span>
+          <span className="text-zinc-855 text-xs hidden sm:inline">•</span>
 
           {/* Asset & Timeframe Global pickers merged directly inside header strip */}
           <div className="flex items-center gap-1.5">
