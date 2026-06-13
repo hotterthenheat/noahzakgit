@@ -654,23 +654,27 @@ export default function App() {
                   <option key={a.ticker} value={a.ticker}>{a.ticker}</option>
                 ))}
               </select>
-              <span className="text-zinc-800 text-xs hidden sm:inline">|</span>
-              <span className={`text-[9px] font-mono uppercase font-black ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>TIMEFRAME:</span>
-              <select
-                value={selectedTimeframe}
-                onChange={(e) => setSelectedTimeframe(e.target.value as any)}
-                className={`border text-[10px] font-black py-1 px-3 rounded-md focus:outline-none focus:border-zinc-500 cursor-pointer transition-all ${
-                  isLight 
-                    ? 'bg-white border-zinc-300 text-zinc-800 hover:border-zinc-400' 
-                    : 'bg-black border-zinc-800 text-white focus:border-zinc-700'
-                }`}
-              >
-                <option value="5m">5m</option>
-                <option value="15m">15m</option>
-                <option value="1h">1h</option>
-                <option value="4h">4h</option>
-                <option value="1d">1d</option>
-              </select>
+              {activeTab !== 'dealerflow' && (
+                <>
+                  <span className="text-zinc-800 text-xs hidden sm:inline">|</span>
+                  <span className={`text-[9px] font-mono uppercase font-black ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>TIMEFRAME:</span>
+                  <select
+                    value={selectedTimeframe}
+                    onChange={(e) => setSelectedTimeframe(e.target.value as any)}
+                    className={`border text-[10px] font-black py-1 px-3 rounded-md focus:outline-none focus:border-zinc-500 cursor-pointer transition-all ${
+                      isLight 
+                        ? 'bg-white border-zinc-300 text-zinc-800 hover:border-zinc-400' 
+                        : 'bg-black border-zinc-800 text-white focus:border-zinc-700'
+                    }`}
+                  >
+                    <option value="5m">5m</option>
+                    <option value="15m">15m</option>
+                    <option value="1h">1h</option>
+                    <option value="4h">4h</option>
+                    <option value="1d">1d</option>
+                  </select>
+                </>
+              )}
             </div>
           </div>
         )}
