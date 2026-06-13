@@ -622,7 +622,7 @@ export default function App() {
        {/* Main workspace frame */}
        <main className="flex-1 p-4 md:p-6 flex flex-col gap-6 w-full max-w-full justify-start">
         {/* Global Asset & Timeframe pickers rendered at the top of the active page layout */}
-        {activeTab !== 'home' && (
+        {activeTab !== 'home' && activeTab !== 'skyvision' && (
           <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-lg border gap-3 ${
             isLight 
               ? 'bg-zinc-50 border-zinc-200 text-zinc-900 shadow-sm' 

@@ -10,6 +10,7 @@ export function SkyVisionView() {
   const selectedAsset = useContractStore(s => s.selectedAsset);
   const selectedOptionType = useContractStore(s => s.selectedOptionType);
   const selectedTimeframe = useContractStore(s => s.selectedTimeframe);
+  const setSelectedTimeframe = useContractStore(s => s.setSelectedTimeframe);
   const selectedStrike = useContractStore(s => s.selectedStrike);
   const activeContract = useContractStore(s => s.activeContract);
   const serverState = useContractStore(s => s.serverState);
@@ -321,6 +322,19 @@ export function SkyVisionView() {
                 {asset.ticker}
               </button>
             ))}
+          </div>
+          <div className="flex items-center bg-black p-0.5 border border-zinc-900 rounded-sm">
+            <select
+              value={selectedTimeframe}
+              onChange={(e) => setSelectedTimeframe(e.target.value as any)}
+              className="bg-black text-[9px] font-black py-1 px-2.5 text-white rounded-xs focus:outline-none focus:border-zinc-700 cursor-pointer border border-transparent uppercase"
+            >
+              <option value="5m">5m</option>
+              <option value="15m">15m</option>
+              <option value="1h">1h</option>
+              <option value="4h">4h</option>
+              <option value="1d">1d</option>
+            </select>
           </div>
           <div className="flex items-center gap-2 ml-2 pl-2 border-l border-zinc-900">
              <span className="text-[8px] text-zinc-500">CUSTOM:</span>
