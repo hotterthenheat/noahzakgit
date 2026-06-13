@@ -10,8 +10,14 @@ import { PinpointAIView } from './components/PinpointAIView';
 import { QuantAuditView } from './components/QuantAuditView';
 import { DiscoveryView } from './components/DiscoveryView';
 import { DealerFlowView } from './components/DealerFlowView';
-import { AccountabilityRegistry } from './components/AccountabilityRegistry';
 import SlayerIntro from './components/SlayerIntro';
+import { SkyseyeAlertHub } from './components/SkyseyeAlertHub';
+import { DashboardView } from './components/DashboardView';
+import { AlertsView } from './components/AlertsView';
+import { AutomationView } from './components/AutomationView';
+import { ReportsView } from './components/ReportsView';
+import { SettingsView } from './components/SettingsView';
+import ArborCapital from './components/ArborCapital';
 
 import {
   Sparkles,
@@ -23,11 +29,27 @@ import {
   Waves,
   ShieldCheck,
   Sun,
-  Moon
+  Moon,
+  Activity,
+  Bell,
+  Smartphone,
+  FileText,
+  SlidersHorizontal,
+  GraduationCap
 } from 'lucide-react';
 
-const StaticMarquee = memo(() => {
+const TickerTape = memo(() => {
   const staticTickers = [
+    { ticker: 'SPX', name: 'S&P 500 Index', price: 7623.00, change: '+0.88%', isUp: true, vol: '14.2%' },
+    { ticker: 'NDX', name: 'NASDAQ 100 Index', price: 18250.00, change: '+1.42%', isUp: true, vol: '21.0%' },
+    { ticker: 'QQQ', name: 'NASDAQ ETF', price: 445.50, change: '+1.24%', isUp: true, vol: '18.5%' },
+    { ticker: 'SPY', name: 'S&P 505 ETF', price: 512.30, change: '+0.65%', isUp: true, vol: '12.8%' },
+    { ticker: 'RUT', name: 'Russell 2000 Index', price: 2025.00, change: '+0.92%', isUp: true, vol: '16.4%' },
+    { ticker: 'SPX', name: 'S&P 500 Index', price: 7623.00, change: '+0.88%', isUp: true, vol: '14.2%' },
+    { ticker: 'NDX', name: 'NASDAQ 100 Index', price: 18250.00, change: '+1.42%', isUp: true, vol: '21.0%' },
+    { ticker: 'QQQ', name: 'NASDAQ ETF', price: 445.50, change: '+1.24%', isUp: true, vol: '18.5%' },
+    { ticker: 'SPY', name: 'S&P 505 ETF', price: 512.30, change: '+0.65%', isUp: true, vol: '12.8%' },
+    { ticker: 'RUT', name: 'Russell 2000 Index', price: 2025.00, change: '+0.92%', isUp: true, vol: '16.4%' },
     { ticker: 'SPX', name: 'S&P 500 Index', price: 7623.00, change: '+0.88%', isUp: true, vol: '14.2%' },
     { ticker: 'NDX', name: 'NASDAQ 100 Index', price: 18250.00, change: '+1.42%', isUp: true, vol: '21.0%' },
     { ticker: 'QQQ', name: 'NASDAQ ETF', price: 445.50, change: '+1.24%', isUp: true, vol: '18.5%' },
@@ -36,41 +58,29 @@ const StaticMarquee = memo(() => {
   ];
 
   return (
-    <div className="animate-ticker-marquee flex whitespace-nowrap">
-      {[...Array(2)].map((_, loopIdx) => (
-        <div key={loopIdx} className="flex gap-14 items-center pr-14 animate-none">
-          {staticTickers.map((t, idx) => (
-            <div 
-              key={`${loopIdx}-${idx}`} 
-              className="flex items-center gap-2.5 font-mono text-[9.5px] px-2 py-1 rounded transition-all"
-            >
-              <span className="font-black text-white tracking-widest">{t.ticker}</span>
-              <span className="text-zinc-500 text-[8.5px] uppercase">{t.name}</span>
-              <span className="font-extrabold text-[#f4f4f5]">${t.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              <span className={`font-bold flex items-center gap-0.5 ${t.isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {t.isUp ? '▲' : '▼'}{t.change}
-              </span>
-              <span className="text-zinc-650 text-[8px] font-black border border-zinc-950/20 bg-zinc-950/60 px-1 rounded-xs uppercase">
-                VOL: {t.vol}
-              </span>
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-});
-
-const TickerTape = memo(({ show }: { show: boolean }) => {
-  return (
-    <div 
-      className={`w-full bg-[#050506]/75 backdrop-blur-xl overflow-hidden relative z-40 select-none transition-all duration-300 ${
-        show 
-          ? 'max-h-[50px] py-1.5 border-b border-zinc-900/50 opacity-100 visible' 
-          : 'max-h-0 py-0 opacity-0 pointer-events-none border-b-0 invisible'
-      }`}
-    >
-      <StaticMarquee />
+    <div className="w-full bg-[#050506]/75 border-b border-zinc-900/50 backdrop-blur-xl overflow-hidden py-1.5 relative z-40 select-none">
+      <div className="animate-ticker-marquee flex whitespace-nowrap">
+        {[...Array(2)].map((_, loopIdx) => (
+          <div key={loopIdx} className="flex gap-14 items-center pr-14 animate-none">
+            {staticTickers.map((t, idx) => (
+              <div 
+                key={`${loopIdx}-${idx}`} 
+                className="flex items-center gap-2.5 font-mono text-[9.5px] px-2 py-1 rounded transition-all"
+              >
+                <span className="font-black text-white tracking-widest">{t.ticker}</span>
+                <span className="text-zinc-500 text-[8.5px] uppercase">{t.name}</span>
+                <span className="font-extrabold text-[#f4f4f5]">${t.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className={`font-bold flex items-center gap-0.5 ${t.isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {t.isUp ? '▲' : '▼'}{t.change}
+                </span>
+                <span className="text-zinc-650 text-[8px] font-black border border-zinc-950/20 bg-zinc-950/60 px-1 rounded-xs uppercase">
+                  VOL: {t.vol}
+                </span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 });
@@ -95,6 +105,7 @@ export default function App() {
   const updateFromSSE = useContractStore(s => s.updateFromSSE);
   const tickMarketState = useContractStore(s => s.tickMarketState);
   const isContractLocked = useContractStore(s => s.isContractLocked);
+
   const themeMode = useContractStore(s => s.themeMode);
   const toggleThemeMode = useContractStore(s => s.toggleThemeMode);
   const isLight = themeMode === 'light';
@@ -267,48 +278,39 @@ export default function App() {
   }));
 
   const isCall = selectedOptionType === 'C';
-  const showColoredBg = isContractLocked && activeTab === 'skyvision';
+  const showColoredBg = isContractLocked && (activeTab === 'skyvision' || activeTab === 'auditor');
 
-  let bgClass = "";
-  if (isLight) {
-    bgClass = "min-h-screen text-[#1a1d20] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#f4f5f8] light-theme";
-    if (showColoredBg) {
-      if (isCall) {
-        bgClass = "min-h-screen text-[#011409] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#e6fcf0] light-theme";
-      } else {
-        bgClass = "min-h-screen text-[#140203] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#fdf2f2] light-theme";
-      }
+  let bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#050506]";
+  
+  if (showColoredBg) {
+    if (isCall) {
+      bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#011409]";
+    } else {
+      bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#140203]";
     }
   } else {
-    bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#050506]";
-    if (showColoredBg) {
-      if (isCall) {
-        bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#011409]";
-      } else {
-        bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#140203]";
-      }
-    } else {
-      bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#0d0d0f]";
-    }
+    // Glassy slate grey/black/white elegant configuration
+    bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#0d0d0f]";
   }
 
   return (
     <div className={bgClass}>
+      <SkyseyeAlertHub />
       
       {/* Liquid background elements mirroring Apple macOS/iOS fluid updates */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 transition-opacity duration-1000">
         {showColoredBg && isCall && (
           <>
-            <div className={`absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full ${isLight ? 'bg-emerald-300/20' : 'bg-emerald-500/12'} blur-[120px] animate-fluid-blob-1 transition-all duration-700`} />
-            <div className={`absolute bottom-[-15%] right-[-10%] w-[65%] h-[60%] rounded-full ${isLight ? 'bg-teal-300/15' : 'bg-teal-500/8'} blur-[140px] animate-fluid-blob-2 transition-all duration-700`} />
-            <div className={`absolute top-[35%] right-[20%] w-[45%] h-[45%] rounded-full ${isLight ? 'bg-emerald-405/10' : 'bg-emerald-450/6'} blur-[110px] animate-fluid-blob-3 transition-all duration-700`} />
+            <div className="absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full bg-emerald-500/12 blur-[120px] animate-fluid-blob-1 transition-all duration-700" />
+            <div className="absolute bottom-[-15%] right-[-10%] w-[65%] h-[60%] rounded-full bg-teal-500/8 blur-[140px] animate-fluid-blob-2 transition-all duration-700" />
+            <div className="absolute top-[35%] right-[20%] w-[45%] h-[45%] rounded-full bg-emerald-450/6 blur-[110px] animate-fluid-blob-3 transition-all duration-700" />
           </>
         )}
         {showColoredBg && !isCall && (
           <>
-            <div className={`absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full ${isLight ? 'bg-rose-300/20' : 'bg-rose-500/12'} blur-[120px] animate-fluid-blob-1 transition-all duration-700`} />
-            <div className={`absolute bottom-[-15%] right-[-10%] w-[65%] h-[60%] rounded-full ${isLight ? 'bg-red-300/15' : 'bg-red-600/8'} blur-[140px] animate-fluid-blob-2 transition-all duration-700`} />
-            <div className={`absolute top-[35%] right-[20%] w-[45%] h-[45%] rounded-full ${isLight ? 'bg-[#ff453a]/10' : 'bg-[#ff453a]/6'} blur-[110px] animate-fluid-blob-3 transition-all duration-700`} />
+            <div className="absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full bg-rose-500/12 blur-[120px] animate-fluid-blob-1 transition-all duration-700" />
+            <div className="absolute bottom-[-15%] right-[-10%] w-[65%] h-[60%] rounded-full bg-red-600/8 blur-[140px] animate-fluid-blob-2 transition-all duration-700" />
+            <div className="absolute top-[35%] right-[20%] w-[45%] h-[45%] rounded-full bg-[#ff453a]/6 blur-[110px] animate-fluid-blob-3 transition-all duration-700" />
           </>
         )}
         {!showColoredBg && (
@@ -373,16 +375,20 @@ export default function App() {
                 {activeTab === 'home' && 'Ecosystem Introduction'}
                 {activeTab === 'skyvision' && 'Slayer // SkyVision'}
                 {activeTab === 'pinpoint' && 'Slayer // Pinpoint'}
-                {activeTab === 'discovery' && 'Slayer // Discovery'}
-                {activeTab === 'auditor' && 'Trust Archive'}
+                {activeTab === 'auditor' && 'Trust Archive & Registry'}
                 {activeTab === 'dealerflow' && 'Dealer Flow'}
-                {activeTab === 'accountability' && 'Accountability Registry'}
+                {activeTab === 'dashboard' && 'Executive Dashboard'}
+                {activeTab === 'alerts' && 'Realtime Alerts'}
+                {activeTab === 'automation' && 'SMS Auto-Dispatch'}
+                {activeTab === 'reports' && 'Compliance Reports'}
+                {activeTab === 'settings' && 'Workspace Config'}
+                {activeTab === 'arbor' && 'Research & Community'}
               </span></span>
-              <span className="text-[8px] text-[#8e8e93] group-hover:text-white transition-transform duration-200">▼</span>
+              <span className="text-[8px] text-zinc-650 group-hover:text-white transition-transform duration-200">▼</span>
             </div>
             
             {/* Hover options list */}
-            <div className="absolute top-full left-0 mt-1 w-72 bg-[#09090b] border border-zinc-850 rounded-sm shadow-2xl opacity-0 scale-95 origin-top-left invisible group-hover:opacity-100 group-hover:scale-100 group-hover:visible transition-all duration-150 z-50 p-2 space-y-1">
+            <div className="absolute top-full left-0 mt-1 w-[22rem] bg-[#09090b] border border-zinc-850 rounded-sm shadow-2xl opacity-0 scale-95 origin-top-left invisible group-hover:opacity-100 group-hover:scale-100 group-hover:visible transition-all duration-150 z-50 p-2 space-y-1 max-h-[80vh] overflow-y-auto">
               <div className="text-[8px] text-zinc-650 font-black tracking-widest px-2 py-1 border-b border-[#121214] uppercase mb-1">
                 SELECT COGNITIVE CORE
               </div>
@@ -430,21 +436,6 @@ export default function App() {
               </button>
 
               <button
-                onClick={() => setActiveTab('discovery')}
-                className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
-                  activeTab === 'discovery'
-                    ? 'bg-zinc-900 text-white font-bold border-l-2 border-emerald-450 pl-2'
-                    : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-white'
-                }`}
-              >
-                <span className="flex items-center gap-1.5">
-                  <Compass className="w-3 h-3 text-indigo-400" />
-                  <span>4. SLAYER // DISCOVERY</span>
-                </span>
-                <span className="text-[8px] text-zinc-650">OPPORTUNITY</span>
-              </button>
-
-              <button
                 onClick={() => setActiveTab('auditor')}
                 className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
                   activeTab === 'auditor'
@@ -454,9 +445,9 @@ export default function App() {
               >
                 <span className="flex items-center gap-1.5">
                   <Database className="w-3 h-3 text-zinc-500" />
-                  <span>5. TRUST ARCHIVE</span>
+                  <span>4. TRUST ARCHIVE & REGISTRY</span>
                 </span>
-                <span className="text-[8px] text-zinc-650">AUDIT LOGS</span>
+                <span className="text-[8px] text-zinc-650">EXECUTION LOGS</span>
               </button>
 
               <button
@@ -469,24 +460,103 @@ export default function App() {
               >
                 <span className="flex items-center gap-1.5">
                   <Waves className="w-3 h-3 text-emerald-400" />
-                  <span>6. DEALER FLOW</span>
+                  <span>5. DEALER FLOW</span>
                 </span>
                 <span className="text-[8px] text-zinc-650">GAMMA FLOW</span>
               </button>
 
+              <div className="text-[8px] text-zinc-650 font-black tracking-widest px-2 py-1 border-t border-b border-[#121214] uppercase my-1">
+                MORE POWER TOOLS
+              </div>
+
               <button
-                onClick={() => setActiveTab('accountability')}
+                onClick={() => setActiveTab('dashboard')}
                 className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
-                  activeTab === 'accountability'
+                  activeTab === 'dashboard'
                     ? 'bg-zinc-900 text-white font-bold border-l-2 border-emerald-450 pl-2'
                     : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-white'
                 }`}
               >
                 <span className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-3 h-3 text-emerald-400 animate-pulse" />
-                  <span>7. TRUST REGISTRY</span>
+                  <Activity className="w-3 h-3 text-emerald-450" />
+                  <span>6. EXECUTIVE DASHBOARD</span>
                 </span>
-                <span className="text-[8px] text-zinc-650">EXECUTION LOGS</span>
+                <span className="text-[8px] text-zinc-650">OVERVIEW</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('alerts')}
+                className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
+                  activeTab === 'alerts'
+                    ? 'bg-zinc-900 text-white font-bold border-l-2 border-emerald-450 pl-2'
+                    : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-white'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Bell className="w-3 h-3 text-rose-400 animate-pulse" />
+                  <span>7. REALTIME ALERTS</span>
+                </span>
+                <span className="text-[8px] text-zinc-650">DISPATCH QUEUE</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('automation')}
+                className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
+                  activeTab === 'automation'
+                    ? 'bg-zinc-900 text-white font-bold border-l-2 border-emerald-450 pl-2'
+                    : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-white'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Smartphone className="w-3 h-3 text-cyan-405" />
+                  <span>8. SMS AUTO-DISPATCH</span>
+                </span>
+                <span className="text-[8px] text-zinc-650">CARRIER GATEWAY</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('reports')}
+                className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
+                  activeTab === 'reports'
+                    ? 'bg-zinc-900 text-white font-bold border-l-2 border-emerald-450 pl-2'
+                    : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-white'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <FileText className="w-3 h-3 text-zinc-400" />
+                  <span>9. COMPLIANCE REPORTS</span>
+                </span>
+                <span className="text-[8px] text-zinc-650">SEC DOSSIER</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('arbor')}
+                className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
+                  activeTab === 'arbor'
+                    ? 'bg-zinc-900 text-white font-bold border-l-2 border-emerald-450 pl-2'
+                    : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-white'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <GraduationCap className="w-3 h-3 text-emerald-400" />
+                  <span>10. RESEARCH & COMMUNITY</span>
+                </span>
+                <span className="text-[8px] text-zinc-650">KNOWLEDGE</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
+                  activeTab === 'settings'
+                    ? 'bg-zinc-900 text-white font-bold border-l-2 border-emerald-450 pl-2'
+                    : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-white'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <SlidersHorizontal className="w-3 h-3 text-zinc-500" />
+                  <span>11. WORKSPACE CONFIG</span>
+                </span>
+                <span className="text-[8px] text-zinc-650">SETTINGS</span>
               </button>
             </div>
           </div>
@@ -525,36 +595,6 @@ export default function App() {
 
         {/* Real HTTP OAuth Action segment header (Bug #9) */}
         <div className="flex items-center gap-4 text-[9.5px]">
-          {/* Theme Toggle Motion Switch */}
-          <button
-            onClick={toggleThemeMode}
-            className={`relative flex items-center justify-between w-14 h-7 rounded-full p-1 cursor-pointer transition-colors duration-500 focus:outline-none ${
-              isLight ? 'bg-zinc-200 border border-zinc-300' : 'bg-zinc-950 border border-zinc-850'
-            }`}
-            title={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-          >
-            {/* Slide background indicator */}
-            <motion.div
-              className={`absolute top-[3px] w-5 h-5 rounded-full shadow-md flex items-center justify-center transition-colors ${
-                isLight ? 'bg-[#ff9500] text-white' : 'bg-indigo-500 text-white'
-              }`}
-              layout
-              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-              style={{ left: isLight ? '31px' : '4px' }}
-            >
-              <motion.div
-                key={themeMode}
-                initial={{ rotate: -90, scale: 0.5, opacity: 0 }}
-                animate={{ rotate: 0, scale: 1, opacity: 1 }}
-                exit={{ rotate: 90, scale: 0.5, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="flex items-center justify-center"
-              >
-                {isLight ? <Sun className="w-3.5 h-3.5 text-white" /> : <Moon className="w-3.5 h-3.5 text-white" />}
-              </motion.div>
-            </motion.div>
-          </button>
-
           {session?.authenticated ? (
             <div className="flex items-center gap-3.5 bg-zinc-950 px-3.5 py-1.5 border border-zinc-900 rounded-xs">
               <img 
@@ -589,7 +629,7 @@ export default function App() {
       </header>
 
       {/* Interactive Continuously-Scrolling Nasdaq Ticker Tape (Restricted to Landing Page only) */}
-      <TickerTape show={activeTab === 'home'} />
+      {activeTab === 'home' && <TickerTape />}
  
        {/* Main workspace frame */}
        <main className="flex-1 p-4 md:p-6 flex flex-col gap-6 w-full max-w-full justify-start">
@@ -597,7 +637,7 @@ export default function App() {
         {activeTab === 'home' && (
           <div className="animate-fadeIn">
             <SlayerIntro 
-              onEnterApp={() => setActiveTab('skyvision')} 
+              onEnterApp={(targetTab) => setActiveTab((targetTab as any) || 'skyvision')} 
               selectedAsset={selectedAsset}
               setSelectedAsset={setSelectedAsset}
               selectedTimeframe={selectedTimeframe}
@@ -629,20 +669,6 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 4: DISCOVERY (OPPORTUNITY ENGINE) */}
-        {activeTab === 'discovery' && (
-          <div className="view-enter">
-            <DiscoveryView
-              systemScore={serverState.system_score}
-              discovery={serverState.discovery}
-              onSelectContract={(asset, strike, isCall) => {
-                useContractStore.getState().selectContractAtomically(asset, strike, isCall);
-                setActiveTab('skyvision');
-              }}
-            />
-          </div>
-        )}
-
         {/* TAB 5: AUDIT (TRUST ENGINE) */}
         {activeTab === 'auditor' && (
           <div className="view-enter">
@@ -664,10 +690,45 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 7: ACCOUNTABILITY REGISTRY */}
-        {activeTab === 'accountability' && (
-          <div className="view-enter animate-fadeIn">
-            <AccountabilityRegistry />
+        {/* TAB 7: EXECUTIVE DASHBOARD */}
+        {activeTab === 'dashboard' && (
+          <div className="view-enter">
+            <DashboardView />
+          </div>
+        )}
+
+        {/* TAB 8: REALTIME ALERTS */}
+        {activeTab === 'alerts' && (
+          <div className="view-enter">
+            <AlertsView />
+          </div>
+        )}
+
+        {/* TAB 9: SMS AUTO-DISPATCH */}
+        {activeTab === 'automation' && (
+          <div className="view-enter">
+            <AutomationView />
+          </div>
+        )}
+
+        {/* TAB 10: COMPLIANCE REPORTS */}
+        {activeTab === 'reports' && (
+          <div className="view-enter">
+            <ReportsView />
+          </div>
+        )}
+
+        {/* TAB 11: RESEARCH & COMMUNITY */}
+        {activeTab === 'arbor' && (
+          <div className="view-enter">
+            <ArborCapital />
+          </div>
+        )}
+
+        {/* TAB 12: WORKSPACE CONFIG */}
+        {activeTab === 'settings' && (
+          <div className="view-enter">
+            <SettingsView />
           </div>
         )}
       </main>

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { createChart, CandlestickSeries, LineSeries, createSeriesMarkers } from 'lightweight-charts';
 import { Candle, TargetLevel } from '../types';
+import { useContractStore } from '../lib/store';
 
 interface InteractiveChartProps {
   candles: Candle[];
@@ -37,6 +38,9 @@ export function InteractiveChart({
   const markersRef = useRef<any>(null);
   const fvgSeriesRefs = useRef<any[]>([]);
 
+  const themeMode = useContractStore(s => s.themeMode);
+  const isLight = themeMode === 'light';
+
   // Format candles for lightweight-charts: must contain time (seconds), open, high, low, close
   const chartData = useMemo(() => {
     return candles.map((c) => {
@@ -60,29 +64,29 @@ export function InteractiveChart({
       width: containerRef.current.clientWidth,
       height: containerRef.current.clientHeight || 200,
       layout: {
-        background: { color: '#000000' },
-        textColor: '#a1a1aa',
+        background: { color: isLight ? '#ffffff' : '#000000' },
+        textColor: isLight ? '#1f2937' : '#a1a1aa',
         fontFamily: 'JetBrains Mono, monospace',
       },
       grid: {
-        vertLines: { color: '#09090b' },
-        horzLines: { color: '#09090b' },
+        vertLines: { color: isLight ? '#f3f4f6' : '#09090b' },
+        horzLines: { color: isLight ? '#f3f4f6' : '#09090b' },
       },
       crosshair: {
         mode: 1, // Magnet mode
         vertLine: {
-          color: '#ffffff',
+          color: isLight ? '#4b5563' : '#ffffff',
           width: 1, // LineWidth must be integer e.g., 1
           style: 1 // Dashed line style
         },
         horzLine: {
-          color: '#ffffff',
+          color: isLight ? '#4b5563' : '#ffffff',
           width: 1,
           style: 1
         }
       },
       timeScale: {
-        borderColor: '#18181b',
+        borderColor: isLight ? '#e5e7eb' : '#18181b',
         timeVisible: true,
         secondsVisible: false,
       },
@@ -132,6 +136,33 @@ export function InteractiveChart({
       markersRef.current = null;
     };
   }, []);
+
+  // Update options dynamically when theme changes
+  useEffect(() => {
+    if (chartRef.current) {
+      chartRef.current.applyOptions({
+        layout: {
+          background: { color: isLight ? '#ffffff' : '#000000' },
+          textColor: isLight ? '#1f2937' : '#a1a1aa',
+        },
+        grid: {
+          vertLines: { color: isLight ? '#f3f4f6' : '#09090b' },
+          horzLines: { color: isLight ? '#f3f4f6' : '#09090b' },
+        },
+        crosshair: {
+          vertLine: {
+            color: isLight ? '#4b5563' : '#ffffff',
+          },
+          horzLine: {
+            color: isLight ? '#4b5563' : '#ffffff',
+          }
+        },
+        timeScale: {
+          borderColor: isLight ? '#e5e7eb' : '#18181b',
+        }
+      });
+    }
+  }, [isLight]);
 
   // Update Candlestick Series data smoothly instead of deleting
   useEffect(() => {

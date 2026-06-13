@@ -4,6 +4,7 @@ import { useContractStore, ContractState } from '../lib/store';
 import { InteractiveChart } from './InteractiveChart';
 import { ASSET_LIST } from '../data';
 import { Zap, Percent, HelpCircle, FileText, CheckCircle2, Bot } from 'lucide-react';
+import { DiscoveryView } from './DiscoveryView';
 
 export function SkyVisionView() {
   const selectedAsset = useContractStore(s => s.selectedAsset);
@@ -20,7 +21,7 @@ export function SkyVisionView() {
   const setSelectedOptionType = useContractStore(s => s.setSelectedOptionType);
   const isPositionOpen = useContractStore(s => s.isPositionOpen);
 
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  const isExpanded = selectedStrike !== null;
 
   const spotPrice = serverState?.pinpoint_map?.spot_price || selectedAsset.defaultPrice;
   const activeStrike = selectedStrike || Math.round(spotPrice / 10) * 10;
@@ -28,7 +29,8 @@ export function SkyVisionView() {
   // Setup nice option premium price
   const activePrice = serverState?.optionPremiumFloat || 4.20;
 
-  const [isDeepSkyseyeExpanded, setIsDeepSkyseyeExpanded] = React.useState(false);
+  const isDeepSkyseyeExpanded = useContractStore(s => s.isDeepSkyseyeExpanded);
+  const setIsDeepSkyseyeExpanded = useContractStore(s => s.setIsDeepSkyseyeExpanded);
 
   // Render the preloaded Strikes Chain Centered on Spot but display them as list of OptionCards (Bug #4)
   const strikesList = useMemo(() => {
@@ -189,6 +191,72 @@ export function SkyVisionView() {
     ? (selectedOptionType === 'C' ? selectedFocusedOption.callMove : selectedFocusedOption.putMove)
     : (activeContract?.expectedMove || 42);
 
+  // Dynamic Greeks Attribution for the "Physics Grid"
+  const derivedGreeks = useMemo(() => {
+    const isCallOption = selectedOptionType === 'C';
+    const distToStrike = activeStrike - spotPrice;
+    const iv = selectedAsset.volatility || 0.17;
+    const distNorm = distToStrike / (spotPrice * 0.05 || 1); // Normalize space
+
+    // Delta estimation
+    let delta = isCallOption ? 1 / (1 + Math.exp(distNorm)) : -1 / (1 + Math.exp(-distNorm));
+    delta = Math.max(isCallOption ? 0.02 : -0.98, Math.min(isCallOption ? 0.98 : -0.02, delta));
+
+    // Gamma approximation
+    let gamma = (1 / (Math.sqrt(2 * Math.PI) * 1.6)) * Math.exp(-0.5 * Math.pow(distNorm, 2)) * (0.04 * (1.2 + iv));
+    gamma = Math.max(0.001, gamma);
+
+    // Theta approximation (always negative decay)
+    let theta = -0.6 * (1.1 + Math.exp(-0.35 * Math.pow(distNorm, 2))) * (1 + iv);
+    theta = Math.min(-0.02, theta);
+
+    // Vega approximation
+    let vega = 0.16 * Math.exp(-0.45 * Math.pow(distNorm, 2)) * (1.1 + iv);
+    vega = Math.max(0.01, vega);
+
+    return {
+      delta: Number(delta.toFixed(2)),
+      gamma: Number(gamma.toFixed(4)),
+      theta: Number(theta.toFixed(2)),
+      vega: Number(vega.toFixed(2))
+    };
+  }, [activeStrike, spotPrice, selectedOptionType, selectedAsset]);
+
+  // Dynamic Forensic Thesis generator
+  const forensicThesis = useMemo(() => {
+    switch (activeRecommendation) {
+      case 'ENTER':
+        return {
+          title: selectedOptionType === 'C' ? 'GAMMA SQUEEZE BREAKOUT' : 'BEARISH ACCELERATION TRIGGER',
+          desc: 'Quant models identify significant volume clustering. Positive directional feedback creates imbalance. Position entry confirmed.',
+          color: 'text-[#00ff88]',
+          badges: ['GEX FLOW', 'VOL SPIKE', 'SPOT MOMENTUM']
+        };
+      case 'REDUCE':
+        return {
+          title: 'THETA DOMINANCE / RANGE DRIFT',
+          desc: 'Slower momentum allows theta decay factor to eat premium boundary lines. Consider reduction to mitigate risk exposure footprint.',
+          color: 'text-amber-400',
+          badges: ['THETA PENALTY', 'VOL COMPRESSION', 'DELTA BALANCE']
+        };
+      case 'SELL':
+        return {
+          title: 'LIQUIDITY SHELF BREACHED',
+          desc: 'Derivative support levels violated. Institutional sell volume triggers state-wise exit sequence. Limit downside risks.',
+          color: 'text-rose-400',
+          badges: ['HEDGE SHELF GAP', 'FORCE CLOSURE', 'OUT-OF-THE-MONEY']
+        };
+      case 'HOLD':
+      default:
+        return {
+          title: 'CONSOLIDATION / THETA NEUTRALITY',
+          desc: 'Delta/Theta Neutrality reached. Price consolidation keeps contract neutrally balanced. Accumulating flow; watch option boundaries.',
+          color: 'text-indigo-400',
+          badges: ['DEALER BIAS STABLE', 'THETA DOMINANT', 'IN RANGE VALUE']
+        };
+    }
+  }, [activeRecommendation, selectedOptionType]);
+
   // Real-time custom targets list
   const profitTargetsList = useMemo(() => {
     return [
@@ -199,145 +267,18 @@ export function SkyVisionView() {
     ];
   }, [activePrice, tradeHealthValue]);
 
-  const [searchQuery, setSearchQuery] = React.useState('');
-
   if (!isExpanded) {
-    const signals = [
-      { asset: 'SPX', type: 'CALL', strike: 7620, price: 5.40, t1: 7.20, p1: 33, t2: 9.50, p2: 75, desc: 'BULLISH MOMENTUM STRIKE DRIFT IDENTIFIED', detail: 'High order-flow clustering detected on institutional SPX grids.' },
-      { asset: 'QQQ', type: 'PUT', strike: 440, price: 2.10, t1: 3.10, p1: 47, t2: 4.80, p2: 128, desc: 'BEARISH LIQUIDITY SWEEP DETECTED', detail: 'Major selling pressure confirmed on derivative VWAP retest.' },
-      { asset: 'NDX', type: 'CALL', strike: 18500, price: 14.50, t1: 18.00, p1: 24, t2: 25.50, p2: 75, desc: 'VOLATILITY COMPRESSION BREAKOUT', detail: 'Gamma squeeze parameters aligning with dealer positioning.' }
-    ];
-
     return (
-      <div className="w-full text-zinc-200 flex flex-col font-mono select-none antialiased max-w-5xl mx-auto pt-4 relative">
-         <div className="absolute top-0 right-4 px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded text-emerald-400 font-bold uppercase text-[10px] tracking-widest animate-pulse">
-            LIVE SCANNER ACTIVE
-         </div>
-         <h2 className="text-xl font-black text-white px-4">TOP OPPORTUNITIES TODAY</h2>
-         <p className="text-xs text-zinc-500 px-4 mb-6">Continuous monitoring of all option contracts across tracked indices.</p>
-
-         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-4">
-           {signals.map((sig, i) => (
-             <motion.div 
-               key={i}
-               whileHover={{ scale: 1.02 }}
-               whileTap={{ scale: 0.98 }}
-               onClick={() => {
-                 const asset = ASSET_LIST.find(a => a.ticker === sig.asset);
-                 if (asset) setSelectedAsset(asset);
-                 setSelectedStrike(sig.strike);
-                 setSelectedOptionType(sig.type.charAt(0) as 'C'|'P');
-                 setIsExpanded(true);
-               }}
-               className="w-full bg-[#050505] border border-zinc-900 rounded-xl p-5 cursor-pointer hover:border-zinc-700 transition-all text-left flex flex-col gap-4 relative shadow-2xl"
-             >
-               <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
-                      <Bot className="w-3 h-3 text-emerald-400" />
-                    </div>
-                    <div>
-                      <h3 className="text-[11px] font-black text-white">Slayer Signal</h3>
-                      <span className="text-[8px] text-zinc-500 tracking-widest uppercase">{i === 0 ? 'JUST NOW' : i * 15 + ' MINS AGO'}</span>
-                    </div>
-                  </div>
-                  <div className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 rounded text-emerald-400 font-black uppercase text-[8px] tracking-widest">
-                    TRIGGERED
-                  </div>
-               </div>
-
-               <div className="space-y-1">
-                  <h4 className="text-xs font-black text-emerald-400">
-                     {sig.asset} {sig.desc}
-                  </h4>
-                  <p className="text-[10px] text-zinc-400 font-sans tracking-wide leading-snug">
-                    {sig.detail}
-                  </p>
-               </div>
-
-               <div className="w-full bg-zinc-950 border border-zinc-900 rounded-lg p-3 grid grid-cols-2 gap-y-3 gap-x-4 mt-auto">
-                  <div className="space-y-0.5">
-                    <span className="text-[8px] text-zinc-500 uppercase tracking-widest font-black block">CONTRACT</span>
-                    <div className="text-xs font-black text-white">{sig.asset} {sig.strike}{sig.type.charAt(0)}</div>
-                  </div>
-                  <div className="space-y-0.5">
-                    <span className="text-[8px] text-zinc-500 uppercase tracking-widest font-black block">ENTRY</span>
-                    <div className="text-xs font-black text-emerald-400">Under ${sig.price.toFixed(2)}</div>
-                  </div>
-                  <div className="space-y-0.5 col-span-2">
-                    <span className="text-[8px] text-zinc-500 uppercase tracking-widest font-black block">TARGET</span>
-                    <div className="text-xs font-black text-white">${sig.t1.toFixed(2)} <span className="text-emerald-400">(+{sig.p1}%)</span></div>
-                  </div>
-               </div>
-             </motion.div>
-           ))}
-         </div>
-
-         {/* Search Box below the top boxes */}
-         <div className="mt-12 px-4 w-full">
-            <h3 className="text-sm font-black text-zinc-300 uppercase tracking-wider mb-3 items-center flex gap-2">
-              <Zap className="w-4 h-4 text-[#4f8cff]" />
-              Manual Ticker Explorer
-            </h3>
-            <div className="relative w-full max-w-2xl bg-[#050505] p-1 border border-zinc-900 rounded-lg flex items-center">
-               <input 
-                 type="text" 
-                 value={searchQuery}
-                 onChange={(e) => setSearchQuery(e.target.value)}
-                 placeholder="Search ticker (e.g. SPY, NDX, MSFT)..." 
-                 className="w-full bg-transparent border-none px-4 py-3 text-sm text-white font-black uppercase focus:outline-none placeholder-zinc-700" 
-               />
-               <button 
-                 onClick={() => {
-                   if (searchQuery.trim().length > 0) {
-                     // For UI sake, just select first asset or create a mock one. Or match by symbol if it exists.
-                     const q = searchQuery.toUpperCase();
-                     const found = ASSET_LIST.find(a => a.ticker === q);
-                     if (found) setSelectedAsset(found);
-                     else {
-                       // Keep whatever default, but mock search functionality by opening
-                       // In real app, we'd lookup custom option chain
-                     }
-                     setIsExpanded(true);
-                   }
-                 }}
-                 className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-6 py-2.5 rounded-md text-[11px] font-bold uppercase hover:bg-emerald-500/20 mr-1 transition-colors whitespace-nowrap"
-               >
-                 PULL CHAIN
-               </button>
-            </div>
-            
-            {/* Simple autocomplete suggestions */}
-            {searchQuery.length > 0 && (
-               <div className="w-full max-w-2xl mt-2 bg-zinc-950 border border-zinc-900 rounded-lg shadow-xl overflow-hidden divide-y divide-zinc-900/50">
-                  {ASSET_LIST.filter(a => a.ticker.includes(searchQuery.toUpperCase())).map((asset) => (
-                    <div 
-                      key={asset.ticker}
-                      className="px-4 py-3 hover:bg-zinc-900 cursor-pointer flex justify-between items-center transition-colors text-left"
-                      onClick={() => {
-                        setSelectedAsset(asset);
-                        setSearchQuery('');
-                        setIsExpanded(true);
-                      }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="font-black text-white text-sm">{asset.ticker}</span>
-                        <span className="text-[10px] text-zinc-500 uppercase">{asset.name}</span>
-                      </div>
-                      <span className="text-[9px] text-[#4f8cff] uppercase font-bold bg-[#4f8cff]/10 px-2 py-0.5 rounded">View Options</span>
-                    </div>
-                  ))}
-                  {searchQuery.length > 0 && !ASSET_LIST.some(a => a.ticker.includes(searchQuery.toUpperCase())) && (
-                    <div className="px-4 py-3 hover:bg-zinc-900 cursor-pointer flex justify-between items-center transition-colors text-left" onClick={() => setIsExpanded(true)}>
-                      <div className="flex items-center gap-3">
-                        <span className="font-black text-white text-sm uppercase">{searchQuery}</span>
-                        <span className="text-[10px] text-zinc-500 uppercase">Load External Chain</span>
-                      </div>
-                    </div>
-                  )}
-               </div>
-            )}
-         </div>
+      <div className="w-full text-zinc-200 flex flex-col font-mono select-none antialiased pt-2 relative">
+        <DiscoveryView
+          systemScore={serverState?.system_score}
+          discovery={serverState?.discovery}
+          onSelectContract={(asset, strike, isCall) => {
+            setSelectedAsset(asset);
+            setSelectedStrike(strike);
+            setSelectedOptionType(isCall ? 'C' : 'P');
+          }}
+        />
       </div>
     );
   }
@@ -348,7 +289,9 @@ export function SkyVisionView() {
       {/* Back Button to list */}
       <div className="w-full flex items-center justify-between pb-2 border-b border-zinc-900/50">
         <button 
-          onClick={() => setIsExpanded(false)}
+          onClick={() => {
+            setSelectedStrike(null);
+          }}
           className="flex items-center gap-2 text-[10px] text-zinc-400 hover:text-white uppercase tracking-widest font-black py-1 px-3 bg-zinc-900/50 rounded hover:bg-zinc-800 transition-colors"
         >
           ← BACK TO SIGNALS
@@ -458,33 +401,95 @@ export function SkyVisionView() {
             {/* Grid of decision layout */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch my-2 relative z-10">
               
-              {/* Recommendation block */}
-              <div className="bg-zinc-950/60 border border-zinc-900/60 p-4.5 rounded-xl flex flex-col justify-between text-left">
-                <div>
-                  <span className="text-[8px] text-zinc-550 tracking-wider uppercase block">RECOMMENDATION STRATEGY</span>
-                  <span className="text-xl md:text-2xl font-extrabold text-white font-sans uppercase block tracking-tight pt-1">
-                    {activeRecommendation}
+              {/* Recommendation block (upgraded to Forensic Thesis statement) */}
+              <div className="bg-zinc-950/60 border border-zinc-900/60 p-4.5 rounded-xl flex flex-col justify-between text-left gap-3">
+                <div className="space-y-1.5 text-left">
+                  <span className="text-[8px] text-zinc-500 tracking-wider uppercase block font-mono">FORENSIC EVALUATION THESIS</span>
+                  <span className={`text-[13px] md:text-sm font-black font-sans uppercase block tracking-tight leading-tight ${forensicThesis.color}`}>
+                    {forensicThesis.title}
                   </span>
+                  <div className="text-[9.5px]/[14px] text-zinc-400 font-sans tracking-wide">
+                    {forensicThesis.desc}
+                  </div>
                 </div>
-                <div className="text-[9.5px] text-zinc-400 pt-3 border-t border-zinc-900/30 leading-relaxed font-sans mt-2">
-                  Position bias established under strict statistical continuous evaluation.
+
+                {/* Attribution pill-badges row (Tag Bar) */}
+                <div className="border-t border-zinc-900/30 pt-3 mt-1.5">
+                  <span className="text-[8px] text-zinc-550 uppercase tracking-widest font-black block mb-1">DECISION DRIVERS</span>
+                  <div className="flex flex-wrap gap-1">
+                    {forensicThesis.badges.map((b, idx) => (
+                      <span key={idx} className="px-1.5 py-0.5 bg-zinc-900/40 border border-zinc-800/80 rounded-sm text-zinc-300 font-bold text-[7px] tracking-wider uppercase">
+                        {b}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* Health index dials */}
-              <div className="bg-zinc-950/30 border border-zinc-900/40 p-4 rounded-xl flex flex-col justify-center space-y-3 text-left">
-                <div className="flex justify-between items-center text-xs pb-2 border-b border-zinc-900/30">
-                  <span className="text-zinc-500 uppercase text-[9px]">Decision Score</span>
-                  <span className="font-extrabold text-white">{tradeHealthValue} <span className="text-[8px] text-zinc-550">PTS</span></span>
+              {/* Health index dials (Upgraded to Physics Greek Grid + Confidence Band + Probability Cone) */}
+              <div className="bg-zinc-950/30 border border-zinc-900/40 p-4 rounded-xl flex flex-col justify-between text-left gap-4">
+                
+                {/* Score & Institutional confidence bar */}
+                <div className="space-y-1.5 text-left">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-zinc-550 uppercase text-[8.5px] font-black font-mono">INSTITUTIONAL CONFIDENCE BAND</span>
+                    <span className="font-extrabold text-[#00ff88] text-[9.5px] font-mono">{tradeHealthValue}% CONFIDENCE</span>
+                  </div>
+                  {/* Linear Progress bar */}
+                  <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-teal-500/10 via-emerald-500/20 to-emerald-400/40" />
+                    <motion.div 
+                      className="h-full bg-[#00ff88] relative shadow-[0_0_8px_#00ff88]" 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${tradeHealthValue}%` }}
+                      transition={{ duration: 0.8, ease: "easeOut" }}
+                    />
+                  </div>
                 </div>
-                <div className="flex justify-between items-center text-xs pb-2 border-b border-zinc-900/30">
-                  <span className="text-zinc-500 uppercase text-[9px]">Heuristic Bias</span>
-                  <span className="font-extrabold text-[#00ff88] uppercase">{tradeHealthValue >= 80 ? 'BULLISH ACCEL' : 'STABILIZING'}</span>
+
+                {/* Greek physics 2x2 grid */}
+                <div className="grid grid-cols-2 gap-1.5 border-t border-b border-zinc-900/40 py-2.5 font-mono text-[9px]">
+                  <div className="flex justify-between px-1.5 py-0.5 bg-black/35 border border-zinc-900/50 rounded-sm">
+                    <span className="text-zinc-550 font-semibold tracking-wider">DELTA</span>
+                    <span className={`font-bold ${derivedGreeks.delta > 0 ? 'text-[#00ff88]' : 'text-rose-400'}`}>
+                      {derivedGreeks.delta > 0 ? '+' : ''}{derivedGreeks.delta}
+                    </span>
+                  </div>
+                  <div className="flex justify-between px-1.5 py-0.5 bg-black/35 border border-zinc-900/50 rounded-sm">
+                    <span className="text-zinc-550 font-semibold tracking-wider">GAMMA</span>
+                    <span className="text-white font-bold">{derivedGreeks.gamma}</span>
+                  </div>
+                  <div className="flex justify-between px-1.5 py-0.5 bg-black/35 border border-zinc-900/50 rounded-sm">
+                    <span className="text-zinc-550 font-semibold tracking-wider">THETA</span>
+                    <span className="text-amber-400 font-bold">{derivedGreeks.theta}</span>
+                  </div>
+                  <div className="flex justify-between px-1.5 py-0.5 bg-black/35 border border-zinc-900/50 rounded-sm">
+                    <span className="text-zinc-550 font-semibold tracking-wider">VEGA</span>
+                    <span className="text-indigo-400 font-bold">+{derivedGreeks.vega}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-zinc-500 uppercase text-[9px]">Calculated Move</span>
-                  <span className="font-extrabold text-[#4f8cff]">+{expectedMoveField}% Expected</span>
+
+                {/* Expected move and Probability cone bell shape */}
+                <div className="flex justify-between items-center bg-black/40 border border-zinc-900/70 rounded p-2">
+                  <div className="space-y-0.5 text-left">
+                    <span className="text-[8px] text-zinc-550 tracking-wider block font-black uppercase font-mono">PROBABILITY CONE</span>
+                    <span className="font-extrabold text-[#4f8cff] text-[10px] block font-mono">+{expectedMoveField}% Expected</span>
+                  </div>
+                  {/* Minified Probability Gaussian Curve widget */}
+                  <svg className="w-16 h-7 text-[#4f8cff]/55 shrink-0" viewBox="0 0 60 25" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M 5,23 Q 20,23 30,3 Q 40,23 55,23" stroke="currentColor" strokeOpacity="0.4" />
+                    <motion.circle 
+                      cx={30 + Math.min(20, Math.max(-20, (expectedMoveField - 42) * 0.6))} 
+                      cy={21 - (15 * Math.exp(-0.5 * Math.pow((expectedMoveField - 42) / 18, 2)))} 
+                      r="2" 
+                      fill="#4f8cff" 
+                      animate={{ r: [1.5, 3, 1.5] }}
+                      transition={{ repeat: Infinity, duration: 2.2 }}
+                    />
+                    <line x1="30" y1="3" x2="30" y2="23" stroke="rgba(255, 255, 255, 0.15)" strokeDasharray="1.5,1.5" />
+                  </svg>
                 </div>
+
               </div>
 
             </div>

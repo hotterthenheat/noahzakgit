@@ -34,15 +34,15 @@ export function DashboardView() {
     <div className="w-full text-zinc-300 flex flex-col font-mono select-none antialiased space-y-6">
       
       {/* 1. HEADER CONTAINER */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-[#050505] border border-zinc-900 p-4 rounded-sm gap-2">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center apple-glass p-5 rounded-2xl gap-2 shadow-lg">
         <div className="flex gap-2 items-center">
-          <Zap className="w-4 h-4 text-zinc-400 animate-pulse" />
-          <span className="text-[9px] text-zinc-400 uppercase tracking-widest font-black">
+          <Zap className="w-4 h-4 text-[#30d158] animate-pulse" />
+          <span className="text-[9px] text-zinc-300 uppercase tracking-widest font-black">
             SLAYER EXECUTIVE DASHBOARD / PORTFOLIO RECONCILIATION
           </span>
         </div>
-        <div className="flex items-center gap-1.5 bg-black p-1 border border-zinc-900 rounded-sm">
-          <span className="text-[8.5px] uppercase tracking-widest text-[#00ff88] px-2 font-black">
+        <div className="flex items-center gap-1.5 bg-black/40 p-1 px-1.5 border border-white/5 rounded-lg">
+          <span className="text-[8.5px] uppercase tracking-widest text-[#30d158] px-2 font-black">
             TERMINAL SESSION ACTIVE
           </span>
         </div>
@@ -51,23 +51,23 @@ export function DashboardView() {
       {/* 2. PRIMARY HERO CARD (Centered 70% Max Width Layout) */}
       <div className="w-full flex justify-center">
         <div 
-          className="max-w-3xl w-full bg-[#050505] border-2 border-white rounded-sm p-6 relative overflow-hidden shadow-2xl flex flex-col justify-between"
+          className="max-w-3xl w-full apple-glass rounded-2xl p-6 md:p-8 relative overflow-hidden shadow-2xl flex flex-col justify-between"
           style={{ minHeight: '340px' }}
         >
           {/* Subtle mirrored reflection accent line */}
-          <div className="absolute top-0 left-0 right-0 h-[3px] bg-white" />
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#30d158] via-indigo-500 to-[#30d158]" />
 
           {/* Top Row Labeling */}
           <div className="flex justify-between items-start border-b border-zinc-900/40 pb-4">
             <div className="text-left space-y-1">
-              <span className="text-[8px] text-zinc-500 tracking-[0.2em] uppercase font-black block">PRIMARY INTELLIGENCE</span>
+              <span className="text-[8px] text-[#30d158] tracking-[0.2em] uppercase font-black block">PRIMARY INTELLIGENCE</span>
               <h2 className="text-2xl font-black text-white font-sans tracking-tight uppercase leading-none">
                 MARKET STATE CORE OVERVIEW
               </h2>
             </div>
-            <div className="text-right bg-zinc-950 px-2 py-1 border border-zinc-900 rounded-xs text-[10px]">
+            <div className="text-right bg-black/60 px-2 py-1 border border-white/5 rounded-lg text-[10px]">
               <span className="text-zinc-500 uppercase text-[8px] block">INDEX REF</span>
-              <span className="text-white font-extrabold block text-sm">{selectedAsset.ticker}</span>
+              <span className="text-[#30d158] font-extrabold block text-sm">{selectedAsset.ticker}</span>
             </div>
           </div>
 
@@ -75,30 +75,30 @@ export function DashboardView() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch my-2">
             
             {/* Market State Block */}
-            <div className="bg-zinc-950 border border-zinc-900 p-5 rounded-sm flex flex-col justify-between text-left">
+            <div className="bg-black/40 border border-white/5 p-5 rounded-xl flex flex-col justify-between text-left">
               <div>
                 <span className="text-[8px] text-zinc-500 tracking-wider uppercase block">CURRENT REGIME</span>
                 <span className="text-xl md:text-2xl font-extrabold text-white font-sans uppercase block tracking-tight pt-1 leading-tight">
                   {marketStateLabel}
                 </span>
               </div>
-              <div className="text-[9.5px] text-zinc-500 pt-3 border-t border-zinc-900/60 leading-relaxed font-sans">
+              <div className="text-[9.5px] text-zinc-400 pt-3 border-t border-white/5 leading-relaxed font-sans">
                 Real-time continuous distribution sync verified by CBOE order flows.
               </div>
             </div>
 
             {/* Symmetrical Parameters Dashboard Dial Box */}
-            <div className="bg-zinc-950/40 border border-zinc-900 p-4 rounded-sm flex flex-col justify-center space-y-3.5 text-left">
-              <div className="flex justify-between items-center text-xs pb-2 border-b border-zinc-900/45">
-                <span className="text-zinc-500 uppercase text-[9px] tracking-wider">EXPECTED MOVE</span>
-                <span className="font-extrabold text-white">{expectedMove} <span className="text-zinc-500 text-[8.5px]">({expectedRange})</span></span>
+            <div className="bg-black/20 border border-white/5 p-4 rounded-xl flex flex-col justify-center space-y-3.5 text-left">
+              <div className="flex justify-between items-center text-xs pb-2 border-b border-white/5">
+                <span className="text-zinc-400 uppercase text-[9px] tracking-wider">EXPECTED MOVE</span>
+                <span className="font-extrabold text-white">{expectedMove} <span className="text-[#30d158] text-[8.5px]">({expectedRange})</span></span>
               </div>
-              <div className="flex justify-between items-center text-xs pb-2 border-b border-zinc-900/45">
-                <span className="text-zinc-500 uppercase text-[9px] tracking-wider">CONFIDENCE INDEX</span>
-                <span className="font-extrabold text-[#CCCCCC]">{confidence} <span className="text-zinc-500 text-[8.5px]">PTS (V11)</span></span>
+              <div className="flex justify-between items-center text-xs pb-2 border-b border-white/5">
+                <span className="text-zinc-400 uppercase text-[9px] tracking-wider">CONFIDENCE INDEX</span>
+                <span className="font-extrabold text-white">{confidence} <span className="text-zinc-500 text-[8.5px]">PTS (V11)</span></span>
               </div>
               <div className="flex justify-between items-center text-xs">
-                <span className="text-zinc-500 uppercase text-[9px] tracking-wider">DEALER BIAS</span>
+                <span className="text-zinc-400 uppercase text-[9px] tracking-wider">DEALER BIAS</span>
                 <span className="font-extrabold text-white uppercase">{dealerBiasLabel}</span>
               </div>
             </div>
@@ -106,11 +106,11 @@ export function DashboardView() {
           </div>
 
           {/* Bottom Compliance Affirmation */}
-          <div className="border-t border-zinc-900/40 pt-4 flex flex-col sm:flex-row justify-between items-center text-[10px] text-zinc-500 gap-2">
-            <span className="uppercase text-[8px] text-zinc-500 block">ZERO SPECULATIVE PREDICTIONS TOLERATED</span>
+          <div className="border-t border-zinc-900/40 pt-4 flex flex-col sm:flex-row justify-between items-center text-[10px] text-zinc-400 gap-2">
+            <span className="uppercase text-[8px] text-zinc-400 block font-bold">ZERO SPECULATIVE PREDICTIONS TOLERATED</span>
             <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 bg-[#CCCCCC] rounded-full animate-pulse" />
-              <span className="font-black text-white px-2 py-0.5 border border-zinc-900 uppercase">
+              <span className="w-1.5 h-1.5 bg-[#30d158] rounded-full animate-pulse" />
+              <span className="font-black text-[#30d158] px-2 py-0.5 border border-[#30d158]/20 bg-[#30d158]/5 rounded uppercase">
                 INTEGRITY CHECK: PASSED
               </span>
             </div>
@@ -123,11 +123,11 @@ export function DashboardView() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
         
         {/* Card 1: Asset Core */}
-        <div className="bg-[#050505] border border-zinc-900 p-4 rounded-sm flex flex-col justify-between text-left space-y-3">
+        <div className="apple-glass p-5 rounded-2xl flex flex-col justify-between text-left space-y-3 shadow-md">
           <div className="space-y-1">
-            <span className="text-[8px] text-zinc-500 tracking-wider block font-bold uppercase">ASSET PROFILE</span>
+            <span className="text-[8px] text-[#30d158] tracking-wider block font-bold uppercase">ASSET PROFILE</span>
             <h4 className="text-xs font-black text-white uppercase">{selectedAsset.ticker} INDEX</h4>
-            <div className="text-[11px] text-zinc-400 font-mono pt-1.5 space-y-1 border-t border-zinc-950">
+            <div className="text-[11px] text-zinc-400 font-mono pt-1.5 space-y-1 border-t border-white/5">
               <div className="flex justify-between">
                 <span>Spot Price:</span>
                 <span className="text-white font-bold">${(serverState?.pinpoint_map?.spot_price || selectedAsset.defaultPrice).toFixed(1)}</span>
@@ -138,34 +138,34 @@ export function DashboardView() {
               </div>
             </div>
           </div>
-          <span className="text-[7.5px] text-zinc-650 uppercase font-mono tracking-wider">SECURE LOCAL CACHE SYNC</span>
+          <span className="text-[7.5px] text-zinc-600 uppercase font-mono tracking-wider font-bold">SECURE LOCAL CACHE SYNC</span>
         </div>
 
         {/* Card 2: Dealer Exposure */}
-        <div className="bg-[#050505] border border-zinc-900 p-4 rounded-sm flex flex-col justify-between text-left space-y-3">
+        <div className="apple-glass p-5 rounded-2xl flex flex-col justify-between text-left space-y-3 shadow-md">
           <div className="space-y-1">
-            <span className="text-[8px] text-zinc-500 tracking-wider block font-bold uppercase">DEALER EXPOSURE</span>
+            <span className="text-[8px] text-purple-400 tracking-wider block font-bold uppercase">DEALER EXPOSURE</span>
             <h4 className="text-xs font-black text-white uppercase">GEX BOUNDARIES</h4>
-            <div className="text-[11px] text-zinc-400 font-mono pt-1.5 space-y-1 border-t border-zinc-950">
+            <div className="text-[11px] text-zinc-400 font-mono pt-1.5 space-y-1 border-t border-white/5">
               <div className="flex justify-between">
                 <span>Gamma State:</span>
                 <span className="text-white font-bold">{serverState?.system_score?.liquiditySweep >= 5 ? 'STABLE GEX' : 'NEGATIVE SKEW'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Dealer Sign:</span>
-                <span className="text-[#00ff88]">SHORT CALLS (-1)</span>
+                <span className="text-[#30d158] font-bold">SHORT CALLS (-1)</span>
               </div>
             </div>
           </div>
-          <span className="text-[7.5px] text-zinc-650 uppercase font-mono tracking-wider">BLACK-SCHOLES COMPLIANT</span>
+          <span className="text-[7.5px] text-zinc-650 uppercase font-mono tracking-wider font-bold">BLACK-SCHOLES COMPLIANT</span>
         </div>
 
         {/* Card 3: Quantitative Pipeline */}
-        <div className="bg-[#050505] border border-zinc-900 p-4 rounded-sm flex flex-col justify-between text-left space-y-3">
+        <div className="apple-glass p-5 rounded-2xl flex flex-col justify-between text-left space-y-3 shadow-md">
           <div className="space-y-1">
-            <span className="text-[8px] text-zinc-500 tracking-wider block font-bold uppercase">QUANT PIPELINE</span>
+            <span className="text-[8px] text-[#30d158] tracking-wider block font-bold uppercase">QUANT PIPELINE</span>
             <h4 className="text-xs font-black text-white uppercase">V11 SCORE MATRIX</h4>
-            <div className="text-[11px] text-zinc-400 font-mono pt-1.5 space-y-1 border-t border-zinc-950">
+            <div className="text-[11px] text-zinc-400 font-mono pt-1.5 space-y-1 border-t border-white/5">
               <div className="flex justify-between">
                 <span>HTF Agreement:</span>
                 <span className="text-white font-bold">{serverState?.system_score?.htfAgreement >= 7 ? 'VERIFIED' : 'DIVERGENT'}</span>
@@ -176,18 +176,18 @@ export function DashboardView() {
               </div>
             </div>
           </div>
-          <span className="text-[7.5px] text-zinc-650 uppercase font-mono tracking-wider">0.8S LATENCY CYCLE SEC</span>
+          <span className="text-[7.5px] text-zinc-650 uppercase font-mono tracking-wider font-bold">0.8S LATENCY CYCLE SEC</span>
         </div>
 
         {/* Card 4: Hardware Timer status */}
-        <div className="bg-[#050505] border border-zinc-900 p-4 rounded-sm flex flex-col justify-between text-left space-y-3">
+        <div className="apple-glass p-5 rounded-2xl flex flex-col justify-between text-left space-y-3 shadow-md">
           <div className="space-y-1">
-            <span className="text-[8px] text-zinc-500 tracking-wider block font-bold uppercase">MARKET TIMER</span>
+            <span className="text-[8px] text-[#30d158] tracking-wider block font-bold uppercase">MARKET TIMER</span>
             <h4 className="text-xs font-black text-white uppercase">CBOE / NYSE CLOCK</h4>
-            <div className="text-[11px] text-zinc-400 font-mono pt-1.5 space-y-1 border-t border-zinc-950">
+            <div className="text-[11px] text-zinc-400 font-mono pt-1.5 space-y-1 border-t border-white/5">
               <div className="flex justify-between">
                 <span>Market Hours:</span>
-                <span className={marketState.open ? 'text-[#00ff88] font-bold' : 'text-zinc-500'}>
+                <span className={marketState.open ? 'text-[#30d158] font-bold' : 'text-zinc-500'}>
                   {marketState.open ? 'OPEN' : 'CLOSED'}
                 </span>
               </div>
@@ -197,15 +197,15 @@ export function DashboardView() {
               </div>
             </div>
           </div>
-          <span className="text-[7.5px] text-[#00ff88] uppercase font-mono tracking-wider">STREAM STATE: LIVE SYNC</span>
+          <span className="text-[7.5px] text-[#30d158] uppercase font-mono tracking-wider font-bold">STREAM STATE: LIVE SYNC</span>
         </div>
 
       </div>
 
       {/* 4. SUPPORTING INFORMATION */}
-      <div className="bg-[#050505] border border-zinc-900 p-5 rounded-sm text-left space-y-3">
-        <div className="flex items-center gap-2 border-b border-zinc-900 pb-2">
-          <Layers className="w-3.5 h-3.5 text-zinc-500" />
+      <div className="apple-glass p-6 rounded-2xl text-left space-y-3 shadow-lg">
+        <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+          <Layers className="w-3.5 h-3.5 text-zinc-550" />
           <h4 className="text-[10.5px] font-black text-white uppercase tracking-wider block">
             Institutional Symmetrical Architecture Note
           </h4>
@@ -224,10 +224,10 @@ export function DashboardView() {
       <InstitutionalHUD />
 
       {/* 5. STATUS BAR */}
-      <div className="border border-zinc-900 bg-black min-h-[30px] p-2 rounded-xs flex items-center justify-between text-[8px] text-zinc-550 uppercase tracking-widest pl-3 font-black">
+      <div className="apple-glass min-h-[30px] p-3 rounded-xl flex items-center justify-between text-[8px] text-zinc-400 uppercase tracking-widest pl-4 font-black shadow-md">
         <span>V11 MATH MULTI-NODE REGION VERIFIED NO INTRUSION V8-S25</span>
         <div className="flex items-center gap-1 pr-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#00ff88] animate-ping" />
+          <span className="h-1.5 w-1.5 rounded-full bg-[#30d158] animate-ping" />
           <span className="text-white">COORDINATES ACTIVE: 1X FEED</span>
         </div>
       </div>

@@ -33,8 +33,8 @@ interface MarketState {
 
 interface ContractStore {
   // Navigation & View Tabs
-  activeTab: 'home' | 'skyvision' | 'pinpoint' | 'discovery' | 'auditor' | 'dealerflow' | 'accountability';
-  setActiveTab: (tab: 'home' | 'skyvision' | 'pinpoint' | 'discovery' | 'auditor' | 'dealerflow' | 'accountability') => void;
+  activeTab: 'home' | 'skyvision' | 'pinpoint' | 'auditor' | 'dealerflow' | 'dashboard' | 'alerts' | 'automation' | 'reports' | 'settings' | 'arbor';
+  setActiveTab: (tab: 'home' | 'skyvision' | 'pinpoint' | 'auditor' | 'dealerflow' | 'dashboard' | 'alerts' | 'automation' | 'reports' | 'settings' | 'arbor') => void;
 
   // Theme settings
   themeMode: 'light' | 'dark';
@@ -47,6 +47,7 @@ interface ContractStore {
   selectedStrike: number | null;
   isPositionOpen: boolean;
   isContractLocked: boolean;
+  isDeepSkyseyeExpanded: boolean;
 
   // State caches and broad items
   activeContract: ContractState | null;
@@ -64,6 +65,7 @@ interface ContractStore {
   setSelectedStrike: (strike: number | null) => void;
   selectContractAtomically: (asset: AssetInfo, strike: number, isCall: boolean) => void;
   setIsPositionOpen: (open: boolean) => void;
+  setIsDeepSkyseyeExpanded: (expanded: boolean) => void;
   setTrades: (trades: V8TradeRecord[]) => void;
   
   // High-latency prevention: selectContract set instantly!
@@ -71,6 +73,7 @@ interface ContractStore {
   updateFromSSE: (payload: ServerStatePayload) => void;
   tickMarketState: () => void;
 }
+
 // Global NY/CBOE Market State check function (Bug #8)
 export function getMarketState(currentTime = new Date()): MarketState {
   const formatter = new Intl.DateTimeFormat('en-US', {
@@ -163,6 +166,7 @@ export const useContractStore = create<ContractStore>((set, get) => ({
   selectedStrike: null,
   isPositionOpen: false,
   isContractLocked: false,
+  isDeepSkyseyeExpanded: false,
 
   activeContract: null,
   contractCache: {},
@@ -195,11 +199,12 @@ export const useContractStore = create<ContractStore>((set, get) => ({
       selectedAsset: asset,
       selectedStrike: strike,
       selectedOptionType: isCall ? 'C' : 'P',
-      isContractLocked: false
+      isContractLocked: true
     });
     get().selectContract(asset.ticker, strike, isCall);
   },
   setIsPositionOpen: (open) => set({ isPositionOpen: open }),
+  setIsDeepSkyseyeExpanded: (expanded) => set({ isDeepSkyseyeExpanded: expanded }),
   setTrades: (trades) => set({ trades }),
 
   selectContract: (ticker, strike, isCall) => {
@@ -308,12 +313,14 @@ export const useContractStore = create<ContractStore>((set, get) => ({
 
     set((state) => {
       const updatedCache = { ...state.contractCache, [contractKey]: newContractState };
+      const hasActiveTrade = (payload.trade_archive || []).some((t: any) => t.finalOutcome === 'Active');
       return {
         serverState: payload,
         activeContract: newContractState,
         contractCache: updatedCache,
         trades: payload.trade_archive || [],
-        isPositionOpen: payload.recommendation === 'HOLD' || payload.recommendation === 'REDUCE'
+        selectedStrike: state.selectedStrike,
+        isPositionOpen: hasActiveTrade
       };
     });
   },
