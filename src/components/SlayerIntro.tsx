@@ -485,7 +485,7 @@ export default function SlayerIntro({
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
             whileHover={{ scale: 1.02, y: -4, boxShadow: "0 25px 50px -12px rgba(52, 199, 89, 0.08)" }}
-            className="apple-glass rounded-2xl p-6 flex flex-col justify-between relative transition-all duration-300"
+            className="apple-glass rounded-2xl p-6 flex flex-col justify-between relative transition-colors duration-200"
           >
             <div className="space-y-4">
               <div className="flex justify-between items-baseline border-b border-zinc-900/40 pb-3">
@@ -536,7 +536,7 @@ export default function SlayerIntro({
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.25 }}
             whileHover={{ scale: 1.04, y: -6 }}
-            className="apple-glass-bright rounded-2xl p-6 flex flex-col justify-between relative shadow-2xl transition-all duration-300 border-2 border-white/25"
+            className="apple-glass-bright rounded-2xl p-6 flex flex-col justify-between relative shadow-2xl transition-colors duration-200 border-2 border-white/25"
           >
             <div className="absolute top-0 right-10 -translate-y-1/2 bg-white text-black text-[7px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg">
               RECOMMENDED SUBSCRIPTION
@@ -599,7 +599,7 @@ export default function SlayerIntro({
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.4 }}
             whileHover={{ scale: 1.02, y: -4, boxShadow: "0 25px 50px -12px rgba(16, 185, 129, 0.08)" }}
-            className="apple-glass rounded-2xl p-6 flex flex-col justify-between relative transition-all duration-300"
+            className="apple-glass rounded-2xl p-6 flex flex-col justify-between relative transition-colors duration-200"
           >
             <div className="space-y-4">
               <div className="flex justify-between items-baseline border-b border-zinc-900/40 pb-3">
