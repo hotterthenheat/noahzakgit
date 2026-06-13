@@ -12,7 +12,6 @@ import { DiscoveryView } from './components/DiscoveryView';
 import { DealerFlowView } from './components/DealerFlowView';
 import SlayerIntro from './components/SlayerIntro';
 import { SkyseyeAlertHub } from './components/SkyseyeAlertHub';
-import { DashboardView } from './components/DashboardView';
 import ArborCapital from './components/ArborCapital';
 
 import {
@@ -463,11 +462,10 @@ export default function App() {
           {/* More Power Tools selector dropdown on hover */}
           <div className="relative group py-1">
             <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 hover:text-white cursor-pointer select-none bg-zinc-950/80 hover:bg-zinc-900 border border-zinc-850 px-3 py-1.5 rounded-md transition-all">
-              <span className={`w-1.5 h-1.5 rounded-full ${['dashboard', 'arbor'].includes(activeTab) ? 'animate-pulse bg-cyan-450' : 'bg-zinc-655'}`} />
+              <span className={`w-1.5 h-1.5 rounded-full ${['arbor'].includes(activeTab) ? 'animate-pulse bg-cyan-450' : 'bg-zinc-655'}`} />
               <span>MORE POWER TOOLS: <span className="text-white uppercase font-black">
-                {activeTab === 'dashboard' && 'Executive Dashboard'}
                 {activeTab === 'arbor' && 'Research & Community'}
-                {!['dashboard', 'arbor'].includes(activeTab) && 'SELECT'}
+                {!['arbor'].includes(activeTab) && 'SELECT'}
               </span></span>
               <span className="text-[8px] text-zinc-650 group-hover:text-white transition-transform duration-200">▼</span>
             </div>
@@ -479,21 +477,6 @@ export default function App() {
               </div>
 
               <button
-                onClick={() => setActiveTab('dashboard')}
-                className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
-                  activeTab === 'dashboard'
-                    ? 'bg-zinc-900 text-white font-bold border-l-2 border-emerald-450 pl-2'
-                    : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-white'
-                }`}
-              >
-                <span className="flex items-center gap-1.5">
-                  <Activity className="w-3 h-3 text-emerald-455" />
-                  <span>6. EXECUTIVE DASHBOARD</span>
-                </span>
-                <span className="text-[8px] text-zinc-650">OVERVIEW</span>
-              </button>
-
-              <button
                 onClick={() => setActiveTab('arbor')}
                 className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
                   activeTab === 'arbor'
@@ -503,7 +486,7 @@ export default function App() {
               >
                 <span className="flex items-center gap-1.5">
                   <GraduationCap className="w-3 h-3 text-emerald-400" />
-                  <span>7. RESEARCH & COMMUNITY</span>
+                  <span>6. RESEARCH & COMMUNITY</span>
                 </span>
                 <span className="text-[8px] text-zinc-650">KNOWLEDGE</span>
               </button>
@@ -669,12 +652,7 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 7: EXECUTIVE DASHBOARD */}
-        {activeTab === 'dashboard' && (
-          <div className="view-enter">
-            <DashboardView />
-          </div>
-        )}
+
 
 
 
