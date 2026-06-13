@@ -1,4 +1,5 @@
 import { useState, useEffect, memo } from 'react';
+import { motion } from 'motion/react';
 import { useContractStore } from './lib/store';
 import { ASSET_LIST } from './data';
 import { AssetInfo } from './types';
