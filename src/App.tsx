@@ -635,7 +635,7 @@ export default function App() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className={`text-[9px] font-mono uppercase font-black ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>ACTIVE TARGET:</span>
+              <span className={`text-[9px] font-mono uppercase font-black ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>ACTIVE TICKER:</span>
               <select
                 value={selectedAsset.ticker}
                 onChange={(e) => {
