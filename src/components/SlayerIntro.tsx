@@ -32,6 +32,52 @@ import {
 import { AssetInfo, TimeframeVal, SystemScore, V8TradeRecord } from '../types';
 import { ASSET_LIST } from '../data';
 
+const cardVariants = {
+  hidden: { 
+    opacity: 0, 
+    y: 30 
+  },
+  visible: (delay: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { 
+      duration: 0.6, 
+      delay, 
+      ease: [0.16, 1, 0.3, 1] 
+    }
+  }),
+  hoverDiscord: { 
+    scale: 1.02, 
+    y: -4, 
+    boxShadow: "0 25px 50px -12px rgba(52, 199, 89, 0.08)",
+    transition: { 
+      type: "spring", 
+      stiffness: 400, 
+      damping: 22 
+    }
+  },
+  hoverSkyVision: { 
+    scale: 1.04, 
+    y: -6, 
+    boxShadow: "0 25px 50px -12px rgba(99, 102, 241, 0.15)",
+    transition: { 
+      type: "spring", 
+      stiffness: 400, 
+      damping: 22 
+    }
+  },
+  hoverGexbot: { 
+    scale: 1.02, 
+    y: -4, 
+    boxShadow: "0 25px 50px -12px rgba(16, 185, 129, 0.08)",
+    transition: { 
+      type: "spring", 
+      stiffness: 400, 
+      damping: 22 
+    }
+  }
+};
+
 interface SlayerIntroProps {
   onEnterApp: (targetTab?: string) => void;
   selectedAsset: AssetInfo;
@@ -480,11 +526,13 @@ export default function SlayerIntro({
           
           {/* DISCORD CARD */}
           <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            variants={cardVariants}
+            initial="hidden"
+            whileInView="visible"
+            custom={0.1}
             viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            whileHover={{ scale: 1.02, y: -4, boxShadow: "0 25px 50px -12px rgba(52, 199, 89, 0.08)" }}
+            whileHover="hoverDiscord"
+            style={{ transition: 'border-color 0.2s, background-color 0.2s' }}
             className="apple-glass rounded-2xl p-6 flex flex-col justify-between relative transition-colors duration-200"
           >
             <div className="space-y-4">
@@ -531,14 +579,16 @@ export default function SlayerIntro({
 
           {/* SKYVISION CARD */}
           <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            variants={cardVariants}
+            initial="hidden"
+            whileInView="visible"
+            custom={0.25}
             viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.25 }}
-            whileHover={{ scale: 1.04, y: -6 }}
+            whileHover="hoverSkyVision"
+            style={{ transition: 'border-color 0.2s, background-color 0.2s' }}
             className="apple-glass-bright rounded-2xl p-6 flex flex-col justify-between relative shadow-2xl transition-colors duration-200 border-2 border-white/25"
           >
-            <div className="absolute top-0 right-10 -translate-y-1/2 bg-white text-black text-[7px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white text-black text-[7px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg whitespace-nowrap">
               RECOMMENDED SUBSCRIPTION
             </div>
 
@@ -594,11 +644,13 @@ export default function SlayerIntro({
 
           {/* PINPOINT GEXBOT CARD */}
           <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            variants={cardVariants}
+            initial="hidden"
+            whileInView="visible"
+            custom={0.4}
             viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            whileHover={{ scale: 1.02, y: -4, boxShadow: "0 25px 50px -12px rgba(16, 185, 129, 0.08)" }}
+            whileHover="hoverGexbot"
+            style={{ transition: 'border-color 0.2s, background-color 0.2s' }}
             className="apple-glass rounded-2xl p-6 flex flex-col justify-between relative transition-colors duration-200"
           >
             <div className="space-y-4">
