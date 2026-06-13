@@ -1,15 +1,15 @@
 import { useState, useEffect, memo } from 'react';
-import { motion } from 'motion/react';
 import { useContractStore } from './lib/store';
 import { ASSET_LIST } from './data';
 import { AssetInfo } from './types';
 
 // Import Workspace Modular Views
 import { SkyVisionView } from './components/SkyVisionView';
-import { PinpointAIView } from './components/PinpointAIView';
+import PinpointAI from './components/PinpointAI';
 import { QuantAuditView } from './components/QuantAuditView';
 import { DiscoveryView } from './components/DiscoveryView';
 import { DealerFlowView } from './components/DealerFlowView';
+import { AccountabilityRegistry } from './components/AccountabilityRegistry';
 import SlayerIntro from './components/SlayerIntro';
 
 import {
@@ -20,22 +20,11 @@ import {
   Lock,
   LogOut,
   Waves,
-  Sun,
-  Moon
+  ShieldCheck
 } from 'lucide-react';
 
-const TickerTape = memo(() => {
+const StaticMarquee = memo(() => {
   const staticTickers = [
-    { ticker: 'SPX', name: 'S&P 500 Index', price: 7623.00, change: '+0.88%', isUp: true, vol: '14.2%' },
-    { ticker: 'NDX', name: 'NASDAQ 100 Index', price: 18250.00, change: '+1.42%', isUp: true, vol: '21.0%' },
-    { ticker: 'QQQ', name: 'NASDAQ ETF', price: 445.50, change: '+1.24%', isUp: true, vol: '18.5%' },
-    { ticker: 'SPY', name: 'S&P 505 ETF', price: 512.30, change: '+0.65%', isUp: true, vol: '12.8%' },
-    { ticker: 'RUT', name: 'Russell 2000 Index', price: 2025.00, change: '+0.92%', isUp: true, vol: '16.4%' },
-    { ticker: 'SPX', name: 'S&P 500 Index', price: 7623.00, change: '+0.88%', isUp: true, vol: '14.2%' },
-    { ticker: 'NDX', name: 'NASDAQ 100 Index', price: 18250.00, change: '+1.42%', isUp: true, vol: '21.0%' },
-    { ticker: 'QQQ', name: 'NASDAQ ETF', price: 445.50, change: '+1.24%', isUp: true, vol: '18.5%' },
-    { ticker: 'SPY', name: 'S&P 505 ETF', price: 512.30, change: '+0.65%', isUp: true, vol: '12.8%' },
-    { ticker: 'RUT', name: 'Russell 2000 Index', price: 2025.00, change: '+0.92%', isUp: true, vol: '16.4%' },
     { ticker: 'SPX', name: 'S&P 500 Index', price: 7623.00, change: '+0.88%', isUp: true, vol: '14.2%' },
     { ticker: 'NDX', name: 'NASDAQ 100 Index', price: 18250.00, change: '+1.42%', isUp: true, vol: '21.0%' },
     { ticker: 'QQQ', name: 'NASDAQ ETF', price: 445.50, change: '+1.24%', isUp: true, vol: '18.5%' },
@@ -44,29 +33,41 @@ const TickerTape = memo(() => {
   ];
 
   return (
-    <div className="w-full bg-[#050506]/75 border-b border-zinc-900/50 backdrop-blur-xl overflow-hidden py-1.5 relative z-40 select-none">
-      <div className="animate-ticker-marquee flex whitespace-nowrap">
-        {[...Array(2)].map((_, loopIdx) => (
-          <div key={loopIdx} className="flex gap-14 items-center pr-14 animate-none">
-            {staticTickers.map((t, idx) => (
-              <div 
-                key={`${loopIdx}-${idx}`} 
-                className="flex items-center gap-2.5 font-mono text-[9.5px] px-2 py-1 rounded transition-all"
-              >
-                <span className="font-black text-white tracking-widest">{t.ticker}</span>
-                <span className="text-zinc-500 text-[8.5px] uppercase">{t.name}</span>
-                <span className="font-extrabold text-[#f4f4f5]">${t.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                <span className={`font-bold flex items-center gap-0.5 ${t.isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {t.isUp ? '▲' : '▼'}{t.change}
-                </span>
-                <span className="text-zinc-650 text-[8px] font-black border border-zinc-950/20 bg-zinc-950/60 px-1 rounded-xs uppercase">
-                  VOL: {t.vol}
-                </span>
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
+    <div className="animate-ticker-marquee flex whitespace-nowrap">
+      {[...Array(2)].map((_, loopIdx) => (
+        <div key={loopIdx} className="flex gap-14 items-center pr-14 animate-none">
+          {staticTickers.map((t, idx) => (
+            <div 
+              key={`${loopIdx}-${idx}`} 
+              className="flex items-center gap-2.5 font-mono text-[9.5px] px-2 py-1 rounded transition-all"
+            >
+              <span className="font-black text-white tracking-widest">{t.ticker}</span>
+              <span className="text-zinc-500 text-[8.5px] uppercase">{t.name}</span>
+              <span className="font-extrabold text-[#f4f4f5]">${t.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className={`font-bold flex items-center gap-0.5 ${t.isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {t.isUp ? '▲' : '▼'}{t.change}
+              </span>
+              <span className="text-zinc-650 text-[8px] font-black border border-zinc-950/20 bg-zinc-950/60 px-1 rounded-xs uppercase">
+                VOL: {t.vol}
+              </span>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+});
+
+const TickerTape = memo(({ show }: { show: boolean }) => {
+  return (
+    <div 
+      className={`w-full bg-[#050506]/75 backdrop-blur-xl overflow-hidden relative z-40 select-none transition-all duration-300 ${
+        show 
+          ? 'max-h-[50px] py-1.5 border-b border-zinc-900/50 opacity-100 visible' 
+          : 'max-h-0 py-0 opacity-0 pointer-events-none border-b-0 invisible'
+      }`}
+    >
+      <StaticMarquee />
     </div>
   );
 });
@@ -91,17 +92,6 @@ export default function App() {
   const updateFromSSE = useContractStore(s => s.updateFromSSE);
   const tickMarketState = useContractStore(s => s.tickMarketState);
   const isContractLocked = useContractStore(s => s.isContractLocked);
-  const themeMode = useContractStore(s => s.themeMode);
-  const toggleThemeMode = useContractStore(s => s.toggleThemeMode);
-  const isLight = themeMode === 'light';
-
-  useEffect(() => {
-    if (isLight) {
-      document.body.classList.add('light-theme');
-    } else {
-      document.body.classList.remove('light-theme');
-    }
-  }, [isLight]);
 
   // User session state (Bug #9 HttpOnly cookie verification and storage)
   const [session, setSession] = useState<{ authenticated: boolean; name?: string; provider?: string; avatar?: string } | null>(null);
@@ -265,27 +255,17 @@ export default function App() {
   const isCall = selectedOptionType === 'C';
   const showColoredBg = isContractLocked && activeTab === 'skyvision';
 
-  let bgClass = "";
-  if (isLight) {
-    bgClass = "min-h-screen text-[#1a1d20] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#f4f5f8] light-theme";
-    if (showColoredBg) {
-      if (isCall) {
-        bgClass = "min-h-screen text-[#011409] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#e6fcf0] light-theme";
-      } else {
-        bgClass = "min-h-screen text-[#140203] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#fdf2f2] light-theme";
-      }
+  let bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#050506]";
+  
+  if (showColoredBg) {
+    if (isCall) {
+      bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#011409]";
+    } else {
+      bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#140203]";
     }
   } else {
-    bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#050506]";
-    if (showColoredBg) {
-      if (isCall) {
-        bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#011409]";
-      } else {
-        bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#140203]";
-      }
-    } else {
-      bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#0d0d0f]";
-    }
+    // Glassy slate grey/black/white elegant configuration
+    bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#0d0d0f]";
   }
 
   return (
@@ -295,25 +275,25 @@ export default function App() {
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 transition-opacity duration-1000">
         {showColoredBg && isCall && (
           <>
-            <div className={`absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full ${isLight ? 'bg-emerald-300/20' : 'bg-emerald-500/12'} blur-[120px] animate-fluid-blob-1 transition-all duration-700`} />
-            <div className={`absolute bottom-[-15%] right-[-10%] w-[65%] h-[60%] rounded-full ${isLight ? 'bg-teal-300/15' : 'bg-teal-500/8'} blur-[140px] animate-fluid-blob-2 transition-all duration-700`} />
-            <div className={`absolute top-[35%] right-[20%] w-[45%] h-[45%] rounded-full ${isLight ? 'bg-emerald-405/10' : 'bg-emerald-450/6'} blur-[110px] animate-fluid-blob-3 transition-all duration-700`} />
+            <div className="absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full bg-emerald-500/12 blur-[120px] animate-fluid-blob-1 transition-all duration-700" />
+            <div className="absolute bottom-[-15%] right-[-10%] w-[65%] h-[60%] rounded-full bg-teal-500/8 blur-[140px] animate-fluid-blob-2 transition-all duration-700" />
+            <div className="absolute top-[35%] right-[20%] w-[45%] h-[45%] rounded-full bg-emerald-450/6 blur-[110px] animate-fluid-blob-3 transition-all duration-700" />
           </>
         )}
         {showColoredBg && !isCall && (
           <>
-            <div className={`absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full ${isLight ? 'bg-rose-300/20' : 'bg-rose-500/12'} blur-[120px] animate-fluid-blob-1 transition-all duration-700`} />
-            <div className={`absolute bottom-[-15%] right-[-10%] w-[65%] h-[60%] rounded-full ${isLight ? 'bg-red-300/15' : 'bg-red-600/8'} blur-[140px] animate-fluid-blob-2 transition-all duration-700`} />
-            <div className={`absolute top-[35%] right-[20%] w-[45%] h-[45%] rounded-full ${isLight ? 'bg-[#ff453a]/10' : 'bg-[#ff453a]/6'} blur-[110px] animate-fluid-blob-3 transition-all duration-700`} />
+            <div className="absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full bg-rose-500/12 blur-[120px] animate-fluid-blob-1 transition-all duration-700" />
+            <div className="absolute bottom-[-15%] right-[-10%] w-[65%] h-[60%] rounded-full bg-red-600/8 blur-[140px] animate-fluid-blob-2 transition-all duration-700" />
+            <div className="absolute top-[35%] right-[20%] w-[45%] h-[45%] rounded-full bg-[#ff453a]/6 blur-[110px] animate-fluid-blob-3 transition-all duration-700" />
           </>
         )}
         {!showColoredBg && (
           <>
-            <div className={`absolute inset-0 ${isLight ? 'bg-gradient-to-b from-black/[0.005] via-transparent to-white/[0.05]' : 'bg-gradient-to-b from-white/[0.012] via-transparent to-black/[0.12]'} backdrop-blur-[1px] pointer-events-none transition-all duration-700`} />
-            <div className={`absolute top-[-10%] left-[-10%] w-[52%] h-[52%] rounded-full ${isLight ? 'bg-zinc-950/10' : 'bg-white/6'} blur-[120px] animate-fluid-blob-1 transition-all duration-700`} />
-            <div className={`absolute bottom-[-15%] right-[-10%] w-[60%] h-[55%] rounded-full ${isLight ? 'bg-slate-900/10' : 'bg-zinc-400/5'} blur-[140px] animate-fluid-blob-2 transition-all duration-700`} />
-            <div className={`absolute top-[35%] right-[20%] w-[40%] h-[40%] rounded-full ${isLight ? 'bg-zinc-900/8' : 'bg-zinc-650/4'} blur-[110px] animate-fluid-blob-3 transition-all duration-700`} />
-            <div className={`absolute top-[10%] right-[40%] w-[35%] h-[35%] rounded-full ${isLight ? 'bg-indigo-950/10' : 'bg-white/3'} blur-[90px] animate-pulse transition-all duration-700`} />
+            <div className="absolute inset-0 bg-gradient-to-b from-white/[0.012] via-transparent to-black/[0.12] backdrop-blur-[1px] pointer-events-none transition-all duration-700" />
+            <div className="absolute top-[-10%] left-[-10%] w-[52%] h-[52%] rounded-full bg-white/6 blur-[120px] animate-fluid-blob-1 transition-all duration-700" />
+            <div className="absolute bottom-[-15%] right-[-10%] w-[60%] h-[55%] rounded-full bg-zinc-400/5 blur-[140px] animate-fluid-blob-2 transition-all duration-700" />
+            <div className="absolute top-[35%] right-[20%] w-[40%] h-[40%] rounded-full bg-zinc-650/4 blur-[110px] animate-fluid-blob-3 transition-all duration-700" />
+            <div className="absolute top-[10%] right-[40%] w-[35%] h-[35%] rounded-full bg-white/3 blur-[90px] animate-pulse transition-all duration-700" />
           </>
         )}
       </div>
@@ -372,13 +352,14 @@ export default function App() {
                 {activeTab === 'discovery' && 'Slayer // Discovery'}
                 {activeTab === 'auditor' && 'Trust Archive'}
                 {activeTab === 'dealerflow' && 'Dealer Flow'}
+                {activeTab === 'accountability' && 'Accountability Registry'}
               </span></span>
-              <span className="text-[8px] text-zinc-600 group-hover:text-white transition-transform duration-200">▼</span>
+              <span className="text-[8px] text-[#8e8e93] group-hover:text-white transition-transform duration-200">▼</span>
             </div>
             
             {/* Hover options list */}
             <div className="absolute top-full left-0 mt-1 w-72 bg-[#09090b] border border-zinc-850 rounded-sm shadow-2xl opacity-0 scale-95 origin-top-left invisible group-hover:opacity-100 group-hover:scale-100 group-hover:visible transition-all duration-150 z-50 p-2 space-y-1">
-              <div className="text-[8px] text-zinc-600 font-black tracking-widest px-2 py-1 border-b border-[#121214] uppercase mb-1">
+              <div className="text-[8px] text-zinc-650 font-black tracking-widest px-2 py-1 border-b border-[#121214] uppercase mb-1">
                 SELECT COGNITIVE CORE
               </div>
               
@@ -468,6 +449,21 @@ export default function App() {
                 </span>
                 <span className="text-[8px] text-zinc-650">GAMMA FLOW</span>
               </button>
+
+              <button
+                onClick={() => setActiveTab('accountability')}
+                className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
+                  activeTab === 'accountability'
+                    ? 'bg-zinc-900 text-white font-bold border-l-2 border-emerald-450 pl-2'
+                    : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-white'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-3 h-3 text-emerald-400 animate-pulse" />
+                  <span>7. TRUST REGISTRY</span>
+                </span>
+                <span className="text-[8px] text-zinc-650">EXECUTION LOGS</span>
+              </button>
             </div>
           </div>
 
@@ -505,36 +501,6 @@ export default function App() {
 
         {/* Real HTTP OAuth Action segment header (Bug #9) */}
         <div className="flex items-center gap-4 text-[9.5px]">
-          {/* Theme Toggle Motion Switch */}
-          <button
-            onClick={toggleThemeMode}
-            className={`relative flex items-center justify-between w-14 h-7 rounded-full p-1 cursor-pointer transition-colors duration-500 focus:outline-none ${
-              isLight ? 'bg-zinc-200 border border-zinc-300' : 'bg-zinc-950 border border-zinc-850'
-            }`}
-            title={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-          >
-            {/* Slide background indicator */}
-            <motion.div
-              className={`absolute top-[3px] w-5 h-5 rounded-full shadow-md flex items-center justify-center transition-colors ${
-                isLight ? 'bg-[#ff9500] text-white' : 'bg-indigo-500 text-white'
-              }`}
-              layout
-              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-              style={{ left: isLight ? '31px' : '4px' }}
-            >
-              <motion.div
-                key={themeMode}
-                initial={{ rotate: -90, scale: 0.5, opacity: 0 }}
-                animate={{ rotate: 0, scale: 1, opacity: 1 }}
-                exit={{ rotate: 90, scale: 0.5, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="flex items-center justify-center"
-              >
-                {isLight ? <Sun className="w-3.5 h-3.5 text-white" /> : <Moon className="w-3.5 h-3.5 text-white" />}
-              </motion.div>
-            </motion.div>
-          </button>
-
           {session?.authenticated ? (
             <div className="flex items-center gap-3.5 bg-zinc-950 px-3.5 py-1.5 border border-zinc-900 rounded-xs">
               <img 
@@ -569,7 +535,7 @@ export default function App() {
       </header>
 
       {/* Interactive Continuously-Scrolling Nasdaq Ticker Tape (Restricted to Landing Page only) */}
-      {activeTab === 'home' && <TickerTape />}
+      <TickerTape show={activeTab === 'home'} />
  
        {/* Main workspace frame */}
        <main className="flex-1 p-4 md:p-6 flex flex-col gap-6 w-full max-w-full justify-start">
@@ -605,7 +571,10 @@ export default function App() {
         {/* TAB 3: PINPOINT AI (MARKET INTELLIGENCE) */}
         {activeTab === 'pinpoint' && (
           <div className="view-enter border border-zinc-900 bg-[#060607]/80 rounded-md p-1 drop-shadow-2xl">
-            <PinpointAIView />
+            <PinpointAI 
+              selectedAsset={selectedAsset}
+              systemScore={serverState.system_score}
+            />
           </div>
         )}
 
@@ -643,6 +612,13 @@ export default function App() {
             <DealerFlowView />
           </div>
         )}
+
+        {/* TAB 7: ACCOUNTABILITY REGISTRY */}
+        {activeTab === 'accountability' && (
+          <div className="view-enter animate-fadeIn">
+            <AccountabilityRegistry />
+          </div>
+        )}
       </main>
 
       {/* Terminal Footer Status Bar */}
@@ -663,28 +639,6 @@ export default function App() {
           <span className="text-zinc-400 font-bold">SERVER LIVE FEED STREAMING</span>
         </div>
       </footer>
-
-      {/* Fixed Universally Floating Theme Switcher Badge */}
-      <button
-        onClick={toggleThemeMode}
-        className={`fixed bottom-6 right-6 z-50 flex items-center justify-center w-12 h-12 rounded-full shadow-2xl border transition-all duration-300 hover:scale-110 cursor-pointer backdrop-blur-md ${
-          isLight 
-            ? 'bg-white/90 border-zinc-200 text-amber-500 shadow-amber-500/10' 
-            : 'bg-[#050506]/90 border-zinc-850 text-indigo-400 shadow-indigo-500/10'
-        }`}
-        title={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-      >
-        <motion.div
-          key={themeMode}
-          initial={{ rotate: -90, scale: 0.8, opacity: 0 }}
-          animate={{ rotate: 0, scale: 1, opacity: 1 }}
-          exit={{ rotate: 90, scale: 0.8, opacity: 0 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-          className="flex items-center justify-center"
-        >
-          {isLight ? <Sun className="w-5.5 h-5.5 text-amber-500" /> : <Moon className="w-5.5 h-5.5 text-indigo-400" />}
-        </motion.div>
-      </button>
     </div>
   );
 }
