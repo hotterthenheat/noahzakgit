@@ -206,7 +206,7 @@ export default function SlayerIntro({
       ref={containerRef}
       onMouseMove={handleMouseMove}
       id="slayer-ecosystem-landing" 
-      className="min-h-screen bg-transparent text-[#D4D4D8] flex flex-col font-sans selection:bg-white selection:text-black overflow-y-auto relative pb-20 select-none antialiased"
+      className="min-h-screen bg-transparent text-[#D4D4D8] flex flex-col font-sans selection:bg-white selection:text-black overflow-y-auto relative pb-0 select-none antialiased"
     >
       
       {/* ==================================================
@@ -712,10 +712,10 @@ export default function SlayerIntro({
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
-        className="border-t border-zinc-900 bg-[#000000] py-12 px-6 text-center text-[10px] text-zinc-650 font-mono mt-auto relative z-10 max-w-4xl mx-auto w-full"
+        className="border-t border-zinc-900 bg-[#000000] py-12 px-6 text-center text-[10px] text-zinc-500 font-mono mt-auto relative z-10 w-full"
       >
-        <p>&copy; 2026 ARBOR CAPITAL GROUP & SLAYER NETWORKS CO. ALL RIGHTS RESERVED.</p>
-        <p className="mt-1 text-[8px] text-zinc-700 uppercase tracking-widest">
+        <p>&copy; 2026 slayertrade. ALL RIGHTS RESERVED.</p>
+        <p className="mt-1 text-[8px] text-zinc-650 uppercase tracking-widest">
           Slayer provides real-time mathematical decision guidelines. No investment advising is rendered.
         </p>
       </motion.footer>
