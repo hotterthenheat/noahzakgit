@@ -511,7 +511,7 @@ export default function SlayerIntro({
         whileInView={{ opacity: 1, y: 0, scale: 1 }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 py-10 px-6 max-w-4xl mx-auto w-full border-t border-zinc-900"
+        className="relative z-10 py-10 px-6 max-w-5xl mx-auto w-full border-t border-zinc-900"
       >
         <div className="text-center space-y-2 mb-8">
           <span className="text-zinc-500 text-[9px] font-mono uppercase tracking-[0.3em] block">
@@ -533,7 +533,7 @@ export default function SlayerIntro({
             viewport={{ once: true }}
             whileHover="hoverDiscord"
             style={{ transition: 'border-color 0.2s, background-color 0.2s' }}
-            className="apple-glass rounded-2xl p-6 flex flex-col justify-between relative transition-colors duration-200"
+            className="apple-glass rounded-2xl p-8 flex flex-col justify-between relative transition-colors duration-200"
           >
             <div className="space-y-4">
               <div className="flex justify-between items-baseline border-b border-zinc-900/40 pb-3">
@@ -586,7 +586,7 @@ export default function SlayerIntro({
             viewport={{ once: true }}
             whileHover="hoverSkyVision"
             style={{ transition: 'border-color 0.2s, background-color 0.2s' }}
-            className="apple-glass-bright rounded-2xl p-6 flex flex-col justify-between relative shadow-2xl transition-colors duration-200 border-2 border-white/25"
+            className="apple-glass-bright rounded-2xl p-8 flex flex-col justify-between relative shadow-2xl transition-colors duration-200 border-2 border-white/25"
           >
             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white text-black text-[7px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg whitespace-nowrap">
               RECOMMENDED SUBSCRIPTION
@@ -651,7 +651,7 @@ export default function SlayerIntro({
             viewport={{ once: true }}
             whileHover="hoverGexbot"
             style={{ transition: 'border-color 0.2s, background-color 0.2s' }}
-            className="apple-glass rounded-2xl p-6 flex flex-col justify-between relative transition-colors duration-200"
+            className="apple-glass rounded-2xl p-8 flex flex-col justify-between relative transition-colors duration-200"
           >
             <div className="space-y-4">
               <div className="flex justify-between items-baseline border-b border-zinc-900/40 pb-3">
