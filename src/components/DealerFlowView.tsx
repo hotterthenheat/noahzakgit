@@ -132,19 +132,49 @@ function GexProfileChart({ profile, decimals }: { profile: any; decimals: number
               </div>
               <div className="flex-1 flex items-center h-full">
                 {/* Put side */}
-                <div className="flex-1 flex justify-end items-center h-full pr-[1px]">
+                <div className="relative group/put flex-1 flex justify-end items-center h-full pr-[1px]">
                   <div
-                    className={`h-[11px] rounded-l-[2px] ${isPutWall ? 'bg-rose-405' : 'bg-rose-500/55'}`}
+                    className={`h-[11px] rounded-l-[2px] ${isPutWall ? 'bg-rose-405' : 'bg-rose-500/55'} cursor-help`}
                     style={{ width: `${putW}%` }}
                   />
+                  
+                  {/* Left Hover details for Put GEX */}
+                  <div className="absolute left-0 top-full mt-0.5 z-30 hidden group-hover/put:block bg-[#050506]/95 border border-rose-500/35 rounded-[4px] p-2 text-[9px] font-mono whitespace-nowrap shadow-2xl backdrop-blur-md pointer-events-none ring-1 ring-rose-500/10">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+                      <span className="text-rose-400 font-black tracking-widest uppercase text-[8px]">PUT GEX OVERLAY</span>
+                      <span className="text-zinc-600">|</span>
+                      <span className="text-white font-bold">STRIKE {r.strike.toFixed(decimals > 1 ? 2 : 0)}</span>
+                    </div>
+                    <div className="space-y-0.5 text-zinc-300">
+                      <div>GEX: <span className="text-rose-300 font-extrabold">{fmtBn(r.putGex)}</span></div>
+                      <div>Open Interest: <span className="text-zinc-100 font-bold">{r.putOi.toLocaleString()}</span></div>
+                      <div>Volume: <span className="text-zinc-100 font-bold">{r.putVolume.toLocaleString()}</span></div>
+                    </div>
+                  </div>
                 </div>
                 <div className="w-px self-stretch bg-zinc-800" />
                 {/* Call side */}
-                <div className="flex-1 flex items-center h-full pl-[1px]">
+                <div className="relative group/call flex-1 flex items-center h-full pl-[1px]">
                   <div
-                    className={`h-[11px] rounded-r-[2px] ${isCallWall ? 'bg-emerald-405' : 'bg-emerald-500/55'}`}
+                    className={`h-[11px] rounded-r-[2px] ${isCallWall ? 'bg-emerald-405' : 'bg-emerald-500/55'} cursor-help`}
                     style={{ width: `${callW}%` }}
                   />
+
+                  {/* Right Hover details for Call GEX */}
+                  <div className="absolute right-0 top-full mt-0.5 z-30 hidden group-hover/call:block bg-[#050506]/95 border border-emerald-500/35 rounded-[4px] p-2 text-[9px] font-mono whitespace-nowrap shadow-2xl backdrop-blur-md pointer-events-none ring-1 ring-emerald-500/10">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-emerald-400 font-black tracking-widest uppercase text-[8px]">CALL GEX OVERLAY</span>
+                      <span className="text-zinc-600">|</span>
+                      <span className="text-white font-bold">STRIKE {r.strike.toFixed(decimals > 1 ? 2 : 0)}</span>
+                    </div>
+                    <div className="space-y-0.5 text-zinc-300">
+                      <div>GEX: <span className="text-emerald-300 font-extrabold">{fmtBn(r.callGex)}</span></div>
+                      <div>Open Interest: <span className="text-zinc-100 font-bold">{r.callOi.toLocaleString()}</span></div>
+                      <div>Volume: <span className="text-zinc-100 font-bold">{r.callVolume.toLocaleString()}</span></div>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div
@@ -165,13 +195,6 @@ function GexProfileChart({ profile, decimals }: { profile: any; decimals: number
                 <div className="flex-1 border-t border-dashed border-amber-500/60" />
               </div>
             )}
-
-            {/* Hover details */}
-            <div className="absolute left-[76px] top-full mt-0.5 z-30 hidden group-hover:block bg-black border border-zinc-800 rounded-sm px-2.5 py-1.5 text-[8.5px] font-mono whitespace-nowrap shadow-2xl">
-              <span className="text-emerald-400 font-bold">C: {fmtBn(r.callGex)} · OI {r.callOi.toLocaleString()} · Vol {r.callVolume.toLocaleString()}</span>
-              <span className="text-zinc-650 mx-1.5">|</span>
-              <span className="text-rose-400 font-bold">P: {fmtBn(r.putGex)} · OI {r.putOi.toLocaleString()} · Vol {r.putVolume.toLocaleString()}</span>
-            </div>
           </div>
         );
       })}
