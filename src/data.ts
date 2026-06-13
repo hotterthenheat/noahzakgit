@@ -57,6 +57,19 @@ export const ASSET_LIST: AssetInfo[] = [
     unit: 'USD',
     forecastScale: 0.10,
     stabilityMax: 0.035,
+  },
+  {
+    key: 'RUT',
+    ticker: 'RUT',
+    name: 'Russell 2000 Index',
+    type: 'INDEXES',
+    defaultPrice: 2025.00,
+    decimals: 2,
+    spread: 0.20,
+    volatility: 0.70,
+    unit: 'USD',
+    forecastScale: 0.11,
+    stabilityMax: 0.040,
   }
 ];
 

@@ -5,7 +5,10 @@
 
 import assert from 'assert';
 import { calculateAnalyticGreeks, computeDealerInventory } from '../src/lib/v11Math';
-import { AssetInfo } from '../src/types';
+import { AssetInfo, Candle } from '../src/types';
+import { buildGexProfile, computeDealerFlowGauge } from '../src/lib/gexEngine';
+import { computeDisplacementIntelligence } from '../src/lib/displacementEngine';
+import { touchProbability, medianTimeToTouch } from '../src/lib/probability';
 
 console.log('--- RUNNING QUANT MATH TEST SUITE ---');
 
@@ -112,10 +115,68 @@ function testDealerInventoryGexDex() {
   console.log('✔ Dealer GEX, DEX and Gamma Flip root-solver logic passed.');
 }
 
+function testGexEngine() {
+  console.log('Testing GEX Engine profile builder and flow solver...');
+  const contracts: any[] = [
+    { strike: 95, type: 'P', oi: 1000, impliedVolatility: 0.20, delta: -0.3, gamma: 0.05, bid: 1.0, ask: 1.1, volume: 100 },
+    { strike: 105, type: 'C', oi: 1000, impliedVolatility: 0.20, delta: 0.4, gamma: 0.06, bid: 1.2, ask: 1.3, volume: 120 }
+  ];
+  const profile = buildGexProfile(contracts, 100, 1/365, 0.05);
+  assert.ok(profile, 'GEX profile should be constructed successfully');
+  assert.ok(profile.strikes.length > 0, 'Strikes list should contain values');
+  assert.ok(profile.gammaFlip > 0, 'Gamma Flip should be calculated');
+  
+  const flow = computeDealerFlowGauge(profile, 1000000, -2000000);
+  assert.ok(flow, 'Dealer flow gauge should be computed successfully');
+  assert.ok(flow.pressure >= -100 && flow.pressure <= 100, 'Pressure score should be between -100 and +100');
+  console.log('✔ GEX Engine checks passed.');
+}
+
+function testDisplacementEngine() {
+  console.log('Testing Displacement Engine market structure and sweeps...');
+  const candles: Candle[] = [];
+  const baseTime = Date.now() - 50 * 300000;
+  for (let i = 0; i < 50; i++) {
+    candles.push({
+      timestamp: baseTime + i * 300000,
+      open: 100 + i * 0.5,
+      high: 101 + i * 0.5,
+      low: 99.5 + i * 0.5,
+      close: 100.5 + i * 0.5,
+      volume: 150000 + (i % 5) * 10000,
+      vwap: 100 + i * 0.5
+    });
+  }
+  const result = computeDisplacementIntelligence(candles);
+  assert.ok(result, 'Displacement intelligence should be built successfully');
+  assert.ok(result.volatility.atr > 0, 'ATR value should be positive');
+  assert.ok(typeof result.structure.trend === 'string', 'Trend bias should be a string');
+  console.log('✔ Displacement Engine checks passed.');
+}
+
+function testProbabilityEngine() {
+  console.log('Testing Probability Engine touch probability and median time...');
+  const spot = 100;
+  const targetPrice = 105;
+  const dte = 30;
+  const iv = 0.20;
+  const riskFree = 0.05;
+  
+  const prob = touchProbability(spot, targetPrice, dte, iv, riskFree);
+  assert.ok(prob >= 0 && prob <= 1, 'Touch probability must be between 0 and 1');
+  
+  const medianTime = medianTimeToTouch(spot, targetPrice, iv, riskFree);
+  assert.ok(medianTime > 0, 'Median time to touch should be positive');
+  console.log('✔ Probability Engine checks passed.');
+}
+
 // Run all tests
 try {
   testOptionGreeksSymmetry();
   testDealerInventoryGexDex();
+  testGexEngine();
+  testDisplacementEngine();
+  testProbabilityEngine();
   console.log('\n=============================================');
   console.log('🎉 ALL INSTITUTIONAL QUANT MANIFEST TESTS PASSED! 🎉');
   console.log('=============================================\n');

@@ -95,7 +95,11 @@ export function AnalyticsSection({
   // 4. VOLUME INTELLIGENCE
   const relativeVolume = Number((currentCandle.volume / 100000 || 1.2).toFixed(2));
   const volumeTrend = relativeVolume > 1.2 ? 'Expanding' : 'Compressing';
-  const buyingPressure = currentCandle.close >= currentCandle.open ? Math.floor(55 + Math.random() * 35) : Math.floor(10 + Math.random() * 30);
+  const body = Math.abs(currentCandle.close - currentCandle.open);
+  const range = Math.max(currentCandle.high - currentCandle.low, 1e-9);
+  const buyingPressure = Math.round((currentCandle.close >= currentCandle.open
+    ? 0.5 + 0.5 * (body / range)
+    : 0.5 - 0.5 * (body / range)) * 100);
   const participationScore = Math.min(10, Math.floor(relativeVolume * 3 + (buyingPressure / 20)));
   
   let volConfidence = 'Low';

@@ -42,6 +42,7 @@ interface ContractStore {
   selectedOptionType: 'C' | 'P';
   selectedStrike: number | null;
   isPositionOpen: boolean;
+  isContractLocked: boolean;
 
   // State caches and broad items
   activeContract: ContractState | null;
@@ -155,6 +156,7 @@ export const useContractStore = create<ContractStore>((set, get) => ({
   selectedOptionType: 'C',
   selectedStrike: null,
   isPositionOpen: false,
+  isContractLocked: false,
 
   activeContract: null,
   contractCache: {},
@@ -166,7 +168,7 @@ export const useContractStore = create<ContractStore>((set, get) => ({
   setSelectedAsset: (asset) => {
     const step = asset.defaultPrice > 1000 ? 100 : asset.defaultPrice > 150 ? 5 : 1;
     const initialStrike = Math.round(asset.defaultPrice / step) * step;
-    set({ selectedAsset: asset, selectedStrike: initialStrike });
+    set({ selectedAsset: asset, selectedStrike: initialStrike, isContractLocked: false });
     get().selectContract(asset.ticker, initialStrike, get().selectedOptionType === 'C');
   },
   setSelectedTimeframe: (tf) => set({ selectedTimeframe: tf }),
@@ -177,7 +179,7 @@ export const useContractStore = create<ContractStore>((set, get) => ({
     get().selectContract(get().selectedAsset.ticker, currentStrike, type === 'C');
   },
   setSelectedStrike: (strike) => {
-    set({ selectedStrike: strike });
+    set({ selectedStrike: strike, isContractLocked: strike !== null });
     if (strike) {
       get().selectContract(get().selectedAsset.ticker, strike, get().selectedOptionType === 'C');
     }
@@ -186,7 +188,8 @@ export const useContractStore = create<ContractStore>((set, get) => ({
     set({
       selectedAsset: asset,
       selectedStrike: strike,
-      selectedOptionType: isCall ? 'C' : 'P'
+      selectedOptionType: isCall ? 'C' : 'P',
+      isContractLocked: false
     });
     get().selectContract(asset.ticker, strike, isCall);
   },
@@ -265,16 +268,15 @@ export const useContractStore = create<ContractStore>((set, get) => ({
     // net GEX computation (real chain when live, deterministic mock offline).
     const rawLevels = payload.pinpoint_map?.levels || [];
     const mappedLevels: PinLevel[] = rawLevels.map((lvl: any) => {
-      let dollars = Math.abs(Number(lvl.gexDollars) || 0);
-      if (dollars === 0 && lvl.exposureInfo) {
-        const match = lvl.exposureInfo.match(/([+-]?\$[0-9.]+)B/);
-        if (match) {
-          dollars = parseFloat(match[1].replace(/[+$]/g, '')) * 1e9;
-        }
+      const dollarsStr = lvl.exposureInfo?.match(/([+-]?\$[0-9.]+[BM])/i)?.[1] || '';
+      let dollarsNum = 0;
+      if (dollarsStr) {
+        const value = parseFloat(dollarsStr.replace(/[^0-9.]/g, ''));
+        dollarsNum = dollarsStr.endsWith('B') ? value * 1e9 : value * 1e6;
       }
       return {
         strike: lvl.strike,
-        dollars,
+        dollars: Math.abs(lvl.gexDollars !== undefined ? lvl.gexDollars : dollarsNum),
         strength: lvl.strength,
         type: lvl.label === 'support' || lvl.isPutWall
           ? 'support'

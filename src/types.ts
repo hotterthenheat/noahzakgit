@@ -382,5 +382,11 @@ export interface ServerStatePayload {
   pinpoint_map?: PinpointMapData;
   provenance?: ProvenanceData;
   deep_intelligence?: DeepIntelligenceData;
+  hud_metrics?: {
+    reflexivity_vector: string;
+    systemic_fragility: string;
+    campaign_state: string;
+    propagation_path: string;
+  };
 }
 

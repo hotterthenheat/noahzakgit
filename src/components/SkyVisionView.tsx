@@ -12,6 +12,7 @@ export function SkyVisionView() {
   const selectedStrike = useContractStore(s => s.selectedStrike);
   const activeContract = useContractStore(s => s.activeContract);
   const serverState = useContractStore(s => s.serverState);
+  const isContractLocked = useContractStore(s => s.isContractLocked);
   
   const selectContract = useContractStore(s => s.selectContract);
   const setSelectedAsset = useContractStore(s => s.setSelectedAsset);
@@ -31,7 +32,7 @@ export function SkyVisionView() {
 
   // Render the preloaded Strikes Chain Centered on Spot but display them as list of OptionCards (Bug #4)
   const strikesList = useMemo(() => {
-    const step = serverState?.pinpoint_map?.step || (spotPrice > 1000 ? 100 : spotPrice > 150 ? 5 : 1);
+    const step = spotPrice > 1000 ? 50 : spotPrice > 150 ? 5 : 1;
     const center = Math.round(spotPrice / step) * step;
     
     // Generate 10 strike rows centered on active Spot Price
@@ -59,57 +60,116 @@ export function SkyVisionView() {
       putHealth = Math.max(25, Math.min(94, putHealth));
       const putAction = putHealth >= 88 ? 'ENTER' : putHealth >= 65 ? 'HOLD' : putHealth <= 40 ? 'SELL' : 'REDUCE';
 
+      // Dynamic contract premium formulation based on distance to Spot Price
+      const callDistance = Math.abs(spotPrice - strikeValue);
+      const callNormalizedDistance = callDistance / spotPrice;
+      const callPremiumBase = strikeValue <= spotPrice 
+        ? (spotPrice * 0.003) * Math.exp((spotPrice - strikeValue) / spotPrice * 3)
+        : (spotPrice * 0.003) / Math.exp(callNormalizedDistance * 60);
+      const callPrice = Math.max(0.20, Number((callPremiumBase * (1 + selectedAsset.volatility * 0.15)).toFixed(2)));
+
+      const putDistance = Math.abs(spotPrice - strikeValue);
+      const putNormalizedDistance = putDistance / spotPrice;
+      const putPremiumBase = strikeValue >= spotPrice
+        ? (spotPrice * 0.0035) * Math.exp((strikeValue - spotPrice) / spotPrice * 3)
+        : (spotPrice * 0.0035) / Math.exp(putNormalizedDistance * 65);
+      const putPrice = Math.max(0.20, Number((putPremiumBase * (1 + selectedAsset.volatility * 0.15)).toFixed(2)));
+
       return {
         strike: strikeValue,
         isSpotRow,
         callHealth,
         callAction,
         callMove: Math.round(35 + (spotPrice - strikeValue) * 0.4),
+        callPrice,
         putHealth,
         putAction,
-        putMove: Math.round(22 + (spotPrice - strikeValue) * 0.35)
+        putMove: Math.round(22 + (spotPrice - strikeValue) * 0.35),
+        putPrice
       };
     });
-  }, [spotPrice]);
+  }, [spotPrice, selectedAsset.volatility]);
 
   // OptionCard Component for selection - strictly no Delta/Gamma clutter (Bug #4, Bug #7)
   interface OptionCardProps {
     strikeLabel: string;
     health: number;
     move: number;
+    price: number;
     action: string;
     isSelected: boolean;
+    isCall: boolean;
     onClick: () => void;
     key?: string;
   }
-  function OptionCard({ strikeLabel, health, move, action, isSelected, onClick }: OptionCardProps) {
+  function OptionCard({ strikeLabel, health, move, price, action, isSelected, isCall, onClick }: OptionCardProps) {
     const actionColor = action === 'ENTER' ? 'text-[#00ff88] border-[#00ff88]/30 bg-[#00ff88]/5' : action === 'SELL' ? 'text-rose-400 border-rose-400/30 bg-rose-400/5' : 'text-zinc-400 border-zinc-800 bg-zinc-950/40';
     const momentum = health > 85 ? 'STRENGTHENING' : health < 60 ? 'WEAKENING' : 'NEUTRAL';
+
+    const [tickDirection, setTickDirection] = React.useState<'up' | 'down' | null>(null);
+    const prevPriceRef = React.useRef<number>(price);
+
+    React.useEffect(() => {
+      if (price !== prevPriceRef.current) {
+        const direction = price > prevPriceRef.current ? 'up' : 'down';
+        setTickDirection(direction);
+        prevPriceRef.current = price;
+        const timer = setTimeout(() => {
+          setTickDirection(null);
+        }, 800);
+        return () => clearTimeout(timer);
+      }
+    }, [price]);
+
+    let cardBgClass = '';
+
+    if (isSelected) {
+      if (isCall) {
+        cardBgClass = 'apple-glass !bg-emerald-950/45 !border-emerald-500 text-[#00ff88] shadow-lg shadow-emerald-950/40 ring-[1px] ring-emerald-400/40';
+      } else {
+        cardBgClass = 'apple-glass !bg-rose-950/45 !border-rose-500 text-[#ffced1] shadow-lg shadow-rose-950/50 ring-[1px] ring-rose-400/50';
+      }
+    } else {
+      cardBgClass = 'bg-[#030303] border-zinc-900 hover:border-zinc-800 hover:bg-[#07070a]/90 text-zinc-400';
+    }
+
+    const tickClass = tickDirection === 'up' ? 'tick-up' : tickDirection === 'down' ? 'tick-down' : '';
 
     return (
       <motion.div
         whileHover={{ scale: 1.015 }}
         whileTap={{ scale: 0.985 }}
         onClick={onClick}
-        className={`p-3.5 border rounded-sm cursor-pointer transition-all flex flex-col gap-2 text-left ${
-          isSelected 
-            ? 'bg-zinc-900 border-white text-white shadow-xl' 
-            : 'bg-[#030303] border-zinc-900 hover:border-zinc-850 text-zinc-400'
-        }`}
+        className={`p-3.5 border rounded-sm cursor-pointer transition-all flex flex-col gap-2 text-left relative overflow-hidden ${cardBgClass}`}
       >
+        {/* Subtle breathing live glow indicator */}
+        <div className="absolute top-1 right-1 flex items-center">
+          <span className="relative flex h-1.5 w-1.5 shrink-0">
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isCall ? 'bg-emerald-400' : 'bg-rose-450'}`}></span>
+            <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${isCall ? 'bg-[#30d158]' : 'bg-[#ff453a]'}`}></span>
+          </span>
+        </div>
+
         <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 text-left">
             <span className="text-sm font-black font-sans text-white">{strikeLabel}</span>
             <span className="text-[7.5px] uppercase tracking-wider text-zinc-500">HEALTH: {health} PTS</span>
           </div>
-          <div className="flex items-center gap-3 text-xs">
-            <span className="text-emerald-400 font-bold font-mono text-[10px]">+{move}%</span>
-            <span className={`px-2.5 py-0.5 rounded-xs text-[8.5px] font-black tracking-widest border uppercase ${actionColor}`}>
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col items-end gap-0.5 text-right">
+              <span className={`text-xs font-black font-mono text-white ${tickClass}`}>
+                ${price.toFixed(2)}
+              </span>
+              <span className={`font-bold font-mono text-[9px] ${isCall ? 'text-emerald-400' : 'text-rose-400'}`}>
+                +{move}%
+              </span>
+            </div>
+            <span className={`px-2 py-0.5 rounded-xs text-[8.5px] font-black tracking-widest border uppercase shrink-0 ${actionColor}`}>
               {action}
             </span>
           </div>
         </div>
-        <div className="flex mt-1 pt-2 border-t border-zinc-900/40 justify-between items-center">
+        <div className="flex mt-1 pt-2 border-t border-zinc-900/45 justify-between items-center">
            <span className="text-[8px] text-zinc-500 font-mono">FLOW MOMENTUM:</span>
            <span className={`text-[8.5px] font-black uppercase ${momentum === 'STRENGTHENING' ? 'text-emerald-400' : momentum === 'WEAKENING' ? 'text-rose-400' : 'text-zinc-400'}`}>{momentum}</span>
         </div>
@@ -472,43 +532,23 @@ export function SkyVisionView() {
             <div className="grid grid-cols-5 gap-2 text-[10px] font-mono">
               <div>
                 <span className="block text-[8px] text-zinc-600 mb-0.5 tracking-widest">DELTA</span>
-                <span className={`font-bold ${serverState?.active_greeks?.delta !== undefined ? (serverState.active_greeks.delta >= 0 ? 'text-[#00ff88]' : 'text-rose-400') : (selectedOptionType === 'C' ? 'text-[#00ff88]' : 'text-rose-400')}`}>
-                  {serverState?.active_greeks?.delta !== undefined 
-                    ? serverState.active_greeks.delta.toFixed(3) 
-                    : (selectedOptionType === 'C' ? '0.540' : '-0.460')}
-                </span>
+                <span className={`font-bold ${selectedOptionType === 'C' ? 'text-[#00ff88]' : 'text-rose-400'}`}>{selectedOptionType === 'C' ? '0.54' : '-0.46'}</span>
               </div>
               <div>
                 <span className="block text-[8px] text-zinc-600 mb-0.5 tracking-widest">GAMMA</span>
-                <span className="text-white font-bold">
-                  {serverState?.active_greeks?.gamma !== undefined 
-                    ? serverState.active_greeks.gamma.toFixed(4) 
-                    : (selectedOptionType === 'C' ? '0.0240' : '0.0280')}
-                </span>
+                <span className="text-white font-bold">{selectedOptionType === 'C' ? '0.024' : '0.028'}</span>
               </div>
               <div>
                 <span className="block text-[8px] text-zinc-600 mb-0.5 tracking-widest">THETA</span>
-                <span className="text-amber-400 font-bold">
-                  {serverState?.active_greeks?.theta !== undefined 
-                    ? serverState.active_greeks.theta.toFixed(3) 
-                    : (selectedOptionType === 'C' ? '-0.810' : '-0.680')}
-                </span>
+                <span className="text-amber-400 font-bold">{selectedOptionType === 'C' ? '-0.81' : '-0.68'}</span>
               </div>
               <div>
                 <span className="block text-[8px] text-zinc-600 mb-0.5 tracking-widest">VEGA</span>
-                <span className="text-white font-bold">
-                  {serverState?.active_greeks?.vega !== undefined 
-                    ? serverState.active_greeks.vega.toFixed(3) 
-                    : (selectedOptionType === 'C' ? '0.140' : '0.180')}
-                </span>
+                <span className="text-white font-bold">{selectedOptionType === 'C' ? '0.14' : '0.18'}</span>
               </div>
               <div className="border-l border-zinc-900 pl-3">
                 <span className="block text-[8px] text-zinc-600 mb-0.5 tracking-widest">VOLUME</span>
-                <span className="text-white font-bold">
-                  {serverState?.active_volume !== undefined 
-                    ? serverState.active_volume.toLocaleString() 
-                    : (selectedOptionType === 'C' ? '14,204' : '22,401')}
-                </span>
+                <span className="text-white font-bold">{selectedOptionType === 'C' ? '14,204' : '22,401'}</span>
               </div>
             </div>
           </div>
@@ -611,19 +651,25 @@ export function SkyVisionView() {
               <div className="flex flex-col gap-2">
                 {strikesList.map((row) => {
                   const strikeLabel = `${selectedAsset.ticker} ${row.strike}C`;
-                  const isSelected = activeStrike === row.strike && selectedOptionType === 'C';
+                  const isSelected = isContractLocked && selectedStrike !== null && activeStrike === row.strike && selectedOptionType === 'C';
                   return (
                     <OptionCard
                       key={`call-${row.strike}`}
                       strikeLabel={strikeLabel}
                       health={row.callHealth}
                       move={row.callMove}
+                      price={row.callPrice}
                       action={row.callAction}
                       isSelected={isSelected}
+                      isCall={true}
                       onClick={() => {
-                        setSelectedStrike(row.strike);
-                        setSelectedOptionType('C');
-                        selectContract(selectedAsset.ticker, row.strike, true);
+                        if (selectedStrike === row.strike && selectedOptionType === 'C') {
+                          setSelectedStrike(null);
+                        } else {
+                          setSelectedStrike(row.strike);
+                          setSelectedOptionType('C');
+                          selectContract(selectedAsset.ticker, row.strike, true);
+                        }
                       }}
                     />
                   );
@@ -639,19 +685,25 @@ export function SkyVisionView() {
               <div className="flex flex-col gap-2">
                 {strikesList.map((row) => {
                   const strikeLabel = `${selectedAsset.ticker} ${row.strike}P`;
-                  const isSelected = activeStrike === row.strike && selectedOptionType === 'P';
+                  const isSelected = isContractLocked && selectedStrike !== null && activeStrike === row.strike && selectedOptionType === 'P';
                   return (
                     <OptionCard
                       key={`put-${row.strike}`}
                       strikeLabel={strikeLabel}
                       health={row.putHealth}
                       move={row.putMove}
+                      price={row.putPrice}
                       action={row.putAction}
                       isSelected={isSelected}
+                      isCall={false}
                       onClick={() => {
-                        setSelectedStrike(row.strike);
-                        setSelectedOptionType('P');
-                        selectContract(selectedAsset.ticker, row.strike, false);
+                        if (selectedStrike === row.strike && selectedOptionType === 'P') {
+                          setSelectedStrike(null);
+                        } else {
+                          setSelectedStrike(row.strike);
+                          setSelectedOptionType('P');
+                          selectContract(selectedAsset.ticker, row.strike, false);
+                        }
                       }}
                     />
                   );

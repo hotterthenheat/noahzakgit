@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { useContractStore } from './lib/store';
 import { ASSET_LIST } from './data';
 import { AssetInfo } from './types';
@@ -21,6 +21,53 @@ import {
   Waves
 } from 'lucide-react';
 
+const TickerTape = memo(() => {
+  const staticTickers = [
+    { ticker: 'SPX', name: 'S&P 500 Index', price: 7623.00, change: '+0.88%', isUp: true, vol: '14.2%' },
+    { ticker: 'NDX', name: 'NASDAQ 100 Index', price: 18250.00, change: '+1.42%', isUp: true, vol: '21.0%' },
+    { ticker: 'QQQ', name: 'NASDAQ ETF', price: 445.50, change: '+1.24%', isUp: true, vol: '18.5%' },
+    { ticker: 'SPY', name: 'S&P 505 ETF', price: 512.30, change: '+0.65%', isUp: true, vol: '12.8%' },
+    { ticker: 'RUT', name: 'Russell 2000 Index', price: 2025.00, change: '+0.92%', isUp: true, vol: '16.4%' },
+    { ticker: 'SPX', name: 'S&P 500 Index', price: 7623.00, change: '+0.88%', isUp: true, vol: '14.2%' },
+    { ticker: 'NDX', name: 'NASDAQ 100 Index', price: 18250.00, change: '+1.42%', isUp: true, vol: '21.0%' },
+    { ticker: 'QQQ', name: 'NASDAQ ETF', price: 445.50, change: '+1.24%', isUp: true, vol: '18.5%' },
+    { ticker: 'SPY', name: 'S&P 505 ETF', price: 512.30, change: '+0.65%', isUp: true, vol: '12.8%' },
+    { ticker: 'RUT', name: 'Russell 2000 Index', price: 2025.00, change: '+0.92%', isUp: true, vol: '16.4%' },
+    { ticker: 'SPX', name: 'S&P 500 Index', price: 7623.00, change: '+0.88%', isUp: true, vol: '14.2%' },
+    { ticker: 'NDX', name: 'NASDAQ 100 Index', price: 18250.00, change: '+1.42%', isUp: true, vol: '21.0%' },
+    { ticker: 'QQQ', name: 'NASDAQ ETF', price: 445.50, change: '+1.24%', isUp: true, vol: '18.5%' },
+    { ticker: 'SPY', name: 'S&P 505 ETF', price: 512.30, change: '+0.65%', isUp: true, vol: '12.8%' },
+    { ticker: 'RUT', name: 'Russell 2000 Index', price: 2025.00, change: '+0.92%', isUp: true, vol: '16.4%' }
+  ];
+
+  return (
+    <div className="w-full bg-[#050506]/75 border-b border-zinc-900/50 backdrop-blur-xl overflow-hidden py-1.5 relative z-40 select-none">
+      <div className="animate-ticker-marquee flex whitespace-nowrap">
+        {[...Array(2)].map((_, loopIdx) => (
+          <div key={loopIdx} className="flex gap-14 items-center pr-14 animate-none">
+            {staticTickers.map((t, idx) => (
+              <div 
+                key={`${loopIdx}-${idx}`} 
+                className="flex items-center gap-2.5 font-mono text-[9.5px] px-2 py-1 rounded transition-all"
+              >
+                <span className="font-black text-white tracking-widest">{t.ticker}</span>
+                <span className="text-zinc-500 text-[8.5px] uppercase">{t.name}</span>
+                <span className="font-extrabold text-[#f4f4f5]">${t.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className={`font-bold flex items-center gap-0.5 ${t.isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {t.isUp ? '▲' : '▼'}{t.change}
+                </span>
+                <span className="text-zinc-650 text-[8px] font-black border border-zinc-950/20 bg-zinc-950/60 px-1 rounded-xs uppercase">
+                  VOL: {t.vol}
+                </span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+});
+
 export default function App() {
   // Navigation & configuration subscribing to global useContractStore Zustand store
   const activeTab = useContractStore(s => s.activeTab);
@@ -40,6 +87,7 @@ export default function App() {
   const serverState = useContractStore(s => s.serverState);
   const updateFromSSE = useContractStore(s => s.updateFromSSE);
   const tickMarketState = useContractStore(s => s.tickMarketState);
+  const isContractLocked = useContractStore(s => s.isContractLocked);
 
   // User session state (Bug #9 HttpOnly cookie verification and storage)
   const [session, setSession] = useState<{ authenticated: boolean; name?: string; provider?: string; avatar?: string } | null>(null);
@@ -200,14 +248,50 @@ export default function App() {
     confidence: p.health
   }));
 
+  const isCall = selectedOptionType === 'C';
+  const showColoredBg = isContractLocked && activeTab === 'skyvision';
+
+  let bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#050506]";
+  
+  if (showColoredBg) {
+    if (isCall) {
+      bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#011409]";
+    } else {
+      bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#140203]";
+    }
+  } else {
+    // Glassy slate grey/black/white elegant configuration
+    bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#0d0d0f]";
+  }
+
   return (
-    <div className="min-h-screen bg-[#050506] text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative">
+    <div className={bgClass}>
       
       {/* Liquid background elements mirroring Apple macOS/iOS fluid updates */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full bg-[#30d158]/8 blur-[120px] animate-fluid-blob-1" />
-        <div className="absolute bottom-[-15%] right-[-10%] w-[65%] h-[60%] rounded-full bg-[#ff9f0a]/4 blur-[140px] animate-fluid-blob-2" />
-        <div className="absolute top-[35%] right-[20%] w-[45%] h-[45%] rounded-full bg-indigo-550/5 blur-[110px] animate-fluid-blob-3" />
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 transition-opacity duration-1000">
+        {showColoredBg && isCall && (
+          <>
+            <div className="absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full bg-emerald-500/12 blur-[120px] animate-fluid-blob-1 transition-all duration-700" />
+            <div className="absolute bottom-[-15%] right-[-10%] w-[65%] h-[60%] rounded-full bg-teal-500/8 blur-[140px] animate-fluid-blob-2 transition-all duration-700" />
+            <div className="absolute top-[35%] right-[20%] w-[45%] h-[45%] rounded-full bg-emerald-450/6 blur-[110px] animate-fluid-blob-3 transition-all duration-700" />
+          </>
+        )}
+        {showColoredBg && !isCall && (
+          <>
+            <div className="absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full bg-rose-500/12 blur-[120px] animate-fluid-blob-1 transition-all duration-700" />
+            <div className="absolute bottom-[-15%] right-[-10%] w-[65%] h-[60%] rounded-full bg-red-600/8 blur-[140px] animate-fluid-blob-2 transition-all duration-700" />
+            <div className="absolute top-[35%] right-[20%] w-[45%] h-[45%] rounded-full bg-[#ff453a]/6 blur-[110px] animate-fluid-blob-3 transition-all duration-700" />
+          </>
+        )}
+        {!showColoredBg && (
+          <>
+            <div className="absolute inset-0 bg-gradient-to-b from-white/[0.012] via-transparent to-black/[0.12] backdrop-blur-[1px] pointer-events-none transition-all duration-700" />
+            <div className="absolute top-[-10%] left-[-10%] w-[52%] h-[52%] rounded-full bg-white/6 blur-[120px] animate-fluid-blob-1 transition-all duration-700" />
+            <div className="absolute bottom-[-15%] right-[-10%] w-[60%] h-[55%] rounded-full bg-zinc-400/5 blur-[140px] animate-fluid-blob-2 transition-all duration-700" />
+            <div className="absolute top-[35%] right-[20%] w-[40%] h-[40%] rounded-full bg-zinc-650/4 blur-[110px] animate-fluid-blob-3 transition-all duration-700" />
+            <div className="absolute top-[10%] right-[40%] w-[35%] h-[35%] rounded-full bg-white/3 blur-[90px] animate-pulse transition-all duration-700" />
+          </>
+        )}
       </div>
       
       {/* Upper ecosystem workstation cockpit core header */}
@@ -429,6 +513,9 @@ export default function App() {
           )}
         </div>
       </header>
+
+      {/* Interactive Continuously-Scrolling Nasdaq Ticker Tape (Restricted to Landing Page only) */}
+      {activeTab === 'home' && <TickerTape />}
  
        {/* Main workspace frame */}
        <main className="flex-1 p-4 md:p-6 flex flex-col gap-6 w-full max-w-full justify-start">

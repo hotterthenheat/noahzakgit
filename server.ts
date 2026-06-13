@@ -4,6 +4,8 @@
  */
 
 import express from 'express';
+import dotenv from 'dotenv';
+dotenv.config();
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { ASSET_LIST, generateInitialCandles, TIMEFRAMES, INITIAL_DISCOVERY_CONTRACTS, INITIAL_DISCOVERY_FEED_LOGS, calculateFVGs, calculateLiquidityEvents } from './src/data';
@@ -21,8 +23,12 @@ import {
   getProviderStatusMessage,
   getUnifiedSpotPrice,
   getUnifiedOptionChain,
-  collectUnifiedFlows
+  collectUnifiedFlows,
+  getUnifiedCandles
 } from './src/lib/providerAbstraction';
+import { buildGexProfile, computeDealerFlowGauge } from './src/lib/gexEngine';
+import { computeDisplacementIntelligence } from './src/lib/displacementEngine';
+import { getLastTradierError } from './src/lib/tradierProvider';
 
 const app = express();
 app.set('trust proxy', true);
@@ -159,6 +165,26 @@ const initializeCandles = () => {
   }
 };
 initializeCandles();
+
+// Real candle seeding via background thread on startup
+const seedHistoricalCandles = async () => {
+  console.log('[SkyVision] Seeding historical candles from live sources...');
+  for (const asset of ASSET_LIST) {
+    for (const tf of TIMEFRAMES) {
+      const key = `${asset.ticker}-${tf.val}`;
+      try {
+        const candleRes = await getUnifiedCandles(asset.ticker, tf.val as TimeframeVal, 120);
+        if (candleRes && candleRes.candles && candleRes.candles.length > 0) {
+          db.candles[key] = candleRes.candles;
+          console.log(`[SkyVision] Seeded ${candleRes.candles.length} candles for ${key} from ${candleRes.source}`);
+        }
+      } catch (err) {
+        console.warn(`[SkyVision] Volatile history backfill skipped/failed for ${key}:`, err);
+      }
+    }
+  }
+};
+seedHistoricalCandles();
 
 // Tracking map for adapting historical candles to live spot quote on initial cycle
 const bootstrappedAssets: Record<string, boolean> = {};
@@ -1284,7 +1310,25 @@ const constructPayload = (params: {
     gex_profile,
     dealer_flow,
     displacement,
-    candle_feed: feedLabel
+    candle_feed: feedLabel,
+    hud_metrics: {
+      reflexivity_vector: `${(systemScore.momentumAcceleration * 0.14 - (metricsV11.dealer.netGex / 2e9) * 0.16 + (params.isCall ? 0.22 : -0.18)).toFixed(2)} λ [${
+        systemScore.momentumAcceleration > 6 ? 'CO-FEEDBACK DILATION' : 'STABLE GRAVITY PIN'
+      }]`,
+      systemic_fragility: metricsV11.tailRisk.tailRiskScore > 0.6
+        ? 'CRITICAL OVER-EXPOSURE'
+        : metricsV11.tailRisk.tailRiskScore > 0.38
+          ? 'SENSITIVE FRICTION'
+          : 'DAMPENED / STABLE',
+      campaign_state: finalDecision === 'ENTER'
+        ? `${params.isCall ? 'BULLISH' : 'BEARISH'} INSTITUTIONAL ACCUMULATION`
+        : finalDecision === 'REDUCE'
+          ? 'SHELTERED VOL DECAY CORRIDOR'
+          : 'CONVERGENT GRAVITY RECONCILIATION',
+      propagation_path: metricsV11.dealer.netGex >= 0
+        ? 'PASSIVE THETA STREAM -> STABILIZED RANGE PIN'
+        : 'ACTIVE DELTA HARMONIZATION -> VELOCITY ACCELERATION'
+    }
   };
 };
 
@@ -1542,6 +1586,105 @@ app.post('/api/trades/clear', (req, res) => {
   db.v8Trades = [];
   broadcastSSE();
   res.json({ success: true });
+});
+
+// GET real intraday lookbacks or synthetic fallback
+app.get('/api/history', async (req, res) => {
+  try {
+    const ticker = String(req.query.ticker || 'SPX');
+    const tf = String(req.query.timeframe || '5m') as TimeframeVal;
+    const count = req.query.count ? Number(req.query.count) : 120;
+    
+    const candleResult = await getUnifiedCandles(ticker, tf, count);
+    if (candleResult && candleResult.candles && candleResult.candles.length > 0) {
+      const cacheKey = `${ticker}-${tf}`;
+      db.candles[cacheKey] = candleResult.candles;
+      return res.json({ success: true, source: candleResult.source, candles: candleResult.candles });
+    }
+    
+    const cacheKey = `${ticker}-${tf}`;
+    const candles = db.candles[cacheKey] || [];
+    return res.json({ success: true, source: 'SANDBOX_SYNTHETIC', candles });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || String(err) });
+  }
+});
+
+// GET Real-time option GEX-profile and dealer buying pressure gauge
+app.get('/api/dealer-flow', async (req, res) => {
+  try {
+    const ticker = String(req.query.ticker || 'SPX');
+    const asset = ASSET_LIST.find(a => a.ticker === ticker) || ASSET_LIST[0];
+    const liveSpot = db.liveSpotPrices[ticker] || asset.defaultPrice;
+    
+    const chainRes = await getUnifiedOptionChain(asset, liveSpot);
+    const contracts = chainRes?.contracts || [];
+    
+    if (contracts.length > 0) {
+      const profile = buildGexProfile(contracts, liveSpot, 1 / 365, 0.06);
+      if (profile) {
+        const systemScore = calculateSystemScoreFromCandles(
+          db.candles[`${ticker}-5m`] || [], 
+          1, 
+          asset.volatility
+        );
+        const premiumBase = (liveSpot * 0.003);
+        const metricsV11 = calculateV11Metrics(asset, true, systemScore, premiumBase, liveSpot, contracts as any, liveSpot);
+        
+        const flowGauge = computeDealerFlowGauge(profile, metricsV11.dealer.netCharm, metricsV11.dealer.netDex);
+        
+        return res.json({
+          success: true,
+          source: chainRes.source,
+          dealer_flow: flowGauge,
+          gex_profile: profile,
+          audit_id: `aud-flow-${ticker}-${Date.now()}`
+        });
+      }
+    }
+    
+    res.json({
+      success: true,
+      source: 'SANDBOX_SYNTHETIC',
+      dealer_flow: {
+        pressure: 18,
+        bias: 'LONG GAMMA',
+        headline: 'Dealer flows balanced: offline simulation running.',
+        components: [
+          { name: 'Gamma regime', value: 0.15, weight: 0.35, detail: 'simulated gamma flip' },
+          { name: 'Magnet pull', value: 0.05, weight: 0.15, detail: 'pin magnet' },
+          { name: 'Charm decay flow', value: 0.10, weight: 0.20, detail: 'simulated charm' },
+          { name: 'Delta inventory', value: 0.08, weight: 0.10, detail: 'simulated delta' },
+          { name: 'Hedge-flow demand', value: 0.25, weight: 0.20, detail: 'simulated volume' }
+        ]
+      },
+      audit_id: `aud-flow-${ticker}-${Date.now()}`
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || String(err) });
+  }
+});
+
+// GET Systems health verification
+app.get('/api/health', (req, res) => {
+  const isTradierConfig = !!process.env.TRADIER_API_KEY;
+  const isPolygonConfig = !!process.env.POLYGON_API_KEY;
+  const lastTradierErr = getLastTradierError();
+  
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    env: {
+      tradier_configured: isTradierConfig,
+      polygon_configured: isPolygonConfig,
+      node_env: process.env.NODE_ENV || 'development'
+    },
+    integrations: {
+      dataSource: getDataSourceType(),
+      providerStatus: getProviderStatusMessage(),
+      lastTradierError: lastTradierErr
+    }
+  });
 });
 
 

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { useContractStore } from '../lib/store';
 import { Zap, ShieldCheck, Activity, Clock, Layers, TrendingUp } from 'lucide-react';
+import { InstitutionalHUD } from './InstitutionalHUD';
 
 export function DashboardView() {
   const serverState = useContractStore((s) => s.serverState);
@@ -218,6 +219,9 @@ export function DashboardView() {
           </p>
         </div>
       </div>
+
+      {/* Institutional HUD Cockpit Panel */}
+      <InstitutionalHUD />
 
       {/* 5. STATUS BAR */}
       <div className="border border-zinc-900 bg-black min-h-[30px] p-2 rounded-xs flex items-center justify-between text-[8px] text-zinc-550 uppercase tracking-widest pl-3 font-black">

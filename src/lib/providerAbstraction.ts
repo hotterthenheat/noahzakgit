@@ -1,7 +1,7 @@
-import { AssetInfo } from '../types';
+import { AssetInfo, TimeframeVal, Candle } from '../types';
 import { ASSET_LIST } from '../data';
 import { isPolygonConfigured, fetchLiveSpotPrice, fetchLiveOptionChain, collectLiveFlows, LiveOptionContract } from './marketDataProvider';
-import { isTradierConfigured, fetchTradierSpotPrice, fetchTradierOptionChain, collectTradierFlows } from './tradierProvider';
+import { isTradierConfigured, fetchTradierSpotPrice, fetchTradierOptionChain, collectTradierFlows, fetchTradierCandles } from './tradierProvider';
 
 export function isTradierActive(): boolean {
   return isTradierConfigured();
@@ -45,19 +45,9 @@ export function getProviderStatusMessage(): string {
 
 /**
  * Normalizes fetching spot price.
- * As requested: "Use Polygon as the primary index, historical, and market structure source"
- * and "Use Tradier for real option chains ... etc."
+ * TRADIER FIRST as requested by the user.
  */
 export async function getUnifiedSpotPrice(ticker: string, defaultPrice: number): Promise<{ price: number; source: string }> {
-  // If Polygon is active, let it handle Spot Index snapshot (primary source for SPX/NDX/VIX)
-  if (isPolygonActive()) {
-    const res = await fetchLiveSpotPrice(ticker, defaultPrice);
-    if (res.source === 'POLYGON_LIVE') {
-      return { price: res.price, source: 'POLYGON_LIVE' };
-    }
-  }
-
-  // If Polygon is not active but Tradier is, let Tradier offer spot quotes
   if (isTradierActive()) {
     const price = await fetchTradierSpotPrice(ticker);
     if (price !== null) {
@@ -65,13 +55,31 @@ export async function getUnifiedSpotPrice(ticker: string, defaultPrice: number):
     }
   }
 
-  // Otherwise, fallback to Sandbox
+  if (isPolygonActive()) {
+    const res = await fetchLiveSpotPrice(ticker, defaultPrice);
+    if (res.source === 'POLYGON_LIVE') {
+      return { price: res.price, source: 'POLYGON_LIVE' };
+    }
+  }
+
   return { price: defaultPrice, source: 'SANDBOX_SYNTHETIC' };
 }
 
 /**
+ * NEW — real history; returns null rather than pretending:
+ */
+export async function getUnifiedCandles(ticker: string, tf: TimeframeVal, count = 120): Promise<{ candles: Candle[]; source: 'TRADIER_LIVE' } | null> {
+  if (isTradierActive()) {
+    const candles = await fetchTradierCandles(ticker, tf, count);
+    if (candles && candles.length > 0) {
+      return { candles, source: 'TRADIER_LIVE' as const };
+    }
+  }
+  return null;
+}
+
+/**
  * Normalizes option chain compilation.
- * As requested: "Use Tradier as the primary options chain, Greeks, IV, open interest, and quote source."
  */
 export async function getUnifiedOptionChain(asset: AssetInfo, spotPrice: number): Promise<{ contracts: LiveOptionContract[]; source: string; message?: string }> {
   if (isTradierActive()) {
@@ -105,7 +113,6 @@ export async function getUnifiedOptionChain(asset: AssetInfo, spotPrice: number)
 export async function collectUnifiedFlows(ticker: string, spotPrice: number, contracts: LiveOptionContract[]): Promise<any[]> {
   const flows: any[] = [];
 
-  // Fetch or extract flows based on active providers
   if (isTradierActive() && contracts.length > 0) {
     const tFlows = await collectTradierFlows(ticker, spotPrice, contracts);
     if (tFlows && tFlows.length > 0) {
@@ -113,7 +120,6 @@ export async function collectUnifiedFlows(ticker: string, spotPrice: number, con
     }
   }
 
-  // If we also want Polygon flows or if Polygon is active alone
   if (isPolygonActive() && (!isTradierActive() || flows.length === 0)) {
     const pFlows = await collectLiveFlows(ticker, spotPrice);
     if (pFlows && pFlows.length > 0) {

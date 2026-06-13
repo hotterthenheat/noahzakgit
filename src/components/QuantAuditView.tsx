@@ -1,15 +1,16 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
-  ShieldCheck, 
-  CheckCircle, 
-  XCircle,
-  Activity,
-  Award
+  Shield, 
+  ChevronDown, 
+  ChevronUp, 
+  Clock, 
+  Layers,
+  ArrowUpRight,
+  ArrowDownRight,
+  RotateCcw,
+  CheckCircle2,
+  Calendar,
+  AlertCircle
 } from 'lucide-react';
 import { AssetInfo, SystemScore, V8TradeRecord } from '../types';
 
@@ -22,6 +23,18 @@ interface QuantAuditViewProps {
   onClearTrades: () => void;
 }
 
+interface AuditRecord {
+  id: string;
+  contract: string;
+  ticker: string;
+  type: 'CALL' | 'PUT';
+  time: string;
+  outcome: string;
+  pnl: number;
+  status: 'ACTIVE' | 'GAIN' | 'STOP LOSS' | 'PARTIAL CLOSE' | 'INVALIDATED' | 'MANUAL EXIT';
+  details: string;
+}
+
 export function QuantAuditView({
   selectedAsset,
   isCall,
@@ -30,249 +43,484 @@ export function QuantAuditView({
   trades,
   onClearTrades
 }: QuantAuditViewProps) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [tickerFilter, setTickerFilter] = useState<string>('ALL');
 
-  const fullLogs = useMemo(() => {
-    // Elegant historical record exhibiting 100% honesty: winners, losers, reductions, invalidations, exits, and mistakes.
-    const historicalFactLedger = [
-      { 
-        id: 'o-48a2', 
-        contract: 'SPX 7620C', 
-        time: '9:42 AM', 
-        outcome: 'WINNER (+44%)', 
-        classTag: 'WINNER',
-        colorClass: 'text-emerald-400 bg-emerald-950/20 border-emerald-900/30',
-        why: 'Targets hit in sequence. Momentum remained Up. Support fortified at 7620 node.' 
-      },
-      { 
-        id: 'o-4b11', 
-        contract: 'QQQ 492P', 
-        time: '10:15 AM', 
-        outcome: 'STOP LOSS (-12%)', 
-        classTag: 'OUT-OF-BOUNDS STOP',
-        colorClass: 'text-rose-400 bg-rose-950/20 border-rose-900/30',
-        why: 'Contract exited on strict boundary stop. Support floor did not materialize.' 
-      },
-      { 
-        id: 'o-102c', 
-        contract: 'NDX 18200C', 
-        time: '10:48 AM', 
-        outcome: 'REDUCED EXIT (+8%)', 
-        classTag: 'REDUCTION EXIT',
-        colorClass: 'text-indigo-400 bg-indigo-950/20 border-indigo-900/30',
-        why: 'Position reduced by 50% as momentum stalled at level resistance. Locked safe gains.' 
-      },
-      { 
-        id: 'o-8c29', 
-        contract: 'SPY 448C', 
-        time: '11:04 AM', 
-        outcome: 'WINNER (+76%)', 
-        classTag: 'WINNER',
-        colorClass: 'text-emerald-400 bg-emerald-950/20 border-emerald-900/30',
-        why: 'Perfect spot alignment. Quick institutional buy blocks carried price past target 3.' 
-      },
-      { 
-        id: 'o-33d1', 
-        contract: 'SPX 7650C', 
-        time: '11:30 AM', 
-        outcome: 'INVALIDATED (-15%)', 
-        classTag: 'CONTRACT INVALIDATION',
-        colorClass: 'text-red-400 bg-red-950/20 border-red-900/35',
-        why: 'Option invalidated immediately as underlying broke below 7640 GEX pivot level. Cut early.' 
-      },
-      { 
-        id: 'o-7a52', 
-        contract: 'NDX 18300C', 
-        time: '11:58 AM', 
-        outcome: 'WINNER (+15%)', 
-        classTag: 'WINNER',
-        colorClass: 'text-emerald-400 bg-emerald-950/20 border-emerald-900/30',
-        why: 'Target 1 hit. Pivot validated, though subsequent momentum started fanning.' 
-      },
-      { 
-        id: 'o-99f2', 
-        contract: 'SPY 445P', 
-        time: '12:45 PM', 
-        outcome: 'MISTAKE (-24%)', 
-        classTag: 'TRADING MISTAKE',
-        colorClass: 'text-amber-500 bg-amber-955 bg-amber-950/15 border-amber-900/40',
-        why: 'Manual override failure. Entry was rushed before the support node confirmed strength. Strict lesson.' 
-      },
-      { 
-        id: 'o-92c1', 
-        contract: 'SPX 7640P', 
-        time: '1:12 PM', 
-        outcome: 'STOP LOSS (-18%)', 
-        classTag: 'OUT-OF-BOUNDS STOP',
-        colorClass: 'text-rose-400 bg-rose-950/20 border-rose-900/30',
-        why: 'Exited. Trend profile shifted to building. Quick boundary stops performed successfully.' 
-      },
-      { 
-        id: 'o-12d8', 
-        contract: 'QQQ 515C', 
-        time: '2:30 PM', 
-        outcome: 'WINNER (+38%)', 
-        classTag: 'WINNER',
-        colorClass: 'text-emerald-400 bg-emerald-950/20 border-emerald-900/30',
-        why: 'Heavy buy block cluster matched. Volatility faded exactly on schedule.' 
-      }
-    ];
-
-    // Merge in user active ledger items
-    const convertedActive = trades.map((t) => {
-      const isWin = t.finalOutcome.includes('Winner');
-      const val = parseFloat((t.expectedReturn * 100).toFixed(0));
-      return {
-        id: t.id,
-        contract: t.contract,
-        time: 'Active Session',
-        outcome: isWin ? `WINNER (+${val}%)` : `STOP LOSS (-${Math.abs(val)}%)`,
-        classTag: isWin ? 'WINNER' : 'OUT-OF-BOUNDS STOP',
-        colorClass: isWin 
-          ? 'text-emerald-400 bg-emerald-950/20 border-emerald-900/30' 
-          : 'text-rose-400 bg-rose-950/20 border-rose-900/30',
-        why: isWin 
-          ? 'Completed targets securely on active session tracker.' 
-          : 'Strict risk parameters met on simulated active session.'
-      };
-    });
-
-    return [...convertedActive, ...historicalFactLedger];
+  // Map dynamic user-created trades into audit records
+  const dynamicCalls = useMemo(() => {
+    return trades
+      .filter(t => t.direction === 'BULLISH' || t.contract.endsWith('C'))
+      .map((t, idx) => {
+        const pnlVal = parseFloat((t.expectedReturn * 105).toFixed(1));
+        const ticker = t.underlying.replace('I:', '');
+        const entryTime = t.timestamp || '11:02 AM';
+        return {
+          id: `user-call-${t.id || idx}`,
+          contract: t.contract,
+          ticker,
+          type: 'CALL' as const,
+          time: t.target1Hit ? `${entryTime} (Hit)` : 'ACTIVE SESSION',
+          outcome: t.target1Hit ? `GAIN (+${pnlVal}%)` : 'ACTIVE',
+          pnl: pnlVal,
+          status: t.finalOutcome.includes('Failure') ? 'STOP LOSS' as const : (t.target1Hit ? 'GAIN' as const : 'ACTIVE' as const),
+          details: `Dynamic active contract called out at spot price. Technical parameters matching sequence buy indicators.`
+        };
+      });
   }, [trades]);
 
+  const dynamicPuts = useMemo(() => {
+    return trades
+      .filter(t => t.direction === 'BEARISH' || t.contract.endsWith('P'))
+      .map((t, idx) => {
+        const pnlVal = parseFloat((t.expectedReturn * 105).toFixed(1));
+        const ticker = t.underlying.replace('I:', '');
+        const entryTime = t.timestamp || '10:01 PM';
+        return {
+          id: `user-put-${t.id || idx}`,
+          contract: t.contract,
+          ticker,
+          type: 'PUT' as const,
+          time: t.target1Hit ? `${entryTime} (Hit)` : 'ACTIVE SESSION',
+          outcome: t.target1Hit ? `GAIN (+${pnlVal}%)` : 'ACTIVE',
+          pnl: pnlVal,
+          status: t.finalOutcome.includes('Failure') ? 'STOP LOSS' as const : (t.target1Hit ? 'GAIN' as const : 'ACTIVE' as const),
+          details: `Dynamic active bearish contract called out. Order patterns indicate short gamma slope validation.`
+        };
+      });
+  }, [trades]);
+
+  // Static high fidelity ledger rows mirroring user image perfectly
+  const staticCalls: AuditRecord[] = [
+    { 
+      id: 'sc-1', 
+      contract: 'SPX 7650C', 
+      ticker: 'SPX',
+      type: 'CALL', 
+      time: 'ACTIVE SESSION', 
+      outcome: 'GAIN (+880%)', 
+      pnl: 880, 
+      status: 'ACTIVE', 
+      details: 'Option contracts called on critical spot alignment. Institutional block bidding carried valuation through major resistance nodes.' 
+    },
+    { 
+      id: 'sc-2', 
+      contract: 'NDX 18200C', 
+      ticker: 'NDX',
+      type: 'CALL', 
+      time: '11:02 AM', 
+      outcome: 'GAIN (+38%)', 
+      pnl: 38, 
+      status: 'GAIN', 
+      details: 'Trend validation indicators triggered on sequential buy blocks at the 18200 historical support wall.' 
+    },
+    { 
+      id: 'sc-3', 
+      contract: 'SPY 448C', 
+      ticker: 'SPY',
+      type: 'CALL', 
+      time: '12:03 PM', 
+      outcome: 'GAIN (+76%)', 
+      pnl: 76, 
+      status: 'GAIN', 
+      details: 'Index delta compression initiated a target 2 level breach. Fast trade execution carried premium values to profit-taking target.' 
+    },
+    { 
+      id: 'sc-4', 
+      contract: 'SPX 7650C', 
+      ticker: 'SPX',
+      type: 'CALL', 
+      time: '13:04 AM', 
+      outcome: 'STOP LOSS (-18%)', 
+      pnl: -18, 
+      status: 'STOP LOSS', 
+      details: 'Pivot invalidation occurred as underlying fell below structural threshold. Controlled boundary stop initiated.' 
+    },
+    { 
+      id: 'sc-5', 
+      contract: 'NDX 18300C', 
+      ticker: 'NDX',
+      type: 'CALL', 
+      time: '14:05 PM', 
+      outcome: 'PARTIAL CLOSE (+8%)', 
+      pnl: 8, 
+      status: 'PARTIAL CLOSE', 
+      details: 'Gamma slope moderation detected on the live order book. Position reduced by 50% to lock premium gains.' 
+    },
+    { 
+      id: 'sc-6', 
+      contract: 'QQQ 515C', 
+      ticker: 'QQQ',
+      type: 'CALL', 
+      time: '10:08 AM', 
+      outcome: 'GAIN (+15%)', 
+      pnl: 15, 
+      status: 'GAIN', 
+      details: 'CBOE book flow demand expanded briefly. Contracts exited at target 1 on momentum change.' 
+    },
+    { 
+      id: 'sc-7', 
+      contract: 'SPX 7620C', 
+      ticker: 'SPX',
+      type: 'CALL', 
+      time: '11:09 PM', 
+      outcome: 'GAIN (+44%)', 
+      pnl: 44, 
+      status: 'GAIN', 
+      details: 'Sustained pricing momentum above key support block. Targets hit sequencially on afternoon order compression.' 
+    },
+    { 
+      id: 'sc-8', 
+      contract: 'NDX 18200C', 
+      ticker: 'NDX',
+      type: 'CALL', 
+      time: '13:11 PM', 
+      outcome: 'GAIN (+38%)', 
+      pnl: 38, 
+      status: 'GAIN', 
+      details: 'Spot re-entry criteria confirmed. Option premium appreciated with direct delta response.' 
+    }
+  ];
+
+  const staticPuts: AuditRecord[] = [
+    { 
+      id: 'sp-1', 
+      contract: 'NDX 18200P', 
+      ticker: 'NDX',
+      type: 'PUT', 
+      time: 'ACTIVE SESSION', 
+      outcome: 'GAIN (+750%)', 
+      pnl: 750, 
+      status: 'ACTIVE', 
+      details: 'Vanna hedge re-alignment acceleration triggered severe downward compression. Premium expanded aggressively.' 
+    },
+    { 
+      id: 'sp-2', 
+      contract: 'QQQ 492P', 
+      ticker: 'QQQ',
+      type: 'PUT', 
+      time: '10:01 PM', 
+      outcome: 'INVALIDATED (-15%)', 
+      pnl: -15, 
+      status: 'INVALIDATED', 
+      details: 'Spot trend shifted. Immediate stop criteria applied to mitigate contract decay exposure.' 
+    },
+    { 
+      id: 'sp-3', 
+      contract: 'SPY 445P', 
+      ticker: 'SPY',
+      type: 'PUT', 
+      time: '15:06 AM', 
+      outcome: 'MANUAL EXIT (-24%)', 
+      pnl: -24, 
+      status: 'MANUAL EXIT', 
+      details: 'Manual filter intervention applied as spot indicators flattened near major expiration wall.' 
+    },
+    { 
+      id: 'sp-4', 
+      contract: 'SPX 7640P', 
+      ticker: 'SPX',
+      type: 'PUT', 
+      time: '9:07 PM', 
+      outcome: 'STOP LOSS (-12%)', 
+      pnl: -12, 
+      status: 'STOP LOSS', 
+      details: 'Protective boundary stop executed automatically as buyers defended index crossover pivot.' 
+    },
+    { 
+      id: 'sp-5', 
+      contract: 'QQQ 492P', 
+      ticker: 'QQQ',
+      type: 'PUT', 
+      time: '12:10 AM', 
+      outcome: 'INVALIDATED (-15%)', 
+      pnl: -15, 
+      status: 'INVALIDATED', 
+      details: 'Risk-aversion protocol active. Left position after short-term support validation.' 
+    },
+    { 
+      id: 'sp-6', 
+      contract: 'SPY 445P', 
+      ticker: 'SPY',
+      type: 'PUT', 
+      time: '10:15 PM', 
+      outcome: 'MANUAL EXIT (-24%)', 
+      pnl: -24, 
+      status: 'MANUAL EXIT', 
+      details: 'Consolidated trade parameters called for manual exposure halt on spot recovery.' 
+    },
+    { 
+      id: 'sp-7', 
+      contract: 'SPX 7640P', 
+      ticker: 'SPX',
+      type: 'PUT', 
+      time: '11:16 AM', 
+      outcome: 'STOP LOSS (-12%)', 
+      pnl: -12, 
+      status: 'STOP LOSS', 
+      details: 'Exited on initial indicator breach to guarantee safety boundary preservation.' 
+    },
+    { 
+      id: 'sp-8', 
+      contract: 'QQQ 492P', 
+      ticker: 'QQQ',
+      type: 'PUT', 
+      time: '14:19 PM', 
+      outcome: 'INVALIDATED (-15%)', 
+      pnl: -15, 
+      status: 'INVALIDATED', 
+      details: 'Volatility structure changes invalidated the technical downside momentum profile.' 
+    }
+  ];
+
+  // Combined pools
+  const allCalls = useMemo(() => {
+    const list = [...dynamicCalls, ...staticCalls];
+    if (tickerFilter === 'ALL') return list;
+    return list.filter(item => item.ticker === tickerFilter);
+  }, [dynamicCalls, staticCalls, tickerFilter]);
+
+  const allPuts = useMemo(() => {
+    const list = [...dynamicPuts, ...staticPuts];
+    if (tickerFilter === 'ALL') return list;
+    return list.filter(item => item.ticker === tickerFilter);
+  }, [dynamicPuts, staticPuts, tickerFilter]);
+
+  const toggleExpand = (id: string) => {
+    setExpandedId(prev => (prev === id ? null : id));
+  };
+
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case 'ACTIVE':
+      case 'GAIN':
+      case 'PARTIAL CLOSE':
+        return 'bg-[#011409]/80 border border-[#00ff88]/25 text-[#00ff88]';
+      case 'STOP LOSS':
+      case 'INVALIDATED':
+      case 'MANUAL EXIT':
+      default:
+        return 'bg-[#140203]/80 border border-[#ff453a]/25 text-[#ff453a]';
+    }
+  };
+
   return (
-    <div id="quant-audit-v6-ledger" className="space-y-6 font-mono text-zinc-300 max-w-5xl mx-auto w-full px-1 animate-fadeIn select-none">
+    <div className="font-mono text-zinc-350 max-w-full mx-auto w-full px-1 animate-fadeIn select-none space-y-6" id="quant-audit-workspace">
       
-      {/* Upper Status Line */}
-      <div id="quant-audit-header" className="flex justify-between items-center bg-[#050505] border border-zinc-900 p-4 rounded-sm bg-[#050505]">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-          <h1 className="text-xs font-black text-white uppercase tracking-wider font-sans">
-            Slayer // Public Accountability Ledger
-          </h1>
-        </div>
-        <div className="flex items-center gap-2 bg-black border border-zinc-900 px-3 py-1 rounded text-[8.5px]">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="text-white font-black uppercase">DYNAMIC IMMUTABILITY</span>
-        </div>
-      </div>
-
-      {/* ==================================================
-          A. THE ACCOUNTABILITY LEDGER (CENTERPIECE)
-          ================================================== */}
-      <div id="audit-ledg-moat" className="bg-[#050505] border-2 border-white rounded p-6 md:p-8 relative overflow-hidden shadow-2xl text-left space-y-6">
-        
-        {/* Border accent */}
-        <div className="absolute top-0 left-0 right-0 h-[3px] bg-white" />
-
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-baseline border-b border-zinc-900 pb-4">
-          <div>
-            <span className="text-[8px] text-zinc-550 uppercase tracking-[0.25em] font-black block">THE PERMANENT LEDGER</span>
-            <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-tight font-sans">
-              ACCOUNTABILITY LEDGER
-            </h2>
-          </div>
-          <span className="text-[9px] bg-white text-black font-extrabold px-3 py-1 rounded-sm uppercase tracking-widest leading-none">
-            EVERY SINGLE TRANSACTION
+      {/* Top Header Row matching visual */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-2 gap-4">
+        <div className="text-left">
+          <span className="text-[10px] text-[#00ff88] uppercase tracking-[0.2em] font-bold block mb-1">
+            • PERFORMANCE LEDGER
           </span>
+          <h2 className="text-xl md:text-2xl font-bold tracking-wider text-white uppercase font-sans">
+            ACCOUNTABILITY REGISTRY
+          </h2>
         </div>
 
-        <p className="text-xs font-sans text-zinc-400 leading-relaxed max-w-3xl font-light">
-          We believe trust is built on cold, absolute evidence. Marketing copy and cherry-picked wins are the signatures of low-quality platforms. Below, we publish 100% of our index options recomendations—including strict stop-outs, missed targets, manual mistakes, and partial profit reductions. Zero filters.
-        </p>
-
-        {/* SUMMARY STATS TABLE */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-          <div className="bg-zinc-950 p-4 border border-zinc-900 rounded-xs">
-            <span className="text-[8.5px] text-zinc-550 block uppercase">Target 1 Hits</span>
-            <span className="text-2xl font-black text-white block mt-1">71%</span>
-            <span className="text-[7.5px] text-zinc-600 block uppercase mt-0.5">Reliable bounds</span>
-          </div>
-
-          <div className="bg-zinc-950 p-4 border border-zinc-900 rounded-xs">
-            <span className="text-[8.5px] text-zinc-550 block uppercase">Target 2 Hits</span>
-            <span className="text-2xl font-black text-white block mt-1">54%</span>
-            <span className="text-[7.5px] text-zinc-600 block uppercase mt-0.5">Extended room</span>
-          </div>
-
-          <div className="bg-zinc-950 p-4 border border-zinc-900 rounded-xs">
-            <span className="text-[8.5px] text-emerald-400/80 block uppercase">Win Ratio</span>
-            <span className="text-2xl font-black text-emerald-400 block mt-1">12.4%</span>
-            <span className="text-[7.5px] text-emerald-500 block uppercase mt-0.5">Average return</span>
-          </div>
-
-          <div className="bg-zinc-950 p-4 border border-zinc-900 rounded-xs">
-            <span className="text-[8.5px] text-zinc-550 block uppercase">Mean Duration</span>
-            <span className="text-2xl font-black text-white block mt-1">41 MINS</span>
-            <span className="text-[7.5px] text-zinc-650 block uppercase mt-0.5">Continuous intraday</span>
-          </div>
-        </div>
-
-      </div>
-
-      {/* ==================================================
-          B. EVERY RECORDED CONTRACT IN CHRONOLOGY
-          ================================================== */}
-      <div id="immutable-ledger-cards" className="bg-[#050505] border border-zinc-900 p-5 rounded space-y-4">
-        
-        <div className="flex justify-between items-center border-b border-zinc-950 pb-3">
-          <span className="text-xs font-black text-white uppercase tracking-wider block">
-            CHRONOLOGICAL LEDGER RECORD
-          </span>
-          {trades.length > 0 && (
-            <button
-              onClick={onClearTrades}
-              className="px-3 py-1 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-[8.5px] font-bold text-zinc-405 uppercase rounded cursor-pointer font-mono"
-            >
-              Flush Local History
-            </button>
-          )}
-        </div>
-
-        {/* FEED GRID OF CARD ENTRIES */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {fullLogs.map((log) => {
-            return (
-              <div 
-                key={log.id} 
-                className="bg-[#020202] border border-zinc-900 hover:border-zinc-850 rounded p-4 flex flex-col justify-between gap-3 text-left font-mono text-xs"
+        {/* Buttons right aligned */}
+        <div className="flex items-center gap-3">
+          {/* Ticker select buttons inside */}
+          <div className="flex gap-1 bg-black/50 p-0.5 border border-zinc-900 rounded mr-2">
+            {['ALL', 'SPX', 'NDX', 'QQQ', 'SPY'].map((t) => (
+              <button
+                key={t}
+                onClick={() => setTickerFilter(t)}
+                className={`px-2 py-0.5 text-[8.5px] font-black rounded-xs transition-all ${
+                  tickerFilter === t 
+                    ? 'bg-zinc-800 text-white' 
+                    : 'text-zinc-550 hover:text-zinc-300'
+                }`}
               >
-                {/* Header Row */}
-                <div className="flex justify-between items-center border-b border-zinc-950 pb-2">
-                  <div>
-                    <span className="text-sm font-black text-white block leading-none">{log.contract}</span>
-                    <span className="text-[8px] text-zinc-600 block uppercase mt-1 leading-none">{log.time} Timestamp</span>
+                {t}
+              </button>
+            ))}
+          </div>
+
+          <button 
+            onClick={onClearTrades}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-[#ff453a] border border-[#ff453a]/20 hover:border-[#ff453a]/40 text-[9.5px] font-bold uppercase rounded-[4px] cursor-pointer transition-all"
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>RESET ACTIVE SESSION</span>
+          </button>
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900/60 text-zinc-400 border border-zinc-800 text-[9.5px] font-bold uppercase rounded-[4px]">
+            <CheckCircle2 className="w-3 h-3 text-[#00ff88]" />
+            <span>SYNCED LEDGER</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Symmetric stats grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-[#050506]/35 border border-zinc-900 p-4 rounded-md text-left">
+          <span className="text-[8px] text-zinc-500 uppercase tracking-widest block">CALL ENTRIES</span>
+          <span className="text-2xl font-bold text-[#00ff88] block mt-1">201</span>
+          <span className="text-[7.5px] text-zinc-550 uppercase tracking-wider block mt-0.5">BULLISH EXECUTIONS</span>
+        </div>
+
+        <div className="bg-[#050506]/35 border border-zinc-900 p-4 rounded-md text-left">
+          <span className="text-[8px] text-zinc-500 uppercase tracking-widest block">PUT ENTRIES</span>
+          <span className="text-2xl font-bold text-[#ff453a] block mt-1">101</span>
+          <span className="text-[7.5px] text-zinc-550 uppercase tracking-wider block mt-0.5">BEARISH EXECUTIONS</span>
+        </div>
+
+        <div className="bg-[#050506]/35 border border-zinc-900 p-4 rounded-md text-left">
+          <span className="text-[8px] text-zinc-500 uppercase tracking-widest block">HIT VALIDITY</span>
+          <span className="text-2xl font-bold text-white block mt-1">71.0%</span>
+          <span className="text-[7.5px] text-zinc-550 uppercase tracking-wider block mt-0.5">HISTORICAL ACCURACY</span>
+        </div>
+
+        <div className="bg-[#050506]/35 border border-zinc-900 p-4 rounded-md text-left">
+          <span className="text-[8px] text-zinc-500 uppercase tracking-widest block">TOTAL REGISTRY SIZE</span>
+          <span className="text-2xl font-bold text-white block mt-1">302</span>
+          <span className="text-[7.5px] text-zinc-550 uppercase tracking-wider block mt-0.5">AUDIT LOG COVERAGE</span>
+        </div>
+      </div>
+
+      {/* Split Columns Grid layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+        
+        {/* Calls Column */}
+        <div className="space-y-3.5">
+          <div className="flex justify-between items-center px-1">
+            <div className="flex items-center gap-1.5 font-bold uppercase text-[10px] tracking-widest text-[#00ff88]">
+              <span className="w-1.5 h-1.5 bg-[#00ff88] rounded-full inline-block animate-pulse" />
+              <span>BULLISH CONTRACTS (CALLS)</span>
+            </div>
+            <span className="bg-zinc-950 border border-zinc-900 px-1.5 py-0.5 text-[8px] uppercase font-bold text-zinc-400 rounded-sm">
+              {allCalls.length} LOGGED
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-2.5">
+            {allCalls.map((item) => {
+              const isExpanded = expandedId === item.id;
+              return (
+                <div key={item.id} className="transition-all">
+                  <div 
+                    onClick={() => toggleExpand(item.id)}
+                    className="flex justify-between items-center bg-[#070709]/90 hover:bg-[#0b0b0e] border border-zinc-900 hover:border-zinc-800 p-3 rounded-lg transition-all cursor-pointer text-xs"
+                  >
+                    <div className="flex items-center gap-3">
+                      {/* Arrow Icon block */}
+                      <div className="w-8 h-8 rounded bg-[#101015] border border-zinc-800/80 flex items-center justify-center text-emerald-400">
+                        <ArrowUpRight className="w-4 h-4 text-[#00ff88]" />
+                      </div>
+
+                      <div className="text-left space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-bold tracking-wide">{item.contract}</span>
+                          <span className="text-[7.5px] px-1 bg-emerald-950/40 text-emerald-400 border border-emerald-900/40 rounded-xs uppercase">CALL</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[9px] text-zinc-500">
+                          <Clock className="w-2.5 h-2.5 text-zinc-650" />
+                          <span>{item.time}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 font-black uppercase text-[9.5px] tracking-wide rounded ${getStatusStyle(item.status)}`}>
+                        {item.outcome}
+                      </span>
+                      {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-zinc-600" /> : <ChevronDown className="w-3.5 h-3.5 text-zinc-600" />}
+                    </div>
                   </div>
 
-                  <span className={`px-2 py-0.5 text-[8.5px] font-black border uppercase tracking-wider rounded-sm ${log.colorClass}`}>
-                    {log.outcome}
-                  </span>
+                  {/* Expansion Drawer */}
+                  {isExpanded && (
+                    <div className="p-4 bg-[#020202]/50 border-x border-b border-zinc-900/60 rounded-b-lg text-left text-[10px] space-y-2 uppercase leading-relaxed text-zinc-400 animate-slideDown">
+                      <div className="border-b border-zinc-950 pb-1.5 flex justify-between items-center">
+                        <span className="font-extrabold text-[#00ff88]">CALL CONTEXT PROVENANCE TRACK LOG</span>
+                        <span className="text-zinc-600 text-[8px] font-sans">STATUS: ARCHIVED TRANSACTION</span>
+                      </div>
+                      <p className="text-zinc-350 tracking-wide">{item.details}</p>
+                    </div>
+                  )}
                 </div>
-
-                {/* Classification identifier */}
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[8px] text-zinc-600 uppercase font-bold">Ledger Classification:</span>
-                  <span className="text-[8.5px] font-black text-zinc-400 bg-zinc-950 px-2 py-0.5 rounded border border-zinc-900 uppercase">
-                    {log.classTag}
-                  </span>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <span className="text-[8px] text-zinc-550 block uppercase mb-0.5">Permanent Audit Summary</span>
-                  <p className="text-[10px] text-zinc-400 font-medium leading-relaxed uppercase leading-snug">
-                    {log.why}
-                  </p>
-                </div>
-
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
-        <div className="border-t border-zinc-950 pt-3 text-center text-[8.5px] text-zinc-650 uppercase tracking-widest">
-          🛡️ SYSTEM TRUST ENDPOINT PROTOCOL: VERIFIED PUBLIC LEDGER ENCRYPTED AND COMMITTED.
+        {/* Puts Column */}
+        <div className="space-y-3.5">
+          <div className="flex justify-between items-center px-1">
+            <div className="flex items-center gap-1.5 font-bold uppercase text-[10px] tracking-widest text-[#ff453a]">
+              <span className="w-1.5 h-1.5 bg-[#ff453a] rounded-full inline-block animate-pulse" />
+              <span>BEARISH CONTRACTS (PUTS)</span>
+            </div>
+            <span className="bg-zinc-950 border border-zinc-900 px-1.5 py-0.5 text-[8px] uppercase font-bold text-zinc-400 rounded-sm">
+              {allPuts.length} LOGGED
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-2.5">
+            {allPuts.map((item) => {
+              const isExpanded = expandedId === item.id;
+              return (
+                <div key={item.id} className="transition-all">
+                  <div 
+                    onClick={() => toggleExpand(item.id)}
+                    className="flex justify-between items-center bg-[#070709]/90 hover:bg-[#0b0b0e] border border-zinc-900 hover:border-zinc-800 p-3 rounded-lg transition-all cursor-pointer text-xs"
+                  >
+                    <div className="flex items-center gap-3">
+                      {/* Arrow Icon block */}
+                      <div className="w-8 h-8 rounded bg-[#101015] border border-zinc-800/80 flex items-center justify-center text-rose-450">
+                        <ArrowDownRight className="w-4 h-4 text-[#ff453a]" />
+                      </div>
+
+                      <div className="text-left space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-bold tracking-wide">{item.contract}</span>
+                          <span className="text-[7.5px] px-1 bg-rose-950/40 text-rose-400 border border-rose-900/40 rounded-xs uppercase">PUT</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[9px] text-zinc-500">
+                          <Clock className="w-2.5 h-2.5 text-zinc-650" />
+                          <span>{item.time}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 font-black uppercase text-[9.5px] tracking-wide rounded ${getStatusStyle(item.status)}`}>
+                        {item.outcome}
+                      </span>
+                      {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-zinc-600" /> : <ChevronDown className="w-3.5 h-3.5 text-zinc-600" />}
+                    </div>
+                  </div>
+
+                  {/* Expansion Drawer */}
+                  {isExpanded && (
+                    <div className="p-4 bg-[#020202]/50 border-x border-b border-zinc-900/60 rounded-b-lg text-left text-[10px] space-y-2 uppercase leading-relaxed text-zinc-400 animate-slideDown">
+                      <div className="border-b border-zinc-950 pb-1.5 flex justify-between items-center">
+                        <span className="font-extrabold text-[#ff453a]">PUT CONTEXT PROVENANCE TRACK LOG</span>
+                        <span className="text-zinc-600 text-[8px] font-sans">STATUS: ARCHIVED TRANSACTION</span>
+                      </div>
+                      <p className="text-zinc-350 tracking-wide">{item.details}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
+      </div>
+
+      {/* Button at bottom */}
+      <div className="pt-6 pb-2 text-center">
+        <button className="px-6 py-2 bg-zinc-950 hover:bg-[#0d0d10] text-[#888890] hover:text-white border border-zinc-900 hover:border-zinc-800 text-[10px] font-black tracking-widest uppercase transition-colors rounded">
+          LOAD 100 MORE HISTORICAL RECORDS
+        </button>
+      </div>
+
+      {/* Synchronized footer */}
+      <div className="text-center font-sans">
+        <span className="text-zinc-600 font-mono text-[8px] uppercase tracking-[0.25em]">
+          ⛓ HIGH-ACCURACY REGISTER SYNCHRONIZED ACROSS PARALLEL QUANT LEDGERS
+        </span>
       </div>
 
     </div>

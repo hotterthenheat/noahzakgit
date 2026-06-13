@@ -369,3 +369,94 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #4a4a55;
 }
+
+/* Continuous breathing & momentary blinking animations for live Call and Put contracts */
+@keyframes breathe-call {
+  0%, 100% {
+    border-color: rgba(48, 209, 88, 0.1);
+    background-color: #030303;
+    box-shadow: none;
+  }
+  50% {
+    border-color: rgba(48, 209, 88, 0.45);
+    background-color: rgba(48, 209, 88, 0.04);
+    box-shadow: 0 0 8px rgba(48, 209, 88, 0.15);
+  }
+}
+
+@keyframes breathe-put {
+  0%, 100% {
+    border-color: rgba(255, 69, 58, 0.1);
+    background-color: #030303;
+    box-shadow: none;
+  }
+  50% {
+    border-color: rgba(255, 69, 58, 0.45);
+    background-color: rgba(255, 69, 58, 0.04);
+    box-shadow: 0 0 8px rgba(255, 69, 58, 0.15);
+  }
+}
+
+@keyframes blink-call-fast {
+  0% {
+    background-color: rgba(48, 209, 88, 0.4);
+    border-color: rgba(48, 209, 88, 0.9);
+    box-shadow: 0 0 20px rgba(48, 209, 88, 0.5);
+  }
+  100% {
+    background-color: #030303;
+    border-color: rgba(48, 209, 88, 0.1);
+    box-shadow: none;
+  }
+}
+
+@keyframes blink-put-fast {
+  0% {
+    background-color: rgba(255, 69, 58, 0.45);
+    border-color: rgba(255, 69, 58, 0.9);
+    box-shadow: 0 0 20px rgba(255, 69, 58, 0.5);
+  }
+  100% {
+    background-color: #030303;
+    border-color: rgba(255, 69, 58, 0.1);
+    box-shadow: none;
+  }
+}
+
+.animate-breathe-call {
+  animation: breathe-call 2.5s ease-in-out infinite;
+}
+
+.animate-breathe-put {
+  animation: breathe-put 2.5s ease-in-out infinite;
+}
+
+.animate-blink-call {
+  animation: blink-call-fast 0.6s ease-out;
+}
+
+.animate-blink-put {
+  animation: blink-put-fast 0.6s ease-out;
+}
+
+/* Custom continuous scrolling Nasdaq-style ticker tape keyframes */
+@keyframes ticker-marquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-ticker-marquee {
+  display: flex;
+  width: max-content;
+  animation: ticker-marquee 38s linear infinite;
+}
+
+.animate-ticker-marquee:hover {
+  animation-play-state: paused;
+}
+
+

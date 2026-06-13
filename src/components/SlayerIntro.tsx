@@ -70,7 +70,14 @@ export default function SlayerIntro({
   const serverState = useContractStore(s => s.serverState);
   
   // State for active chosen index on landing hero
-  const [activeHeroIdx, setActiveHeroIdx] = useState<'SPX' | 'QQQ' | 'NDX' | 'SPY'>('SPX');
+  const [activeHeroIdx, setActiveHeroIdx] = useState<'SPX' | 'NDX' | 'QQQ' | 'SPY' | 'RUT'>('SPX');
+
+  // Synchronize with external selectedAsset when it updates
+  useEffect(() => {
+    if (['SPX', 'NDX', 'QQQ', 'SPY', 'RUT'].includes(selectedAsset.ticker)) {
+      setActiveHeroIdx(selectedAsset.ticker as any);
+    }
+  }, [selectedAsset]);
   
   // Animation state matching direct timestamps:
   // 0.00s: Homepage is visible and interactive.
@@ -141,6 +148,7 @@ export default function SlayerIntro({
     QQQ: { ticker: 'QQQ 515C', health: 91, move: '+29%', status: 'Improving', isCall: true },
     NDX: { ticker: 'NDX 18300C', health: 89, move: '+44%', status: 'Strengthening', isCall: true },
     SPY: { ticker: 'SPY 448C', health: 93, move: '+36%', status: 'Improving', isCall: true },
+    RUT: { ticker: 'RUT 2020C', health: 92, move: '+31%', status: 'Strengthening', isCall: true },
   };
 
   const activeOpp = heroOpportunities[activeHeroIdx];
@@ -151,6 +159,7 @@ export default function SlayerIntro({
       QQQ: 515,
       NDX: 18300,
       SPY: 448,
+      RUT: 2020,
     };
     const strike = heroStrikes[activeHeroIdx];
     const asset = ASSET_LIST.find(a => a.ticker === activeHeroIdx) || ASSET_LIST[0];
@@ -162,7 +171,7 @@ export default function SlayerIntro({
       ref={containerRef}
       onMouseMove={handleMouseMove}
       id="slayer-ecosystem-landing" 
-      className="min-h-screen bg-[#000000] text-[#D4D4D8] flex flex-col font-sans selection:bg-white selection:text-black overflow-y-auto relative pb-20 select-none antialiased"
+      className="min-h-screen bg-transparent text-[#D4D4D8] flex flex-col font-sans selection:bg-white selection:text-black overflow-y-auto relative pb-20 select-none antialiased"
     >
       
       {/* ==================================================
@@ -295,10 +304,16 @@ export default function SlayerIntro({
 
         {/* INDEX TABS SELECTOR */}
         <div className="flex bg-zinc-950 border border-zinc-900 rounded-sm p-1 font-mono items-center gap-1.5">
-          {(['SPX', 'QQQ', 'NDX', 'SPY'] as const).map((ticker) => (
+          {(['SPX', 'NDX', 'QQQ', 'SPY', 'RUT'] as const).map((ticker) => (
             <button
               key={ticker}
-              onClick={() => setActiveHeroIdx(ticker)}
+              onClick={() => {
+                setActiveHeroIdx(ticker);
+                const targetAsset = ASSET_LIST.find(a => a.ticker === ticker);
+                if (targetAsset) {
+                  setSelectedAsset(targetAsset);
+                }
+              }}
               className={`px-6 py-2.5 text-xs font-mono font-black uppercase tracking-wider cursor-pointer rounded-xs transition-all ${
                 activeHeroIdx === ticker
                   ? 'bg-white text-black font-extrabold'
