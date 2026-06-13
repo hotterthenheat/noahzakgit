@@ -633,7 +633,7 @@ body.light-theme ::-webkit-scrollbar-thumb:hover {
   [class*="bg-[#ff453a]"] .text-white,
   [class*="bg-red"] .text-white,
   .animate-ticker-marquee .text-white,
-  .animate-ticker-marquee span {
+  .animate-ticker-marquee span:not(.text-emerald-400):not(.text-rose-400) {
     color: inherit !important;
   }
 
