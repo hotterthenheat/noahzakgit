@@ -663,6 +663,28 @@ export default function App() {
           <span className="text-zinc-400 font-bold">SERVER LIVE FEED STREAMING</span>
         </div>
       </footer>
+
+      {/* Fixed Universally Floating Theme Switcher Badge */}
+      <button
+        onClick={toggleThemeMode}
+        className={`fixed bottom-6 right-6 z-50 flex items-center justify-center w-12 h-12 rounded-full shadow-2xl border transition-all duration-300 hover:scale-110 cursor-pointer backdrop-blur-md ${
+          isLight 
+            ? 'bg-white/90 border-zinc-200 text-amber-500 shadow-amber-500/10' 
+            : 'bg-[#050506]/90 border-zinc-850 text-indigo-400 shadow-indigo-500/10'
+        }`}
+        title={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+      >
+        <motion.div
+          key={themeMode}
+          initial={{ rotate: -90, scale: 0.8, opacity: 0 }}
+          animate={{ rotate: 0, scale: 1, opacity: 1 }}
+          exit={{ rotate: 90, scale: 0.8, opacity: 0 }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          className="flex items-center justify-center"
+        >
+          {isLight ? <Sun className="w-5.5 h-5.5 text-amber-500" /> : <Moon className="w-5.5 h-5.5 text-indigo-400" />}
+        </motion.div>
+      </button>
     </div>
   );
 }

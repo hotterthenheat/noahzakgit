@@ -20,6 +20,8 @@ export function PinpointAIView() {
   const score = useContractStore(s => s.serverState?.system_score);
   const serverState = useContractStore(s => s.serverState);
   const marketState = useContractStore(s => s.marketState);
+  const themeMode = useContractStore(s => s.themeMode);
+  const isLight = themeMode === 'light';
 
   // Sub-tab state
   const [activeSection, setActiveSection] = useState<'radar' | 'matrix' | 'story'>('radar');
@@ -151,24 +153,24 @@ export function PinpointAIView() {
     const info = getLevelInfo({ strike, dollars, strength, type });
     const isFocused = strike === activeFocusedStrike;
 
-    // HSL-tailored premium colors (Gold/Purple/Cyan)
+    // HSL-tailored premium colors (Gold/Purple/Cyan, or deep contrast dark colors in light mode)
     const color = type === 'support' 
-      ? '#D300C5' // Barney Purple
+      ? (isLight ? '#7e22ce' : '#D300C5') // Barney Purple vs Deep Purple
       : type === 'resistance' 
-      ? '#FFDD00' // Pika Yellow
-      : '#00F0FF'; // Equilibrium Cyan
+      ? (isLight ? '#b45309' : '#FFDD00') // Pika Yellow vs Rich Gold
+      : (isLight ? '#1d4ed8' : '#00F0FF'); // Equilibrium Cyan vs Dark Blue
 
     const gradient = type === 'support'
-      ? 'from-purple-600 via-fuchsia-600 to-purple-800'
+      ? (isLight ? 'from-purple-700 to-purple-900' : 'from-purple-600 via-fuchsia-600 to-purple-800')
       : type === 'resistance'
-      ? 'from-yellow-400 via-amber-400 to-yellow-500'
-      : 'from-cyan-400 via-cyan-500 to-emerald-400';
+      ? (isLight ? 'from-amber-600 to-amber-800' : 'from-yellow-400 via-amber-400 to-yellow-500')
+      : (isLight ? 'from-blue-600 to-blue-800' : 'from-cyan-400 via-cyan-500 to-emerald-400');
 
     const glow = type === 'support'
-      ? 'shadow-[0_0_15px_rgba(211,0,197,0.3)] border-purple-500/40'
+      ? `shadow-[0_0_15px_rgba(211,0,197,0.3)] ${isLight ? 'border-purple-500/20' : 'border-purple-500/40'}`
       : type === 'resistance'
-      ? 'shadow-[0_0_15px_rgba(255,221,0,0.3)] border-amber-450/40'
-      : 'shadow-[0_0_15px_rgba(0,240,255,0.25)] border-cyan-450/40';
+      ? `shadow-[0_0_15px_rgba(255,221,0,0.3)] ${isLight ? 'border-amber-450/20' : 'border-amber-450/40'}`
+      : `shadow-[0_0_15px_rgba(0,240,255,0.25)] ${isLight ? 'border-blue-500/20' : 'border-cyan-450/40'}`;
 
     return (
       <motion.div 

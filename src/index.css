@@ -517,7 +517,7 @@ body.light-theme ::-webkit-scrollbar-thumb:hover {
   --color-amber-450: #b45309;
   --color-amber-400: #b45309;
   --color-yellow-400: #b45309;
-  --color-cyan-400: #0369a1;
+  --color-cyan-400: #1d4ed8;
   --color-purple-400: #6b21a8;
   --color-purple-500: #7e22ce;
   --color-purple-600: #7e22ce;
@@ -601,7 +601,23 @@ body.light-theme ::-webkit-scrollbar-thumb:hover {
     color: #1d4ed8 !important;
   }
   .text-\[\#00F0FF\] {
-    color: #0369a1 !important;
+    color: #1d4ed8 !important;
+  }
+
+  /* Subscription cards light mode text color overrides: remove gray text, use pure black */
+  #pricing-matrices .text-zinc-500,
+  #pricing-matrices .text-zinc-650,
+  #pricing-matrices .text-zinc-450,
+  #pricing-matrices .text-\[\#A1A1AA\],
+  #pricing-matrices .text-\[\#71717A\],
+  #pricing-matrices .text-white,
+  #pricing-matrices ul li span,
+  #pricing-matrices h2,
+  #pricing-matrices span,
+  #pricing-matrices p,
+  #pricing-matrices button,
+  #pricing-matrices li {
+    color: #000000 !important;
   }
 
   /* Exclude white text on buttons and colored backgrounds */
