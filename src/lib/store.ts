@@ -36,6 +36,10 @@ interface ContractStore {
   activeTab: 'home' | 'skyvision' | 'pinpoint' | 'discovery' | 'auditor' | 'dealerflow';
   setActiveTab: (tab: 'home' | 'skyvision' | 'pinpoint' | 'discovery' | 'auditor' | 'dealerflow') => void;
 
+  // Theme settings
+  themeMode: 'light' | 'dark';
+  toggleThemeMode: () => void;
+
   // Selected parameters
   selectedAsset: AssetInfo;
   selectedTimeframe: TimeframeVal;
@@ -150,6 +154,9 @@ function formatDuration(totalSeconds: number): string {
 export const useContractStore = create<ContractStore>((set, get) => ({
   activeTab: 'home',
   setActiveTab: (tab) => set({ activeTab: tab }),
+
+  themeMode: 'dark',
+  toggleThemeMode: () => set((state) => ({ themeMode: state.themeMode === 'light' ? 'dark' : 'light' })),
 
   selectedAsset: ASSET_LIST[0],
   selectedTimeframe: '5m',

@@ -18,7 +18,9 @@ import {
   Dna,
   Lock,
   LogOut,
-  Waves
+  Waves,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 const TickerTape = memo(() => {
@@ -88,6 +90,17 @@ export default function App() {
   const updateFromSSE = useContractStore(s => s.updateFromSSE);
   const tickMarketState = useContractStore(s => s.tickMarketState);
   const isContractLocked = useContractStore(s => s.isContractLocked);
+  const themeMode = useContractStore(s => s.themeMode);
+  const toggleThemeMode = useContractStore(s => s.toggleThemeMode);
+  const isLight = themeMode === 'light';
+
+  useEffect(() => {
+    if (isLight) {
+      document.body.classList.add('light-theme');
+    } else {
+      document.body.classList.remove('light-theme');
+    }
+  }, [isLight]);
 
   // User session state (Bug #9 HttpOnly cookie verification and storage)
   const [session, setSession] = useState<{ authenticated: boolean; name?: string; provider?: string; avatar?: string } | null>(null);
@@ -251,17 +264,27 @@ export default function App() {
   const isCall = selectedOptionType === 'C';
   const showColoredBg = isContractLocked && activeTab === 'skyvision';
 
-  let bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#050506]";
-  
-  if (showColoredBg) {
-    if (isCall) {
-      bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#011409]";
-    } else {
-      bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#140203]";
+  let bgClass = "";
+  if (isLight) {
+    bgClass = "min-h-screen text-[#1a1d20] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#f4f5f8] light-theme";
+    if (showColoredBg) {
+      if (isCall) {
+        bgClass = "min-h-screen text-[#011409] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#e6fcf0] light-theme";
+      } else {
+        bgClass = "min-h-screen text-[#140203] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#fdf2f2] light-theme";
+      }
     }
   } else {
-    // Glassy slate grey/black/white elegant configuration
-    bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#0d0d0f]";
+    bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#050506]";
+    if (showColoredBg) {
+      if (isCall) {
+        bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#011409]";
+      } else {
+        bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#140203]";
+      }
+    } else {
+      bgClass = "min-h-screen text-[#f4f4f5] flex flex-col font-mono select-none overflow-x-hidden antialiased relative transition-all duration-700 ease-in-out bg-[#0d0d0f]";
+    }
   }
 
   return (
@@ -271,25 +294,25 @@ export default function App() {
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 transition-opacity duration-1000">
         {showColoredBg && isCall && (
           <>
-            <div className="absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full bg-emerald-500/12 blur-[120px] animate-fluid-blob-1 transition-all duration-700" />
-            <div className="absolute bottom-[-15%] right-[-10%] w-[65%] h-[60%] rounded-full bg-teal-500/8 blur-[140px] animate-fluid-blob-2 transition-all duration-700" />
-            <div className="absolute top-[35%] right-[20%] w-[45%] h-[45%] rounded-full bg-emerald-450/6 blur-[110px] animate-fluid-blob-3 transition-all duration-700" />
+            <div className={`absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full ${isLight ? 'bg-emerald-300/20' : 'bg-emerald-500/12'} blur-[120px] animate-fluid-blob-1 transition-all duration-700`} />
+            <div className={`absolute bottom-[-15%] right-[-10%] w-[65%] h-[60%] rounded-full ${isLight ? 'bg-teal-300/15' : 'bg-teal-500/8'} blur-[140px] animate-fluid-blob-2 transition-all duration-700`} />
+            <div className={`absolute top-[35%] right-[20%] w-[45%] h-[45%] rounded-full ${isLight ? 'bg-emerald-405/10' : 'bg-emerald-450/6'} blur-[110px] animate-fluid-blob-3 transition-all duration-700`} />
           </>
         )}
         {showColoredBg && !isCall && (
           <>
-            <div className="absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full bg-rose-500/12 blur-[120px] animate-fluid-blob-1 transition-all duration-700" />
-            <div className="absolute bottom-[-15%] right-[-10%] w-[65%] h-[60%] rounded-full bg-red-600/8 blur-[140px] animate-fluid-blob-2 transition-all duration-700" />
-            <div className="absolute top-[35%] right-[20%] w-[45%] h-[45%] rounded-full bg-[#ff453a]/6 blur-[110px] animate-fluid-blob-3 transition-all duration-700" />
+            <div className={`absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full ${isLight ? 'bg-rose-300/20' : 'bg-rose-500/12'} blur-[120px] animate-fluid-blob-1 transition-all duration-700`} />
+            <div className={`absolute bottom-[-15%] right-[-10%] w-[65%] h-[60%] rounded-full ${isLight ? 'bg-red-300/15' : 'bg-red-600/8'} blur-[140px] animate-fluid-blob-2 transition-all duration-700`} />
+            <div className={`absolute top-[35%] right-[20%] w-[45%] h-[45%] rounded-full ${isLight ? 'bg-[#ff453a]/10' : 'bg-[#ff453a]/6'} blur-[110px] animate-fluid-blob-3 transition-all duration-700`} />
           </>
         )}
         {!showColoredBg && (
           <>
-            <div className="absolute inset-0 bg-gradient-to-b from-white/[0.012] via-transparent to-black/[0.12] backdrop-blur-[1px] pointer-events-none transition-all duration-700" />
-            <div className="absolute top-[-10%] left-[-10%] w-[52%] h-[52%] rounded-full bg-white/6 blur-[120px] animate-fluid-blob-1 transition-all duration-700" />
-            <div className="absolute bottom-[-15%] right-[-10%] w-[60%] h-[55%] rounded-full bg-zinc-400/5 blur-[140px] animate-fluid-blob-2 transition-all duration-700" />
-            <div className="absolute top-[35%] right-[20%] w-[40%] h-[40%] rounded-full bg-zinc-650/4 blur-[110px] animate-fluid-blob-3 transition-all duration-700" />
-            <div className="absolute top-[10%] right-[40%] w-[35%] h-[35%] rounded-full bg-white/3 blur-[90px] animate-pulse transition-all duration-700" />
+            <div className={`absolute inset-0 ${isLight ? 'bg-gradient-to-b from-black/[0.005] via-transparent to-white/[0.05]' : 'bg-gradient-to-b from-white/[0.012] via-transparent to-black/[0.12]'} backdrop-blur-[1px] pointer-events-none transition-all duration-700`} />
+            <div className={`absolute top-[-10%] left-[-10%] w-[52%] h-[52%] rounded-full ${isLight ? 'bg-blue-300/10' : 'bg-white/6'} blur-[120px] animate-fluid-blob-1 transition-all duration-700`} />
+            <div className={`absolute bottom-[-15%] right-[-10%] w-[60%] h-[55%] rounded-full ${isLight ? 'bg-zinc-300/10' : 'bg-zinc-400/5'} blur-[140px] animate-fluid-blob-2 transition-all duration-700`} />
+            <div className={`absolute top-[35%] right-[20%] w-[40%] h-[40%] rounded-full ${isLight ? 'bg-zinc-400/6' : 'bg-zinc-650/4'} blur-[110px] animate-fluid-blob-3 transition-all duration-700`} />
+            <div className={`absolute top-[10%] right-[40%] w-[35%] h-[35%] rounded-full ${isLight ? 'bg-blue-300/5' : 'bg-white/3'} blur-[90px] animate-pulse transition-all duration-700`} />
           </>
         )}
       </div>
@@ -481,6 +504,36 @@ export default function App() {
 
         {/* Real HTTP OAuth Action segment header (Bug #9) */}
         <div className="flex items-center gap-4 text-[9.5px]">
+          {/* Theme Toggle Motion Switch */}
+          <button
+            onClick={toggleThemeMode}
+            className={`relative flex items-center justify-between w-14 h-7 rounded-full p-1 cursor-pointer transition-colors duration-500 focus:outline-none ${
+              isLight ? 'bg-zinc-200 border border-zinc-300' : 'bg-zinc-950 border border-zinc-850'
+            }`}
+            title={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+          >
+            {/* Slide background indicator */}
+            <motion.div
+              className={`absolute top-[3px] w-5 h-5 rounded-full shadow-md flex items-center justify-center transition-colors ${
+                isLight ? 'bg-[#ff9500] text-white' : 'bg-indigo-500 text-white'
+              }`}
+              layout
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              style={{ left: isLight ? '31px' : '4px' }}
+            >
+              <motion.div
+                key={themeMode}
+                initial={{ rotate: -90, scale: 0.5, opacity: 0 }}
+                animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                exit={{ rotate: 90, scale: 0.5, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-center justify-center"
+              >
+                {isLight ? <Sun className="w-3.5 h-3.5 text-white" /> : <Moon className="w-3.5 h-3.5 text-white" />}
+              </motion.div>
+            </motion.div>
+          </button>
+
           {session?.authenticated ? (
             <div className="flex items-center gap-3.5 bg-zinc-950 px-3.5 py-1.5 border border-zinc-900 rounded-xs">
               <img 

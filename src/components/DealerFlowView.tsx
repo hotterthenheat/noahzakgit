@@ -394,12 +394,74 @@ export function DealerFlowView() {
   const selectedStrike = useContractStore(s => s.selectedStrike);
   const isContractLocked = useContractStore(s => s.isContractLocked);
   const activeTab = useContractStore(s => s.activeTab);
+  const themeMode = useContractStore(s => s.themeMode);
+  const isLight = themeMode === 'light';
 
   const isConSelected = isContractLocked && activeTab === 'skyvision';
   const isCall = selectedOptionType === 'C';
 
   // Dynamic Theme Styling Object (Neutral Glass-White vs calls green vs puts red)
   const theme = useMemo(() => {
+    if (isLight) {
+      if (!isConSelected) {
+        return {
+          accent: 'black',
+          text: 'text-zinc-650',
+          border: 'border-zinc-200 hover:border-zinc-350',
+          cardBg: 'bg-white border border-zinc-200 shadow-[0_4px_24px_rgba(0,0,0,0.02)]',
+          chipBg: 'bg-zinc-100 border border-zinc-200 text-zinc-650',
+          iconColor: 'text-zinc-550',
+          headerIconBg: 'bg-zinc-100 border border-zinc-200',
+          glow: 'rgba(0, 0, 0, 0.01)',
+          primaryText: 'text-zinc-900',
+          buttonActive: 'bg-zinc-900 border border-zinc-950 text-white shadow-sm',
+          buttonInactive: 'bg-zinc-50 border border-zinc-250 text-zinc-500 hover:text-zinc-800 hover:border-zinc-350',
+          gexNetPlus: 'text-emerald-600 font-bold',
+          gexNetMinus: 'text-rose-600',
+          themeSuffix: 'neutral',
+          headerColor: 'text-zinc-900',
+        };
+      }
+      
+      if (isCall) {
+        return {
+          accent: 'emerald',
+          text: 'text-emerald-700',
+          border: 'border-emerald-200 hover:border-emerald-350',
+          cardBg: 'bg-[#e6fcf0] border border-emerald-200/80 shadow-[0_4px_24px_rgba(16,185,129,0.03)]',
+          chipBg: 'bg-emerald-100 border border-emerald-200 text-emerald-800',
+          iconColor: 'text-emerald-600',
+          headerIconBg: 'bg-emerald-100 border border-emerald-200',
+          glow: 'rgba(16, 185, 129, 0.04)',
+          primaryText: 'text-emerald-950',
+          buttonActive: 'bg-emerald-600 border border-emerald-750 text-white shadow-sm',
+          buttonInactive: 'bg-emerald-50 border border-emerald-250 text-emerald-600 hover:bg-emerald-100',
+          gexNetPlus: 'text-emerald-600 font-bold',
+          gexNetMinus: 'text-rose-600',
+          themeSuffix: 'call',
+          headerColor: 'text-emerald-950',
+        };
+      } else {
+        return {
+          accent: 'rose',
+          text: 'text-rose-700',
+          border: 'border-rose-200 hover:border-rose-350',
+          cardBg: 'bg-[#fdf2f2] border border-rose-200/80 shadow-[0_4px_24px_rgba(244,63,94,0.03)]',
+          chipBg: 'bg-rose-100 border border-rose-200 text-rose-800',
+          iconColor: 'text-rose-600',
+          headerIconBg: 'bg-rose-100 border border-rose-200',
+          glow: 'rgba(244, 63, 94, 0.04)',
+          primaryText: 'text-rose-955',
+          buttonActive: 'bg-rose-600 border border-rose-750 text-white shadow-sm',
+          buttonInactive: 'bg-rose-50 border border-rose-250 text-rose-650 hover:bg-rose-100',
+          gexNetPlus: 'text-emerald-600 font-bold',
+          gexNetMinus: 'text-rose-600',
+          themeSuffix: 'put',
+          headerColor: 'text-rose-955',
+        };
+      }
+    }
+
     if (!isConSelected) {
       return {
         accent: 'white',

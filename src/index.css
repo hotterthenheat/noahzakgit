@@ -459,4 +459,179 @@ body {
   animation-play-state: paused;
 }
 
+/* ============================================================
+   LIGHT THEME OVERRIDES
+   ============================================================ */
+body.light-theme {
+  background-color: #f4f5f8 !important;
+  color: #111827 !important;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px) !important;
+}
+
+body.light-theme ::-webkit-scrollbar-track {
+  background: #f4f5f8;
+}
+
+body.light-theme ::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+}
+
+body.light-theme ::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.light-theme {
+  /* Redefine Tailwind's custom theme variables for light mode */
+  --color-black: #ffffff;
+  --color-zinc-950: #ffffff;
+  --color-zinc-900: #f4f5f8;
+  --color-zinc-850: rgba(0, 0, 0, 0.05);
+  --color-zinc-800: rgba(0, 0, 0, 0.07);
+  --color-zinc-750: rgba(0, 0, 0, 0.09);
+  --color-zinc-700: rgba(0, 0, 0, 0.11);
+  --color-zinc-650: #6b7280;
+  --color-zinc-600: #4b5563;
+  --color-zinc-550: #374151;
+  --color-zinc-500: #1f2937;
+  --color-zinc-400: #111827;
+  --color-zinc-305: #111827;
+  --color-zinc-300: #111827;
+  --color-zinc-200: #1f2937;
+  --color-zinc-150: #374151;
+  --color-zinc-100: #111827;
+
+  /* Accent tweaks for light mode */
+  --color-emerald-950: #e6fcf0;
+  --color-emerald-900: #30d158;
+  --color-rose-950: #fdf2f2;
+  --color-rose-900: #ff453a;
+  --color-amber-950: #fffbeb;
+  --color-amber-900: #ff9f0a;
+
+  /* Custom overrides for specific hardcoded classes in HTML */
+  .bg-\[\#050506\], 
+  .bg-\[\#0d0d0f\], 
+  .bg-\[\#050505\], 
+  .bg-\[\#030303\], 
+  .bg-\[\#09090b\], 
+  .bg-black {
+    background-color: #ffffff !important;
+  }
+
+  .bg-\[\#060607\]\/45,
+  .bg-zinc-900\/50,
+  .bg-black\/50,
+  .bg-black\/40 {
+    background-color: rgba(0, 0, 0, 0.03) !important;
+  }
+
+  .bg-white\/\[0\.03\],
+  .bg-zinc-950\/80,
+  .bg-zinc-950\/60 {
+    background-color: #ffffff !important;
+  }
+
+  .bg-emerald-950\/\[0\.08\] {
+    background-color: #e6fcf0 !important;
+    border-color: rgba(16, 185, 129, 0.2) !important;
+  }
+  .bg-rose-950\/\[0\.08\] {
+    background-color: #fdf2f2 !important;
+    border-color: rgba(244, 63, 94, 0.2) !important;
+  }
+
+  .text-white,
+  .text-\[\#f4f4f5\],
+  .text-\[\#FFFFFF\] {
+    color: #111827 !important;
+  }
+
+  /* Exclude white text on buttons and colored backgrounds */
+  [class*="bg-emerald"] .text-white,
+  [class*="bg-rose"] .text-white,
+  [class*="bg-amber"] .text-white,
+  [class*="bg-indigo"] .text-white,
+  [class*="bg-blue"] .text-white,
+  [class*="bg-[#00ff88]"] .text-white,
+  [class*="bg-[#30d158]"] .text-white,
+  [class*="bg-[#ff453a]"] .text-white,
+  [class*="bg-red"] .text-white,
+  [class*="bg-zinc-900"] .text-white,
+  .animate-ticker-marquee .text-white,
+  .animate-ticker-marquee span {
+    color: inherit !important;
+  }
+
+  .animate-ticker-marquee span.text-white {
+    color: #111827 !important;
+  }
+
+  .animate-ticker-marquee span.text-zinc-500 {
+    color: #6b7280 !important;
+  }
+
+  /* Specific borders overrides */
+  .border-zinc-900,
+  .border-zinc-900\/60,
+  .border-zinc-900\/50,
+  .border-zinc-850,
+  .border-zinc-800,
+  .border-white\/10,
+  .border-white\/20 {
+    border-color: rgba(0, 0, 0, 0.08) !important;
+  }
+
+  /* Glass overlays overrides */
+  .apple-glass {
+    background: rgba(255, 255, 255, 0.7) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  }
+
+  .apple-glass-bright {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .apple-glass-dark {
+    background: rgba(255, 255, 255, 0.8) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  }
+
+  .apple-glass:hover,
+  .apple-glass-bright:hover {
+    box-shadow:
+      0 12px 40px -12px rgba(0, 0, 0, 0.08),
+      0 0 0 1px rgba(0, 0, 0, 0.03),
+      0 0 32px -8px rgba(48, 209, 88, 0.05) !important;
+  }
+
+  /* Interactive items active state shadow */
+  .shadow-2xl {
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08) !important;
+  }
+
+  /* Option cards specific details */
+  .bg-\[\#030303\] {
+    background-color: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+  }
+
+  .bg-\[\#030303\]:hover {
+    background-color: #f9fafb !important;
+    border-color: rgba(0, 0, 0, 0.15) !important;
+  }
+
+  /* Evaluation Matrix indicators */
+  .border-zinc-950\/20 {
+    border-color: rgba(0, 0, 0, 0.06) !important;
+  }
+
+  /* Input fields */
+  input[type="text"] {
+    background-color: #ffffff !important;
+    color: #111827 !important;
+    border-color: rgba(0, 0, 0, 0.12) !important;
+  }
+}
+
 
