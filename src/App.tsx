@@ -626,7 +626,7 @@ export default function App() {
           <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-lg border gap-3 ${
             isLight 
               ? 'bg-zinc-50 border-zinc-200 text-zinc-900 shadow-sm' 
-              : 'bg-[#09090b]/80 border-zinc-900 text-zinc-100'
+              : 'bg-[#09090b] border-zinc-900 text-zinc-100 shadow-2xl relative z-10'
           }`}>
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -705,7 +705,7 @@ export default function App() {
 
         {/* TAB 3: PINPOINT AI (MARKET INTELLIGENCE) */}
         {activeTab === 'pinpoint' && (
-          <div className="view-enter border border-zinc-900 bg-[#060607]/80 rounded-md p-1 drop-shadow-2xl">
+          <div className="view-enter border border-zinc-900 bg-[#060607] rounded-md p-1 drop-shadow-2xl relative z-10">
             <PinpointAIView />
           </div>
         )}
