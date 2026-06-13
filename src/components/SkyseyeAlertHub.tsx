@@ -304,7 +304,7 @@ export function SkyseyeAlertHub() {
       setIsDeepSkyseyeExpanded(true);
       
       // 3. Switch dashboard to Sky's Eye
-      setActiveTab('skyvision');
+      setActiveTab('skyvision', true);
     }
   };
 

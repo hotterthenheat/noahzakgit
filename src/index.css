@@ -100,13 +100,6 @@ div.apple-glass-dark::before {
   z-index: 0;
 }
 
-.animated-border-box:hover::before,
-div.apple-glass:hover::before,
-div.apple-glass-bright:hover::before,
-div.apple-glass-dark:hover::before {
-  animation-play-state: paused;
-}
-
 .apple-glass {
   background: rgba(10, 10, 12, 0.65);
   backdrop-filter: blur(24px) saturate(190%);
@@ -810,4 +803,12 @@ body.light-theme ::-webkit-scrollbar-thumb:hover {
     background-color: rgba(255, 255, 255, 0.8) !important;
     border-color: rgba(0, 0, 0, 0.08) !important;
   }
+}
+
+/* ============================================================
+   PRISM GLOBAL COMMAND MENU STATE LOCKING (MANDATE 2)
+   ============================================================ */
+body.prism-locked {
+  overflow: hidden !important;
+  height: 100vh !important;
 }

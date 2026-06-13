@@ -194,6 +194,7 @@ export interface SystemScore {
 
 export interface GexStrikeDetail {
   strike: number;
+  index?: number;
   callGex: number;
   putGex: number;
   netGex: number;

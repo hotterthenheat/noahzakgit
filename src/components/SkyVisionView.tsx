@@ -3,14 +3,13 @@ import { motion } from 'motion/react';
 import { useContractStore, ContractState } from '../lib/store';
 import { InteractiveChart } from './InteractiveChart';
 import { ASSET_LIST } from '../data';
-import { Zap, Percent, HelpCircle, FileText, CheckCircle2, Bot } from 'lucide-react';
+import { Zap, Percent, HelpCircle, FileText, CheckCircle2, Bot, Search } from 'lucide-react';
 import { DiscoveryView } from './DiscoveryView';
 
 export function SkyVisionView() {
   const selectedAsset = useContractStore(s => s.selectedAsset);
   const selectedOptionType = useContractStore(s => s.selectedOptionType);
   const selectedTimeframe = useContractStore(s => s.selectedTimeframe);
-  const setSelectedTimeframe = useContractStore(s => s.setSelectedTimeframe);
   const selectedStrike = useContractStore(s => s.selectedStrike);
   const activeContract = useContractStore(s => s.activeContract);
   const serverState = useContractStore(s => s.serverState);
@@ -304,18 +303,19 @@ export function SkyVisionView() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-[#050505] border border-zinc-900 p-3.5 rounded-sm gap-2">
         <div className="flex gap-2 items-center">
           <Zap className="w-4 h-4 text-zinc-400 animate-pulse" />
-          <span className="text-[8.5px] text-zinc-550 uppercase tracking-widest font-black">SLAYER ACTIVE TERMINAL CORE / BY ARBOR CAPITAL</span>
+          <span className="text-[8.5px] text-zinc-550 uppercase tracking-widest font-black">SLAYER ACTIVE TERMINAL CORE</span>
         </div>
         
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <div className="flex items-center bg-black p-0.5 border border-zinc-900 rounded-sm">
             {ASSET_LIST.map(asset => (
               <button
                 key={asset.ticker}
+                type="button"
                 onClick={() => setSelectedAsset(asset)}
                 className={`px-3.5 py-1 text-[9px] uppercase font-black tracking-widest rounded-xs transition-all cursor-pointer ${
                   selectedAsset.ticker === asset.ticker
-                    ? 'bg-white text-black font-extrabold shadow'
+                    ? 'bg-zinc-800 text-white font-extrabold shadow'
                     : 'text-zinc-500 hover:text-white'
                 }`}
               >
@@ -323,23 +323,26 @@ export function SkyVisionView() {
               </button>
             ))}
           </div>
-          <div className="flex items-center bg-black p-0.5 border border-zinc-900 rounded-sm">
-            <select
-              value={selectedTimeframe}
-              onChange={(e) => setSelectedTimeframe(e.target.value as any)}
-              className="bg-black text-[9px] font-black py-1 px-2.5 text-white rounded-xs focus:outline-none focus:border-zinc-700 cursor-pointer border border-transparent uppercase"
-            >
-              <option value="5m">5m</option>
-              <option value="15m">15m</option>
-              <option value="1h">1h</option>
-              <option value="4h">4h</option>
-              <option value="1d">1d</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2 ml-2 pl-2 border-l border-zinc-900">
-             <span className="text-[8px] text-zinc-500">CUSTOM:</span>
-             <input type="text" placeholder="TICKER" className="bg-zinc-950 border border-zinc-800 text-xs px-2 py-1 rounded w-16 text-center text-white focus:outline-none focus:border-emerald-500 transition-colors" />
-             <button className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded text-[9px] font-bold uppercase hover:bg-emerald-500/20">PULL</button>
+          
+          {/* Small timeframe cards group, beautifully matching the layout */}
+          <div className="flex items-center gap-1.5 pl-2.5 border-l border-zinc-900">
+            <span className="text-[8px] text-zinc-550 font-mono font-black uppercase tracking-wider mr-1 hidden sm:inline">TIMEFRAME:</span>
+            <div className="flex items-center bg-black p-0.5 border border-zinc-900 rounded-sm">
+              {(['5m', '15m', '1h', '4h', '1D'] as const).map(tf => (
+                <button
+                  key={tf}
+                  type="button"
+                  onClick={() => useContractStore.getState().setSelectedTimeframe(tf)}
+                  className={`px-3 py-1 text-[8.5px] uppercase font-black tracking-wider rounded-xs transition-all cursor-pointer ${
+                    selectedTimeframe === tf
+                      ? 'bg-zinc-850 text-white font-black shadow'
+                      : 'text-zinc-500 hover:text-white'
+                  }`}
+                >
+                  {tf}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -589,11 +592,19 @@ export function SkyVisionView() {
                 Action recommended is <span className="text-emerald-400 font-black">{activeRecommendation}</span> based on momentum shifting {tradeHealthValue > 70 ? 'UPWARDS' : 'DOWNWARDS'}.
               </p>
               {serverState?.deep_intelligence && (
-                <div className="mt-2 pt-2 border-t border-zinc-900/60 font-sans tracking-normal space-y-1">
-                  <p className="text-zinc-300 font-bold">• {activeStrike} contains {serverState.deep_intelligence.strike_metrics.gammaContribution} of total {selectedOptionType === 'C' ? 'call' : 'put'} gamma.</p>
-                  <p className="text-zinc-300 font-bold">• Dealers become aggressive {selectedOptionType === 'C' ? 'buyers above' : 'sellers below'} {(serverState?.deep_intelligence?.dealer_metrics?.flipLevel ?? 0).toFixed(2)}.</p>
-                  <p className="text-zinc-300 font-bold">• {(serverState?.deep_intelligence?.dealer_metrics?.putWall ?? 0).toFixed(2)} remains strongest downside support.</p>
-                  <p className="text-zinc-300 font-bold">• {(serverState?.deep_intelligence?.dealer_metrics?.magnetStrike ?? 0).toFixed(2)} remains primary magnet strike.</p>
+                <div className="mt-2 pt-2 border-t border-t-zinc-900/60 font-sans tracking-normal space-y-1">
+                  {serverState.deep_intelligence.strike_metrics?.gammaContribution && (
+                    <p className="text-zinc-300 font-bold">• {activeStrike} contains {serverState.deep_intelligence.strike_metrics.gammaContribution} of total {selectedOptionType === 'C' ? 'call' : 'put'} gamma.</p>
+                  )}
+                  {serverState.deep_intelligence.dealer_metrics?.flipLevel && serverState.deep_intelligence.dealer_metrics.flipLevel > 0 ? (
+                    <p className="text-zinc-300 font-bold">• Dealers become aggressive {selectedOptionType === 'C' ? 'buyers above' : 'sellers below'} {serverState.deep_intelligence.dealer_metrics.flipLevel.toFixed(2)}.</p>
+                  ) : null}
+                  {serverState.deep_intelligence.dealer_metrics?.putWall && serverState.deep_intelligence.dealer_metrics.putWall > 0 ? (
+                    <p className="text-zinc-300 font-bold">• {serverState.deep_intelligence.dealer_metrics.putWall.toFixed(2)} remains strongest downside support.</p>
+                  ) : null}
+                  {serverState.deep_intelligence.dealer_metrics?.magnetStrike && serverState.deep_intelligence.dealer_metrics.magnetStrike > 0 ? (
+                    <p className="text-zinc-300 font-bold">• {serverState.deep_intelligence.dealer_metrics.magnetStrike.toFixed(2)} remains primary magnet strike.</p>
+                  ) : null}
                 </div>
               )}
             </div>
@@ -682,13 +693,9 @@ export function SkyVisionView() {
                       isSelected={isSelected}
                       isCall={true}
                       onClick={() => {
-                        if (selectedStrike === row.strike && selectedOptionType === 'C') {
-                          setSelectedStrike(null);
-                        } else {
-                          setSelectedStrike(row.strike);
-                          setSelectedOptionType('C');
-                          selectContract(selectedAsset.ticker, row.strike, true);
-                        }
+                        setSelectedStrike(row.strike);
+                        setSelectedOptionType('C');
+                        selectContract(selectedAsset.ticker, row.strike, true);
                       }}
                     />
                   );
@@ -716,13 +723,9 @@ export function SkyVisionView() {
                       isSelected={isSelected}
                       isCall={false}
                       onClick={() => {
-                        if (selectedStrike === row.strike && selectedOptionType === 'P') {
-                          setSelectedStrike(null);
-                        } else {
-                          setSelectedStrike(row.strike);
-                          setSelectedOptionType('P');
-                          selectContract(selectedAsset.ticker, row.strike, false);
-                        }
+                        setSelectedStrike(row.strike);
+                        setSelectedOptionType('P');
+                        selectContract(selectedAsset.ticker, row.strike, false);
                       }}
                     />
                   );

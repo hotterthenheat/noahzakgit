@@ -29,29 +29,29 @@ export function OpportunitiesDashboard({
 }: OpportunitiesDashboardProps) {
   // Live local lists of opportunities so they can tick dynamically and feel extremely real!
   const [calls, setCalls] = useState<ContractOpportunity[]>([
-    { id: 'c1', ticker: 'SPX', name: 'S&P 500 Index', contract: 'SPX 7400C', direction: 'BULLISH', confidence: 92, price: 2.15, fairValue: 1.95, recommendation: 'WAIT' },
+    { id: 'c1', ticker: 'SPX', name: 'S&P 500 Index', contract: 'SPX 7650C', direction: 'BULLISH', confidence: 92, price: 2.15, fairValue: 1.95, recommendation: 'WAIT' },
     { id: 'c2', ticker: 'SPY', name: 'SPDR S&P 500 ETF', contract: 'SPY 515C', direction: 'BULLISH', confidence: 89, price: 1.72, fairValue: 1.68, recommendation: 'BUY' },
-    { id: 'c3', ticker: 'BTCUSD', name: 'Bitcoin / US Dollar', contract: 'BTC 69000C', direction: 'BULLISH', confidence: 87, price: 3.22, fairValue: 3.08, recommendation: 'BUY' },
-    { id: 'c4', ticker: 'AAPL', name: 'Apple Inc.', contract: 'AAPL 190C', direction: 'BULLISH', confidence: 85, price: 1.45, fairValue: 1.35, recommendation: 'BUY' },
-    { id: 'c5', ticker: '/ES', name: 'E-mini S&P 500 Futures', contract: '/ES 5250C', direction: 'BULLISH', confidence: 95, price: 4.10, fairValue: 3.85, recommendation: 'WAIT' },
-    { id: 'c6', ticker: 'NVDA', name: 'NVIDIA Corp.', contract: 'NVDA 125C', direction: 'BULLISH', confidence: 91, price: 3.80, fairValue: 3.50, recommendation: 'BUY' },
-    { id: 'c7', ticker: 'MSFT', name: 'Microsoft Corp.', contract: 'MSFT 425C', direction: 'BULLISH', confidence: 86, price: 2.90, fairValue: 2.80, recommendation: 'BUY' },
-    { id: 'c8', ticker: 'AMD', name: 'Advanced Micro Devices', contract: 'AMD 175C', direction: 'BULLISH', confidence: 82, price: 1.65, fairValue: 1.70, recommendation: 'WAIT' },
-    { id: 'c9', ticker: 'QQQ', name: 'Invesco QQQ Trust', contract: 'QQQ 445C', direction: 'BULLISH', confidence: 80, price: 2.10, fairValue: 1.98, recommendation: 'BUY' },
-    { id: 'c10', ticker: 'COIN', name: 'Coinbase Global', contract: 'COIN 250C', direction: 'BULLISH', confidence: 78, price: 5.40, fairValue: 5.10, recommendation: 'BUY' }
+    { id: 'c3', ticker: 'NDX', name: 'Nasdaq 100 Index', contract: 'NDX 18300C', direction: 'BULLISH', confidence: 87, price: 3.22, fairValue: 3.08, recommendation: 'BUY' },
+    { id: 'c4', ticker: 'QQQ', name: 'Invesco QQQ Trust', contract: 'QQQ 448C', direction: 'BULLISH', confidence: 85, price: 1.45, fairValue: 1.35, recommendation: 'BUY' },
+    { id: 'c5', ticker: 'RUT', name: 'Russell 2000 Index', contract: 'RUT 2030C', direction: 'BULLISH', confidence: 95, price: 4.10, fairValue: 3.85, recommendation: 'WAIT' },
+    { id: 'c6', ticker: 'SPX', name: 'S&P 500 Index', contract: 'SPX 7680C', direction: 'BULLISH', confidence: 91, price: 3.80, fairValue: 3.50, recommendation: 'BUY' },
+    { id: 'c7', ticker: 'NDX', name: 'Nasdaq 100 Index', contract: 'NDX 18350C', direction: 'BULLISH', confidence: 86, price: 2.90, fairValue: 2.80, recommendation: 'BUY' },
+    { id: 'c8', ticker: 'QQQ', name: 'Invesco QQQ Trust', contract: 'QQQ 450C', direction: 'BULLISH', confidence: 82, price: 1.65, fairValue: 1.70, recommendation: 'WAIT' },
+    { id: 'c9', ticker: 'SPY', name: 'SPDR S&P 500 ETF', contract: 'SPY 512C', direction: 'BULLISH', confidence: 80, price: 2.10, fairValue: 1.98, recommendation: 'BUY' },
+    { id: 'c10', ticker: 'RUT', name: 'Russell 2000 Index', contract: 'RUT 2040C', direction: 'BULLISH', confidence: 78, price: 5.40, fairValue: 5.10, recommendation: 'BUY' }
   ]);
 
   const [puts, setPuts] = useState<ContractOpportunity[]>([
-    { id: 'p1', ticker: 'TSLA', name: 'Tesla Inc.', contract: 'TSLA 180P', direction: 'BEARISH', confidence: 85, price: 2.10, fairValue: 1.98, recommendation: 'BUY' },
-    { id: 'p2', ticker: 'NFLX', name: 'Netflix Inc.', contract: 'NFLX 600P', direction: 'BEARISH', confidence: 81, price: 6.50, fairValue: 6.20, recommendation: 'BUY' },
-    { id: 'p3', ticker: 'META', name: 'Meta Platforms', contract: 'META 490P', direction: 'BEARISH', confidence: 76, price: 4.80, fairValue: 4.90, recommendation: 'WAIT' },
-    { id: 'p4', ticker: 'AMZN', name: 'Amazon.com Inc.', contract: 'AMZN 175P', direction: 'BEARISH', confidence: 73, price: 1.30, fairValue: 1.25, recommendation: 'BUY' },
-    { id: 'p5', ticker: 'GOOGL', name: 'Alphabet Inc.', contract: 'GOOGL 170P', direction: 'BEARISH', confidence: 70, price: 1.15, fairValue: 1.10, recommendation: 'BUY' },
-    { id: 'p6', ticker: 'IWM', name: 'iShares Russell 2000', contract: 'IWM 200P', direction: 'BEARISH', confidence: 68, price: 0.95, fairValue: 1.05, recommendation: 'WAIT' },
-    { id: 'p7', ticker: 'USO', name: 'United States Oil Fund', contract: 'USO 70P', direction: 'BEARISH', confidence: 65, price: 0.85, fairValue: 0.80, recommendation: 'BUY' },
-    { id: 'p8', ticker: 'EURUSD', name: 'EUR / USD', contract: 'EURUSD 1.080P', direction: 'BEARISH', confidence: 62, price: 0.0045, fairValue: 0.0042, recommendation: 'BUY' },
-    { id: 'p9', ticker: 'SMH', name: 'VanEck Semiconductor', contract: 'SMH 220P', direction: 'BEARISH', confidence: 59, price: 2.80, fairValue: 2.95, recommendation: 'WAIT' },
-    { id: 'p10', ticker: 'SPX', name: 'S&P 500 Index', contract: 'SPX 5100P', direction: 'BEARISH', confidence: 72, price: 1.90, fairValue: 1.80, recommendation: 'BUY' }
+    { id: 'p1', ticker: 'QQQ', name: 'Invesco QQQ Trust', contract: 'QQQ 440P', direction: 'BEARISH', confidence: 85, price: 2.10, fairValue: 1.98, recommendation: 'BUY' },
+    { id: 'p2', ticker: 'NDX', name: 'Nasdaq 100 Index', contract: 'NDX 18100P', direction: 'BEARISH', confidence: 81, price: 6.50, fairValue: 6.20, recommendation: 'BUY' },
+    { id: 'p3', ticker: 'SPY', name: 'SPDR S&P 500 ETF', contract: 'SPY 508P', direction: 'BEARISH', confidence: 76, price: 4.80, fairValue: 4.90, recommendation: 'WAIT' },
+    { id: 'p4', ticker: 'RUT', name: 'Russell 2000 Index', contract: 'RUT 2010P', direction: 'BEARISH', confidence: 73, price: 1.30, fairValue: 1.25, recommendation: 'BUY' },
+    { id: 'p5', ticker: 'SPX', name: 'S&P 500 Index', contract: 'SPX 7600P', direction: 'BEARISH', confidence: 70, price: 1.15, fairValue: 1.10, recommendation: 'BUY' },
+    { id: 'p6', ticker: 'QQQ', name: 'Invesco QQQ Trust', contract: 'QQQ 442P', direction: 'BEARISH', confidence: 68, price: 0.95, fairValue: 1.05, recommendation: 'WAIT' },
+    { id: 'p7', ticker: 'SPY', name: 'SPDR S&P 500 ETF', contract: 'SPY 510P', direction: 'BEARISH', confidence: 65, price: 0.85, fairValue: 0.80, recommendation: 'BUY' },
+    { id: 'p8', ticker: 'NDX', name: 'Nasdaq 100 Index', contract: 'NDX 18200P', direction: 'BEARISH', confidence: 62, price: 1.25, fairValue: 1.20, recommendation: 'BUY' },
+    { id: 'p9', ticker: 'RUT', name: 'Russell 2000 Index', contract: 'RUT 2020P', direction: 'BEARISH', confidence: 59, price: 2.80, fairValue: 2.95, recommendation: 'WAIT' },
+    { id: 'p10', ticker: 'SPX', name: 'S&P 500 Index', contract: 'SPX 7580P', direction: 'BEARISH', confidence: 72, price: 1.90, fairValue: 1.80, recommendation: 'BUY' }
   ]);
 
   const [marketRegimeConfidence, setMarketRegimeConfidence] = useState(87.4);

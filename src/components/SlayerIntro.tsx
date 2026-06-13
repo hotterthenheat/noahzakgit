@@ -32,52 +32,6 @@ import {
 import { AssetInfo, TimeframeVal, SystemScore, V8TradeRecord } from '../types';
 import { ASSET_LIST } from '../data';
 
-const cardVariants = {
-  hidden: { 
-    opacity: 0, 
-    y: 30 
-  },
-  visible: (delay: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { 
-      duration: 0.6, 
-      delay, 
-      ease: [0.16, 1, 0.3, 1] 
-    }
-  }),
-  hoverDiscord: { 
-    scale: 1.02, 
-    y: -4, 
-    boxShadow: "0 25px 50px -12px rgba(52, 199, 89, 0.08)",
-    transition: { 
-      type: "spring", 
-      stiffness: 400, 
-      damping: 22 
-    }
-  },
-  hoverSkyVision: { 
-    scale: 1.04, 
-    y: -6, 
-    boxShadow: "0 25px 50px -12px rgba(99, 102, 241, 0.15)",
-    transition: { 
-      type: "spring", 
-      stiffness: 400, 
-      damping: 22 
-    }
-  },
-  hoverGexbot: { 
-    scale: 1.02, 
-    y: -4, 
-    boxShadow: "0 25px 50px -12px rgba(16, 185, 129, 0.08)",
-    transition: { 
-      type: "spring", 
-      stiffness: 400, 
-      damping: 22 
-    }
-  }
-};
-
 interface SlayerIntroProps {
   onEnterApp: (targetTab?: string) => void;
   selectedAsset: AssetInfo;
@@ -360,6 +314,20 @@ export default function SlayerIntro({
           ))}
         </div>
 
+        <div className="w-full max-w-sm">
+          <button 
+            type="button"
+            onClick={() => useContractStore.getState().setIsGlobalSearchOpen(true)}
+            className="global-prism-trigger w-full flex items-center justify-between bg-zinc-950 border border-zinc-900 px-4 py-2.5 rounded-sm hover:cursor-pointer hover:border-zinc-750 transition-all duration-150 group"
+          >
+            <div className="flex items-center gap-2.5 text-zinc-550 font-mono text-[10px] tracking-wider font-extrabold">
+              <Search className="w-3.5 h-3.5 text-emerald-455 group-hover:scale-105 transition-transform" />
+              <span>SEARCH ALL SECURITIES & INDEX GREEKS</span>
+            </div>
+            <kbd className="hidden sm:inline-block bg-[#0e0e11] text-zinc-600 border border-zinc-850 px-1.5 py-0.5 rounded-xs text-[8px] font-mono shadow-inner">CMD+K</kbd>
+          </button>
+        </div>
+
         <div className="text-[10.5px] font-mono tracking-widest text-[#71717A] uppercase">
           Continuously monitored. Continuously scored. Continuously managed.
         </div>
@@ -511,7 +479,7 @@ export default function SlayerIntro({
         whileInView={{ opacity: 1, y: 0, scale: 1 }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 py-10 px-6 max-w-5xl mx-auto w-full border-t border-zinc-900"
+        className="relative z-10 py-10 px-6 max-w-4xl mx-auto w-full border-t border-zinc-900"
       >
         <div className="text-center space-y-2 mb-8">
           <span className="text-zinc-500 text-[9px] font-mono uppercase tracking-[0.3em] block">
@@ -526,14 +494,12 @@ export default function SlayerIntro({
           
           {/* DISCORD CARD */}
           <motion.div 
-            variants={cardVariants}
-            initial="hidden"
-            whileInView="visible"
-            custom={0.1}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            whileHover="hoverDiscord"
-            style={{ transition: 'border-color 0.2s, background-color 0.2s' }}
-            className="apple-glass rounded-2xl p-8 flex flex-col justify-between relative transition-colors duration-200"
+            transition={{ duration: 0.6, delay: 0.1 }}
+            whileHover={{ scale: 1.02, y: -4, boxShadow: "0 25px 50px -12px rgba(52, 199, 89, 0.08)" }}
+            className="apple-glass rounded-2xl p-6 flex flex-col justify-between relative transition-all duration-300"
           >
             <div className="space-y-4">
               <div className="flex justify-between items-baseline border-b border-zinc-900/40 pb-3">
@@ -579,16 +545,14 @@ export default function SlayerIntro({
 
           {/* SKYVISION CARD */}
           <motion.div 
-            variants={cardVariants}
-            initial="hidden"
-            whileInView="visible"
-            custom={0.25}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            whileHover="hoverSkyVision"
-            style={{ transition: 'border-color 0.2s, background-color 0.2s' }}
-            className="apple-glass-bright rounded-2xl p-8 flex flex-col justify-between relative shadow-2xl transition-colors duration-200 border-2 border-white/25"
+            transition={{ duration: 0.6, delay: 0.25 }}
+            whileHover={{ scale: 1.04, y: -6 }}
+            className="apple-glass-bright rounded-2xl p-6 flex flex-col justify-between relative shadow-2xl transition-all duration-300 border-2 border-white/25"
           >
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white text-black text-[7px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg whitespace-nowrap">
+            <div className="absolute top-0 right-10 -translate-y-1/2 bg-white text-black text-[7px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg">
               RECOMMENDED SUBSCRIPTION
             </div>
 
@@ -644,14 +608,12 @@ export default function SlayerIntro({
 
           {/* PINPOINT GEXBOT CARD */}
           <motion.div 
-            variants={cardVariants}
-            initial="hidden"
-            whileInView="visible"
-            custom={0.4}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            whileHover="hoverGexbot"
-            style={{ transition: 'border-color 0.2s, background-color 0.2s' }}
-            className="apple-glass rounded-2xl p-8 flex flex-col justify-between relative transition-colors duration-200"
+            transition={{ duration: 0.6, delay: 0.4 }}
+            whileHover={{ scale: 1.02, y: -4, boxShadow: "0 25px 50px -12px rgba(16, 185, 129, 0.08)" }}
+            className="apple-glass rounded-2xl p-6 flex flex-col justify-between relative transition-all duration-300"
           >
             <div className="space-y-4">
               <div className="flex justify-between items-baseline border-b border-zinc-900/40 pb-3">

@@ -177,6 +177,80 @@ try {
   testGexEngine();
   testDisplacementEngine();
   testProbabilityEngine();
+
+  // PINPOINT CORE MATH MODEL TESTS
+  console.log('Testing Robust BSM higher-order Greeks and pricing consistency...');
+  const S = 100;
+  const K = 100;
+  const tau = 0.1; // 36.5 days
+  const r = 0.05;
+  const q = 0.01;
+  const sigma = 0.20;
+  const isCall = true;
+
+  const { calculateBSMGreeks, rawSVI, SVISurfaceCalibrator, DupireLocalVolSolver, DealerExposureEngine, PhysicsCascadeEngine, BayesianRegimeEngine } = await import('../src/lib/pinpointEngine');
+  const greeks = calculateBSMGreeks(S, K, tau, r, q, sigma, isCall);
+
+  assert.ok(greeks.price > 0, 'BSM price must be positive');
+  assert.ok(greeks.delta > 0, 'Call Delta must be positive');
+  assert.ok(greeks.gamma > 0, 'Gamma must be positive');
+  assert.ok(Math.abs(greeks.vanna) > 0, 'Vanna must be non-zero');
+  assert.ok(Math.abs(greeks.charm) > 0, 'Charm must be non-zero');
+  assert.ok(Math.abs(greeks.speed) > 0, 'Speed must be non-zero');
+  assert.ok(Math.abs(greeks.color) > 0, 'Color must be non-zero');
+  console.log('✔ Model 1: Robust BSM Engine and Higher-Order Greeks passed.');
+
+  console.log('Testing Model 2 SVI surface calibration and arbitrage verification...');
+  const sviParams = { a: 0.04, b: 0.1, rho: -0.4, m: 0.0, sigma: 0.1 };
+  const variance_at_zero = rawSVI(0, sviParams);
+  assert.ok(variance_at_zero > 0, 'SVI variance at k=0 must be positive');
+
+  // Enforce zero arbitrage on standard surface coordinates
+  const kRange = [-0.2, -0.1, 0, 0.1, 0.2];
+  const isArrFree = SVISurfaceCalibrator.checkButterflyArbitrage(kRange, sviParams);
+  assert.strictEqual(isArrFree, true, 'SVI parameters must verify free of butterfly arbitrage on close-to-at-the-money grid');
+  console.log('✔ Model 2: SVI Vol Surface calibration checks passed.');
+
+  console.log('Testing Model 3 Dupire Local Volatility Surface Solver...');
+  const sviParamsPlus = { ...sviParams, a: 0.042 }; // variance moves up slightly with tau
+  const localVol = DupireLocalVolSolver.solveLocalVol(0, tau, sviParams, sviParamsPlus, 0.01);
+  assert.ok(localVol > 0 && !isNaN(localVol), 'Dupire local vol must solve to a finite positive number');
+  console.log(`Fitted Local Volatility Spot center: ${(localVol * 100).toFixed(2)}%`);
+  console.log('✔ Model 3: Dupire Local Vol solver checks passed.');
+
+  console.log('Testing Model 4 signed Dealer GEX, VEX, and CEX Exposure Engine...');
+  const exposures = DealerExposureEngine.calculateExposures(S, K, tau, r, q, sigma, true, 1000);
+  assert.ok(exposures.gexStrike > 0, 'Signed Call GEX (dealer short) should contribute positively to spot buying support');
+  assert.ok(exposures.vexStrike !== 0, 'Signed Call VEX should be non-zero');
+  assert.ok(exposures.cexStrike !== 0, 'Signed Call CEX should be non-zero');
+  console.log('✔ Model 4: Dealer Exposure calculations passed.');
+
+  console.log('Testing Model 5 Physics Gravity Wells potential field and multi-step Monte Carlo projection...');
+  const strikes = [90, 95, 100, 105, 110];
+  const gex = [-200000, -100000, 500000, -150000, -300000]; // Pin center 100 has positive GEX gravity well, outer clifs are repellent
+  const bookLevels = [98, 102];
+  const bookLiquidity = [15000, 12000];
+  const meanReversionTarget = 100;
+  const theta = 0.5; // MR factor
+  const kappa = 0.01; // market coupling elasticity
+  
+  const F_center = PhysicsCascadeEngine.calculateHedgingForce(100, strikes, gex, bookLevels, bookLiquidity, meanReversionTarget, theta);
+  assert.ok(!isNaN(F_center), 'Hedging physics force must be a valid number');
+
+  // Multi-step Monte Carlo
+  const mcRes = PhysicsCascadeEngine.simulatePaths(S, strikes, gex, bookLevels, bookLiquidity, meanReversionTarget, theta, kappa, localVol, tau, 10, 30);
+  assert.strictEqual(mcRes.paths.length, 30, 'Simulated paths count must equal 30');
+  assert.strictEqual(mcRes.paths[0].length, 11, 'Simulated steps count must equal 11');
+  assert.ok(mcRes.mean > 0, 'Simulated mean path endpoint price must be positive');
+  assert.ok(mcRes.ci95[0] < mcRes.ci95[1], 'Uncertainty boundaries must span a positive confidence interval');
+  console.log('✔ Model 5: Physics potential field forces and EM simulation cascades passed.');
+
+  console.log('Testing Model 6 Bayesian Regime Classification & Uncertainty Engine...');
+  const regimeRes = BayesianRegimeEngine.classifyRegime(5000000, 20, 0.5);
+  assert.ok(regimeRes.regime === 'STABILIZED_PIN', 'Robust positive GEX and low velocity triggers Stabilized range pin classification');
+  assert.ok(Math.abs(regimeRes.posteriors.STABILIZED_PIN + regimeRes.posteriors.VOLATILITY_TRANSITION + regimeRes.posteriors.AMPLIFIED_SQUEEZE - 1.0) < 1e-4, 'Bayesian joint probabilities must sum to 1.0');
+  console.log('✔ Model 6: Bayesian Regime classification and posterior solver passed.');
+
   console.log('\n=============================================');
   console.log('🎉 ALL INSTITUTIONAL QUANT MANIFEST TESTS PASSED! 🎉');
   console.log('=============================================\n');

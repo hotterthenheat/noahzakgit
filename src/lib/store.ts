@@ -33,8 +33,8 @@ interface MarketState {
 
 interface ContractStore {
   // Navigation & View Tabs
-  activeTab: 'home' | 'skyvision' | 'pinpoint' | 'auditor' | 'dealerflow' | 'dashboard' | 'alerts' | 'automation' | 'reports' | 'settings' | 'arbor';
-  setActiveTab: (tab: 'home' | 'skyvision' | 'pinpoint' | 'auditor' | 'dealerflow' | 'dashboard' | 'alerts' | 'automation' | 'reports' | 'settings' | 'arbor') => void;
+  activeTab: 'home' | 'skyvision' | 'pinpoint' | 'auditor' | 'dealerflow' | 'arbor';
+  setActiveTab: (tab: 'home' | 'skyvision' | 'pinpoint' | 'auditor' | 'dealerflow' | 'arbor', keepContract?: boolean) => void;
 
   // Theme settings
   themeMode: 'light' | 'dark';
@@ -48,6 +48,7 @@ interface ContractStore {
   isPositionOpen: boolean;
   isContractLocked: boolean;
   isDeepSkyseyeExpanded: boolean;
+  isGlobalSearchOpen: boolean;
 
   // State caches and broad items
   activeContract: ContractState | null;
@@ -66,7 +67,14 @@ interface ContractStore {
   selectContractAtomically: (asset: AssetInfo, strike: number, isCall: boolean) => void;
   setIsPositionOpen: (open: boolean) => void;
   setIsDeepSkyseyeExpanded: (expanded: boolean) => void;
+  setIsGlobalSearchOpen: (open: boolean) => void;
   setTrades: (trades: V8TradeRecord[]) => void;
+
+  // Cross-communication for Audit search & expand
+  auditSearchQuery: string;
+  setAuditSearchQuery: (query: string) => void;
+  expandedAuditId: string | null;
+  setExpandedAuditId: (id: string | null) => void;
   
   // High-latency prevention: selectContract set instantly!
   selectContract: (ticker: string, strike: number, isCall: boolean) => void;
@@ -155,7 +163,21 @@ function formatDuration(totalSeconds: number): string {
 
 export const useContractStore = create<ContractStore>((set, get) => ({
   activeTab: 'home',
-  setActiveTab: (tab) => set({ activeTab: tab }),
+  setActiveTab: (tab, keepContract = false) => {
+    if (tab === 'skyvision' && !keepContract) {
+      set({ activeTab: tab, selectedStrike: null, isContractLocked: false, auditSearchQuery: '', expandedAuditId: null });
+    } else {
+      if (tab === 'auditor' && get().activeTab === 'auditor') {
+        // Clear active query and expand states when re-clicking the Auditor tab
+        set({ auditSearchQuery: '', expandedAuditId: null });
+      } else if (tab !== 'auditor') {
+        // Reset query and expand states when navigating away from Auditor to other tabs
+        set({ activeTab: tab, auditSearchQuery: '', expandedAuditId: null });
+      } else {
+        set({ activeTab: tab });
+      }
+    }
+  },
 
   themeMode: 'dark',
   toggleThemeMode: () => set((state) => ({ themeMode: state.themeMode === 'light' ? 'dark' : 'light' })),
@@ -167,6 +189,12 @@ export const useContractStore = create<ContractStore>((set, get) => ({
   isPositionOpen: false,
   isContractLocked: false,
   isDeepSkyseyeExpanded: false,
+  isGlobalSearchOpen: false,
+
+  auditSearchQuery: '',
+  setAuditSearchQuery: (query) => set({ auditSearchQuery: query }),
+  expandedAuditId: null,
+  setExpandedAuditId: (id) => set({ expandedAuditId: id }),
 
   activeContract: null,
   contractCache: {},
@@ -199,12 +227,14 @@ export const useContractStore = create<ContractStore>((set, get) => ({
       selectedAsset: asset,
       selectedStrike: strike,
       selectedOptionType: isCall ? 'C' : 'P',
-      isContractLocked: true
+      isContractLocked: true,
+      activeTab: 'skyvision'
     });
     get().selectContract(asset.ticker, strike, isCall);
   },
   setIsPositionOpen: (open) => set({ isPositionOpen: open }),
   setIsDeepSkyseyeExpanded: (expanded) => set({ isDeepSkyseyeExpanded: expanded }),
+  setIsGlobalSearchOpen: (open) => set({ isGlobalSearchOpen: open }),
   setTrades: (trades) => set({ trades }),
 
   selectContract: (ticker, strike, isCall) => {

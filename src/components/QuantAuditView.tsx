@@ -38,10 +38,12 @@ export function QuantAuditView({
   // Let's connect directly to the contract store as well
   const setActiveTab = useContractStore(state => state.setActiveTab);
 
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const expandedId = useContractStore(s => s.expandedAuditId);
+  const setExpandedId = useContractStore(s => s.setExpandedAuditId);
   const [assetFilter, setAssetFilter] = useState<string>('ALL');
   const [outcomeFilter, setOutcomeFilter] = useState<'ALL' | 'WINS' | 'LOSSES'>('ALL');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const searchQuery = useContractStore(s => s.auditSearchQuery);
+  const setSearchQuery = useContractStore(s => s.setAuditSearchQuery);
 
   // Merged exhaustively complete static historical archive containing ALL original mock data
   const staticArchive: V8TradeRecord[] = useMemo(() => [
@@ -625,7 +627,7 @@ export function QuantAuditView({
   }, [allHistoricalTrades, assetFilter, outcomeFilter, searchQuery]);
 
   const toggleExpand = (id: string) => {
-    setExpandedId(prev => prev === id ? null : id);
+    setExpandedId(expandedId === id ? null : id);
   };
 
   // Click on a contract atomically selects it in the global engine and goes back to cockpit
@@ -647,7 +649,7 @@ export function QuantAuditView({
         if (asset) {
           const store = useContractStore.getState();
           store.selectContractAtomically(asset, strike, isCall);
-          store.setActiveTab('skyvision');
+          store.setActiveTab('skyvision', true);
         }
       }
     }
@@ -936,25 +938,36 @@ export function QuantAuditView({
         </div>
       </div>
 
-      {/* 3. INTERACTIVE SEARCH BAR */}
-      <div className="bg-zinc-950/40 border border-zinc-900/60 p-2.5 rounded-lg flex items-center gap-2">
-        <Search className="w-3.5 h-3.5 text-zinc-750" />
-        <input 
-          type="text"
-          placeholder="SEARCH CONTRACT, DATE OR TRANSACTION KEYWORDS..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="bg-transparent border-none text-[9.5px] font-bold tracking-wider text-zinc-300 w-full focus:outline-none placeholder-zinc-700 uppercase"
-        />
-        {searchQuery.trim() !== '' && (
-          <button 
-            onClick={() => setSearchQuery('')}
-            className="text-[8px] font-black text-zinc-500 hover:text-white px-2 cursor-pointer"
-          >
-            CLEAR
-          </button>
-        )}
-      </div>
+      {/* 3. INTERACTIVE SEARCH BAR (MANDATE 3 Trigger Standard) */}
+      <button 
+        onClick={() => {
+          useContractStore.getState().setIsGlobalSearchOpen(true);
+        }}
+        className="global-prism-trigger w-full bg-zinc-950/40 border border-[#1e1e24] p-3.5 rounded-lg flex items-center justify-between gap-2 text-left cursor-pointer hover:border-zinc-700 transition-all uppercase font-mono"
+      >
+        <div className="flex items-center gap-2.5">
+          <Search className="w-3.5 h-3.5 text-zinc-600 animate-pulse" />
+          <span className="text-[9.5px] font-black tracking-wider text-zinc-400">
+            {searchQuery ? `ACTIVE FILTER: ${searchQuery}` : "TAP TO ACTIVATE CONTEXT-AWARE LEDGER SEARCH..."}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {searchQuery && (
+            <span 
+              onClick={(e) => {
+                e.stopPropagation();
+                setSearchQuery('');
+              }}
+              className="text-[8px] bg-red-950/30 text-[#ff453a] border border-red-900/30 px-2 py-1 rounded font-black hover:bg-red-500/10 transition-all cursor-pointer"
+            >
+              CLEAR ACTIVE FILTER
+            </span>
+          )}
+          <span className="text-[7.5px] bg-[#0c0c0d] border border-zinc-800 text-zinc-550 px-1.5 py-0.5 rounded font-bold">
+            CMD+K
+          </span>
+        </div>
+      </button>
 
       {/* 4. TWO-COLUMN SPLIT LIST CONTAINER */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -989,27 +1002,7 @@ export function QuantAuditView({
                   className={`bg-[#050508] hover:bg-[#07070b]/60 border transition-all rounded-lg overflow-hidden cursor-pointer ${
                     isExpanded ? 'border-emerald-500/40 bg-[#060808]/90 shadow-lg shadow-emerald-900/5' : 'border-zinc-900/80 hover:border-zinc-800'
                   }`}
-                  onClick={() => {
-                    toggleExpand(t.id);
-                    if (isExpanded) {
-                      useContractStore.getState().setSelectedStrike(null);
-                    } else {
-                      const cleanStr = t.contract.trim();
-                      const parts = cleanStr.split(/\s+/);
-                      if (parts.length >= 2) {
-                        const ticker = parts[0];
-                        const contractRaw = parts[1];
-                        const strikeMatch = contractRaw.match(/(\d+)/);
-                        if (strikeMatch) {
-                          const strike = parseInt(strikeMatch[0], 10);
-                          const asset = ASSET_LIST.find(a => a.ticker === ticker);
-                          if (asset) {
-                            useContractStore.getState().selectContractAtomically(asset, strike, true);
-                          }
-                        }
-                      }
-                    }
-                  }}
+                  onClick={() => toggleExpand(t.id)}
                 >
                   {/* Card Visible Header */}
                   <div className="p-3.5 flex items-center justify-between">
@@ -1275,27 +1268,7 @@ export function QuantAuditView({
                   className={`bg-[#050508] hover:bg-[#07070b]/60 border transition-all rounded-lg overflow-hidden cursor-pointer ${
                     isExpanded ? 'border-rose-500/40 bg-[#090606]/90 shadow-lg shadow-rose-900/5' : 'border-zinc-900/80 hover:border-zinc-800'
                   }`}
-                  onClick={() => {
-                    toggleExpand(t.id);
-                    if (isExpanded) {
-                      useContractStore.getState().setSelectedStrike(null);
-                    } else {
-                      const cleanStr = t.contract.trim();
-                      const parts = cleanStr.split(/\s+/);
-                      if (parts.length >= 2) {
-                        const ticker = parts[0];
-                        const contractRaw = parts[1];
-                        const strikeMatch = contractRaw.match(/(\d+)/);
-                        if (strikeMatch) {
-                          const strike = parseInt(strikeMatch[0], 10);
-                          const asset = ASSET_LIST.find(a => a.ticker === ticker);
-                          if (asset) {
-                            useContractStore.getState().selectContractAtomically(asset, strike, false);
-                          }
-                        }
-                      }
-                    }
-                  }}
+                  onClick={() => toggleExpand(t.id)}
                 >
                   {/* Card Visible Header */}
                   <div className="p-3.5 flex items-center justify-between">

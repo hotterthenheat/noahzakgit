@@ -734,6 +734,7 @@ export function DiscoveryView({
   const isLight = themeMode === 'light';
 
   const [contracts, setContracts] = useState(INITIAL_CONTRACTS);
+  const [expandedContracts, setExpandedContracts] = useState<Record<string, boolean>>({});
   const [activeShelf, setActiveShelf] = useState<'conviction' | 'improved' | 'mispriced' | 'invalidation' | 'whale' | 'all'>('conviction');
   const [searchQuery, setSearchQuery] = useState('');
   const [optionTypeFilter, setOptionTypeFilter] = useState<'all' | 'calls' | 'puts'>('all');
@@ -981,7 +982,7 @@ export function DiscoveryView({
     return groups;
   }, [filteredContracts]);
 
-  // Sort tickers: prioritize major indices SPX, NDX, QQQ, SPY, TSLA, etc.
+  // Sort tickers: prioritize major indices SPX, NDX, QQQ, SPY, RUT
   const sortedTickers = useMemo(() => {
     return Object.keys(groupedByTickerAndSorted).sort((a, b) => {
       const priority: Record<string, number> = { 'SPX': 1, 'NDX': 2, 'QQQ': 3, 'SPY': 4, 'RUT': 5 };
@@ -1126,20 +1127,34 @@ export function DiscoveryView({
           ))}
         </div>
 
-        {/* Mini Ticker/Strike search box */}
-        <div className={`md:col-span-2 relative flex items-center rounded-md px-2 py-1 border ${isLight ? 'bg-white border-zinc-200' : 'bg-[#070707] border-zinc-900'}`}>
-          <Search className="w-3.5 h-3.5 text-zinc-600 mr-1 shrink-0" />
+        {/* Mini Ticker/Strike search box - Glassmorphism, high-fidelity focus effect */}
+        <div className={`md:col-span-2 relative flex items-center rounded-lg px-3 py-1.5 border transition-all duration-300 focus-within:ring-1 focus-within:ring-[#4f8cff]/50 ${
+          isLight 
+            ? 'bg-zinc-50 border-zinc-200 focus-within:bg-white focus-within:border-zinc-400' 
+            : 'bg-black/60 border-zinc-900 focus-within:bg-[#07070a]/90 focus-within:border-zinc-700 shadow-inner'
+        }`}>
+          <Search className="w-3.5 h-3.5 text-zinc-500 mr-2 shrink-0" />
           <input 
             type="text" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="FILTER..." 
-            className={`w-full bg-transparent border-none text-[10px] font-black uppercase focus:outline-none placeholder-zinc-500 font-mono ${isLight ? 'text-zinc-900' : 'text-white'}`}
+            placeholder="FILTER BY TICKER OR STRIKE..." 
+            className={`w-full bg-transparent border-none text-[9.5px] font-black uppercase focus:outline-none placeholder-zinc-500 font-mono tracking-wider transition-all duration-200 ${
+              isLight ? 'text-zinc-900' : 'text-white'
+            }`}
           />
-          {searchQuery.length > 0 && (
-            <button onClick={() => setSearchQuery('')} className="text-zinc-500 hover:text-white text-[8px] uppercase font-bold pl-1 font-mono">
+          {searchQuery.length > 0 ? (
+            <button 
+              type="button"
+              onClick={() => setSearchQuery('')} 
+              className="text-zinc-500 hover:text-white text-[8px] uppercase font-bold pl-1 font-mono hover:underline shrink-0"
+            >
               CLEAR
             </button>
+          ) : (
+            <kbd className="hidden sm:inline-block bg-[#0f0f12] text-zinc-650 border border-zinc-900 px-1 py-[1.5px] rounded-xs font-mono text-[7px] select-none shrink-0">
+              TXT
+            </kbd>
           )}
         </div>
 
@@ -1293,7 +1308,7 @@ export function DiscoveryView({
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                       {tickerContracts.map((c, idx) => {
                         const actionColor = c.action === 'ENTER' 
                           ? 'text-[#00ff88] border-[#00ff88]/20 bg-[#00ff88]/5' 
@@ -1331,6 +1346,8 @@ export function DiscoveryView({
                         const quickScalpTarget = c.price * 1.18;
                         const quickScalpGain = 18;
 
+                        const isCardExpanded = !!expandedContracts[c.id];
+
                         return (
                           <motion.div
                             layout
@@ -1339,8 +1356,17 @@ export function DiscoveryView({
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ duration: 0.25 }}
-                            className={`p-4.5 border rounded-xl flex flex-col gap-3 text-left relative overflow-hidden shadow-xl transition-all duration-300 cursor-pointer ${highlightBg}`}
-                            onClick={() => handleSelectWithMatch(c.ticker, c.strike, c.isCall)}
+                            className={`p-4 border rounded-xl flex flex-col gap-2.5 text-left relative overflow-hidden shadow-xl transition-all duration-300 cursor-pointer ${
+                              isCardExpanded 
+                                ? `${highlightBg} ring-1 ring-zinc-700/50` 
+                                : `${isLight ? 'bg-white hover:bg-zinc-50 border-zinc-200' : 'bg-black/40 hover:bg-[#070709] border-zinc-900'} hover:border-zinc-700`
+                            }`}
+                            onClick={(e) => {
+                              setExpandedContracts(prev => ({
+                                ...prev,
+                                [c.id]: !prev[c.id]
+                              }));
+                            }}
                           >
                             
                             {/* Tiny neon glider strip */}
@@ -1375,7 +1401,7 @@ export function DiscoveryView({
                                     <>
                                       <span className="text-zinc-655">•</span>
                                       <span className="text-[7px] text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20 px-1 rounded uppercase">
-                                        🏆 GROUP LEADER
+                                        🏆 TEAM LEADER
                                       </span>
                                     </>
                                   )}
@@ -1383,104 +1409,134 @@ export function DiscoveryView({
                               </div>
 
                               {/* Expected Return */}
-                              <div className="text-right space-y-0.5">
-                                <span className="text-[7.5px] text-zinc-650 tracking-wider block font-bold uppercase">EXPECTED ARR</span>
-                                <span className={`text-sm font-black tracking-tight ${c.health >= 55 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                  {c.expectedMove}
-                                </span>
+                              <div className="text-right flex items-start gap-3">
+                                <div className="space-y-0.5">
+                                  <span className="text-[7.5px] text-zinc-650 tracking-wider block font-bold uppercase">EXPECTED ARR</span>
+                                  <span className={`text-sm font-black tracking-tight ${c.health >= 55 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                    {c.expectedMove}
+                                  </span>
+                                </div>
+                                <div className="pt-1 select-none text-zinc-500">
+                                  {isCardExpanded ? (
+                                    <ChevronUp className="w-4 h-4 text-zinc-400 transition-transform duration-250" />
+                                  ) : (
+                                    <ChevronDown className="w-4 h-4 text-zinc-600 hover:text-zinc-450 transition-transform duration-250" />
+                                  )}
+                                </div>
                               </div>
                             </div>
 
-                            {/* DOUBLE TARGETS (Institutional Swing vs Volatility Scalp Targets) */}
-                            <div className={`grid grid-cols-2 gap-2 p-2 rounded-lg text-center text-[10px] border ${c_pillBg}`}>
-                              <div className={`border-r text-left pl-1 ${isLight ? 'border-zinc-200' : 'border-zinc-900'}`}>
-                                <div className="text-[7px] text-zinc-550 uppercase tracking-widest font-black block">🎯 SWING TARGET</div>
-                                <span className={`font-extrabold font-mono block text-xs ${c_textWhite}`}>
-                                  ${coreSwingTarget.toFixed(2)}
-                                </span>
-                                <span className="text-[7.5px] text-emerald-500 font-bold font-mono">
-                                  +{coreSwingGain}% GAIN
-                                </span>
-                              </div>
-                              <div className="text-left pl-2">
-                                <div className="text-[7px] text-zinc-550 uppercase tracking-widest font-black block">⚡ SCALP EXITS</div>
-                                <span className="text-amber-500 font-extrabold font-mono block text-xs">
-                                  ${quickScalpTarget.toFixed(2)}
-                                </span>
-                                <span className="text-[7.5px] text-amber-500 font-bold font-mono">
-                                  +{quickScalpGain}% GAIN
-                                </span>
-                              </div>
-                            </div>
+                            {/* COMPRESSED GRID SEGMENT EXPANDED ONLY INLINE */}
+                            {isCardExpanded && (
+                              <div className="space-y-3 mt-1 pt-3 border-t border-zinc-900/40 animate-fadeIn">
+                                {/* DOUBLE TARGETS (Institutional Swing vs Volatility Scalp Targets) */}
+                                <div className={`grid grid-cols-2 gap-2 p-2 rounded-lg text-center text-[10px] border ${c_pillBg}`}>
+                                  <div className={`border-r text-left pl-1 ${isLight ? 'border-zinc-200' : 'border-zinc-900'}`}>
+                                    <div className="text-[7px] text-zinc-550 uppercase tracking-widest font-black block">🎯 SWING TARGET</div>
+                                    <span className={`font-extrabold font-mono block text-xs ${c_textWhite}`}>
+                                      ${coreSwingTarget.toFixed(2)}
+                                    </span>
+                                    <span className="text-[7.5px] text-emerald-500 font-bold font-mono">
+                                      +{coreSwingGain}% GAIN
+                                    </span>
+                                  </div>
+                                  <div className="text-left pl-2">
+                                    <div className="text-[7px] text-zinc-550 uppercase tracking-widest font-black block">⚡ SCALP EXITS</div>
+                                    <span className="text-amber-500 font-extrabold font-mono block text-xs">
+                                      ${quickScalpTarget.toFixed(2)}
+                                    </span>
+                                    <span className="text-[7.5px] text-amber-500 font-bold font-mono">
+                                      +{quickScalpGain}% GAIN
+                                    </span>
+                                  </div>
+                                </div>
 
-                            {/* Plain English explanation why this trade is selected (simple words!) */}
-                            <div className={`p-2.5 rounded-lg text-[9.5px]/[14.5px] tracking-wide text-left flex gap-1.5 items-start font-sans uppercase border ${c_innerCardBg} ${isLight ? 'text-zinc-650' : 'text-zinc-400'}`}>
-                              <Info className="w-3.5 h-3.5 text-[#4f8cff] shrink-0 mt-0.5" />
-                              <div className="font-medium tracking-wide">
-                                <span className="text-[#4f8cff] font-extrabold mr-1">WHY THE BEST:</span>
-                                {getSimpleWordReason(c)}
-                              </div>
-                            </div>
+                                {/* Plain English explanation why this trade is selected (simple words!) */}
+                                <div className={`p-2.5 rounded-lg text-[9.5px]/[14.5px] tracking-wide text-left flex gap-1.5 items-start font-sans uppercase border ${c_innerCardBg} ${isLight ? 'text-zinc-650' : 'text-zinc-400'}`}>
+                                  <Info className="w-3.5 h-3.5 text-[#4f8cff] shrink-0 mt-0.5" />
+                                  <div className="font-medium tracking-wide">
+                                    <span className="text-[#4f8cff] font-extrabold mr-1">WHY THE BEST:</span>
+                                    {getSimpleWordReason(c)}
+                                  </div>
+                                </div>
 
-                            {/* Short Analytical Narrative */}
-                            <p className={`text-[10px] font-sans tracking-wide leading-relaxed uppercase border-t pt-2.5 ${isLight ? 'border-zinc-200 text-zinc-600' : 'border-zinc-900/50 text-zinc-450'}`}>
-                              {c.narrative}
-                            </p>
+                                {/* Short Analytical Narrative */}
+                                <p className={`text-[10px] font-sans tracking-wide leading-relaxed uppercase border-t pt-2.5 ${isLight ? 'border-zinc-200 text-zinc-600' : 'border-zinc-900/50 text-zinc-450'}`}>
+                                  {c.narrative}
+                                </p>
 
-                            {/* Quantitative Stats Matrix */}
-                            <div className={`border rounded-lg p-2.5 grid grid-cols-4 gap-2 text-center text-[10px] font-mono ${isLight ? 'bg-zinc-50 border-zinc-200 text-zinc-700' : 'bg-black/40 border-zinc-900/50 text-zinc-400'}`}>
-                              <div>
-                                <span className="block text-[7.5px] text-zinc-550 mb-0.5 tracking-wider uppercase">DELTA</span>
-                                <span className={`font-bold block ${c.isCall ? 'text-emerald-500/80' : 'text-rose-500/80'}`}>{c.delta}</span>
-                              </div>
-                              <div>
-                                <span className="block text-[7.5px] text-zinc-550 mb-0.5 tracking-wider uppercase">GAMMA</span>
-                                <span className={`font-bold block ${isLight ? 'text-zinc-800' : 'text-white'}`}>{c.gamma}</span>
-                              </div>
-                              <div>
-                                <span className="block text-[7.5px] text-zinc-550 mb-0.5 tracking-wider uppercase">THETA</span>
-                                <span className="text-amber-500/80 font-bold block">{c.theta}</span>
-                              </div>
-                              <div>
-                                <span className="block text-[7.5px] text-zinc-550 mb-0.5 tracking-wider uppercase">VOLATILITY</span>
-                                <span className={`font-bold block ${isLight ? 'text-zinc-850' : 'text-zinc-400'}`}>{(c.volume / 1000).toFixed(1)}k</span>
-                              </div>
-                            </div>
+                                {/* Quantitative Stats Matrix */}
+                                <div className={`border rounded-lg p-2.5 grid grid-cols-4 gap-2 text-center text-[10px] font-mono ${isLight ? 'bg-zinc-50 border-zinc-200 text-zinc-700' : 'bg-black/40 border-zinc-900/50 text-zinc-400'}`}>
+                                  <div>
+                                    <span className="block text-[7.5px] text-zinc-550 mb-0.5 tracking-wider uppercase">DELTA</span>
+                                    <span className={`font-bold block ${c.isCall ? 'text-emerald-500/80' : 'text-rose-500/80'}`}>{c.delta}</span>
+                                  </div>
+                                  <div>
+                                    <span className="block text-[7.5px] text-zinc-550 mb-0.5 tracking-wider uppercase">GAMMA</span>
+                                    <span className={`font-bold block ${isLight ? 'text-zinc-800' : 'text-white'}`}>{c.gamma}</span>
+                                  </div>
+                                  <div>
+                                    <span className="block text-[7.5px] text-zinc-550 mb-0.5 tracking-wider uppercase">THETA</span>
+                                    <span className="text-amber-500/80 font-bold block">{c.theta}</span>
+                                  </div>
+                                  <div>
+                                    <span className="block text-[7.5px] text-zinc-550 mb-0.5 tracking-wider uppercase">VOLATILITY</span>
+                                    <span className={`font-bold block ${isLight ? 'text-zinc-850' : 'text-zinc-400'}`}>{(c.vega * 100).toFixed(1)}%</span>
+                                  </div>
+                                </div>
 
-                            {/* Pricing Segment */}
-                            <div className="flex justify-between items-center pt-2.5 border-t border-zinc-900/50 text-[10.5px]">
-                              <div className="space-y-0.5">
-                                <span className="text-[7.5px] text-zinc-600 uppercase block tracking-wider font-bold">SPREAD SENSITIVITY</span>
-                                <span className="text-zinc-500 font-mono font-bold block">
-                                  ${c.bid.toFixed(2)} - ${c.ask.toFixed(2)}
-                                </span>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-[7.5px] text-zinc-500 uppercase block tracking-wider font-bold">LIVE MID PREMIUM</span>
-                                <motion.span 
-                                  animate={isFlashing ? { scale: [1, 1.15, 1] } : {}}
-                                  className={`text-xs font-black block transition-all duration-300 ${
-                                    isFlashing 
-                                      ? (flashDirection === 'up' ? 'text-[#00ff88]' : 'text-rose-400')
-                                      : 'text-white'
-                                  }`}
+                                {/* Pricing Segment */}
+                                <div className="flex justify-between items-center pt-2.5 border-t border-zinc-900/50 text-[10.5px]">
+                                  <div className="space-y-0.5">
+                                    <span className="text-[7.5px] text-zinc-650 uppercase block tracking-wider font-bold">SPREAD SENSITIVITY</span>
+                                    <span className="text-zinc-500 font-mono font-bold block">
+                                      ${c.bid.toFixed(2)} - ${c.ask.toFixed(2)}
+                                    </span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="text-[7.5px] text-zinc-500 uppercase block tracking-wider font-bold">LIVE MID PREMIUM</span>
+                                    <motion.span 
+                                      animate={isFlashing ? { scale: [1, 1.15, 1] } : {}}
+                                      className={`text-xs font-black block transition-all duration-300 ${
+                                        isFlashing 
+                                          ? (flashDirection === 'up' ? 'text-[#00ff88]' : 'text-rose-400')
+                                          : 'text-white'
+                                      }`}
+                                    >
+                                      ${c.price.toFixed(2)}
+                                    </motion.span>
+                                  </div>
+                                </div>
+
+                                {/* Action Button matching Skyeyes Call to Action */}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSelectWithMatch(c.ticker, c.strike, c.isCall);
+                                  }}
+                                  className="w-full py-2.5 bg-gradient-to-r from-zinc-900 to-black hover:from-white hover:to-white hover:text-black border border-zinc-900 text-[8.5px] text-zinc-400 hover:text-black font-extrabold uppercase tracking-widest rounded-md mt-1 transition-all duration-300 cursor-pointer flex items-center justify-center gap-1 shadow-md hover:shadow-lg hover:-translate-y-[1px]"
                                 >
-                                  ${c.price.toFixed(2)}
-                                </motion.span>
+                                  <span>LAUNCH DEEP SKYEYES ASSESSMENT</span>
+                                  <ArrowRight className="w-2.5 h-2.5" />
+                                </button>
                               </div>
-                            </div>
+                            )}
 
-                            {/* Action Button matching Skyeyes Call to Action */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSelectWithMatch(c.ticker, c.strike, c.isCall);
-                              }}
-                              className="w-full py-2.5 bg-gradient-to-r from-zinc-900 to-black hover:from-white hover:to-white hover:text-black border border-zinc-900 text-[8.5px] text-zinc-400 hover:text-black font-extrabold uppercase tracking-widest rounded-md mt-1 transition-all duration-300 cursor-pointer flex items-center justify-center gap-1"
-                            >
-                              <span>LAUNCH DEEP SKYEYES ASSESSMENT</span>
-                              <ArrowRight className="w-2.5 h-2.5" />
-                            </button>
+                            {/* Click to expand/collapse hint always visible at bottom */}
+                            <div className="flex justify-between items-center text-[7.5px] font-sans text-zinc-500 uppercase tracking-wider pt-2 border-t border-zinc-900/10 dark:border-zinc-900/20 w-full mt-2.5 select-none">
+                              <span className="flex items-center gap-1 font-bold">
+                                {isCardExpanded ? (
+                                  <>⚡ CLICK TO COLLAPSE</>
+                                ) : (
+                                  <>⚡ CLICK TO EXPAND ↓</>
+                                )}
+                              </span>
+                              <span className="flex items-center gap-0.5 hover:text-zinc-300">
+                                {isCardExpanded ? "COLLAPSE" : "DETAILS"}
+                                <ChevronDown className={`w-3.5 h-3.5 text-zinc-500 transition-transform duration-300 ${isCardExpanded ? 'rotate-180 text-amber-500' : ''}`} />
+                              </span>
+                            </div>
 
                           </motion.div>
                         );

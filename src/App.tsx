@@ -1,5 +1,5 @@
-import { useState, useEffect, memo } from 'react';
-import { motion } from 'motion/react';
+import { useState, useEffect, memo, useRef, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useContractStore } from './lib/store';
 import { ASSET_LIST } from './data';
 import { AssetInfo } from './types';
@@ -30,7 +30,9 @@ import {
   Smartphone,
   FileText,
   SlidersHorizontal,
-  GraduationCap
+  GraduationCap,
+  Search,
+  ChevronRight
 } from 'lucide-react';
 
 const TickerTape = memo(() => {
@@ -115,6 +117,178 @@ export default function App() {
 
   // User session state (Bug #9 HttpOnly cookie verification and storage)
   const [session, setSession] = useState<{ authenticated: boolean; name?: string; provider?: string; avatar?: string } | null>(null);
+
+  // Global Command Palette states (Prism Menu) backed by our Zustand store
+  const isGlobalSearchOpen = useContractStore(s => s.isGlobalSearchOpen);
+  const setIsGlobalSearchOpen = useContractStore(s => s.setIsGlobalSearchOpen);
+  const trades = useContractStore(s => s.trades);
+
+  const [globalSearchInput, setGlobalSearchInput] = useState('');
+  const [globalSearchIndex, setGlobalSearchIndex] = useState(0);
+  const globalSearchInputRef = useRef<HTMLInputElement>(null);
+
+  const filterTickersList = useMemo(() => {
+    const query = globalSearchInput.trim().toLowerCase();
+
+    // 1. Auditor ledger search context (pulling the original archive transactions and options)
+    if (activeTab === 'auditor') {
+      const staticContracts = [
+        { ticker: 'SPX', name: 'SPX 7650C Call Winning Transaction', contract: 'SPX 7650C', pnl: '+$4.20B', status: 'Success Target 3', id: 'stat-1', isContract: true },
+        { ticker: 'NDX', name: 'NDX 18200C Call Early Closed Transaction', contract: 'NDX 18200C', pnl: '+$2.50B', status: 'Success Target 2', id: 'stat-2', isContract: true },
+        { ticker: 'NDX', name: 'NDX 18200P Put Swing Trade', contract: 'NDX 18200P', pnl: '+$1.80B', status: 'Success Target 2', id: 'stat-sp1', isContract: true },
+        { ticker: 'SPY', name: 'SPY 448P Put Imbalance Washout', contract: 'SPY 448P', pnl: '+$240M', status: 'Success Target 3', id: 'stat-sp2', isContract: true },
+        { ticker: 'QQQ', name: 'QQQ 492P Volatility Expansion Swing', contract: 'QQQ 492P', pnl: '-$45M', status: 'Stop Loss Hit', id: 'stat-sp3', isContract: true },
+        { ticker: 'SPY', name: 'SPY 445P Put Short Cover Raid', contract: 'SPY 445P', pnl: '+$310M', status: 'Success Target 3', id: 'stat-sp4', isContract: true },
+      ];
+
+      const convertedLive = trades.map(t => ({
+        ticker: t.underlying,
+        name: `${t.underlying} ${t.contract} ${t.direction === 'BULLISH' ? 'CALL' : 'PUT'} Execution`,
+        contract: t.contract,
+        pnl: t.maxGain > 0 ? `+${t.maxGain.toFixed(1)}%` : 'Active Tracker',
+        status: t.target3Hit ? 'Target 3 Clipped' : t.target2Hit ? 'Target 2 Clipped' : 'Staged/Live',
+        id: t.id,
+        isContract: true
+      }));
+
+      const mergedContracts = [...convertedLive, ...staticContracts];
+
+      if (!query) return mergedContracts;
+      
+      return mergedContracts.filter(c => 
+        c.contract.toLowerCase().includes(query) || 
+        c.name.toLowerCase().includes(query) ||
+        c.status.toLowerCase().includes(query) ||
+        c.ticker.toLowerCase().includes(query)
+      );
+    }
+
+    // 3. Tools search context (Physics module, Visualizers, Order Flow toxicity)
+    if (activeTab === 'arbor') {
+      const toolsItems = [
+        { ticker: 'SVI', name: 'SVI Volatility Solver', pnl: 'Physics Module', id: 'svi-solver', isTool: true },
+        { ticker: 'G3D', name: '3D Gamma Topography', pnl: 'Visualizer', id: 'gamma-surface', isTool: true },
+        { ticker: 'VPIN', name: 'Order Flow Toxicity', pnl: 'Microstructure', id: 'vpin-tracker', isTool: true }
+      ];
+      if (!query) return toolsItems;
+      return toolsItems.filter(item => 
+        item.name.toLowerCase().includes(query) || 
+        item.ticker.toLowerCase().includes(query) ||
+        item.pnl.toLowerCase().includes(query)
+      );
+    }
+
+    // 4. Default / Trading cockpit tickers list
+    const defaultTickers = [
+      { ticker: 'SPX', name: 'S&P 500 Index', price: 7623.00, change: '+0.88%', isUp: true, isContract: false },
+      { ticker: 'NDX', name: 'Nasdaq 100 Index', price: 18250.00, change: '+1.42%', isUp: true, isContract: false },
+      { ticker: 'QQQ', name: 'Invesco QQQ Trust', price: 445.50, change: '+1.24%', isUp: true, isContract: false },
+      { ticker: 'SPY', name: 'SPDR S&P 500 ETF', price: 512.30, change: '+0.65%', isUp: true, isContract: false },
+      { ticker: 'RUT', name: 'Russell 2000 Index', price: 2025.00, change: '+0.92%', isUp: true, isContract: false },
+    ];
+    if (!query) return defaultTickers;
+    
+    return defaultTickers
+      .filter(t => 
+        t.ticker.toLowerCase().includes(query) || 
+        t.name.toLowerCase().includes(query)
+      )
+      .sort((a, b) => {
+        const aStarts = a.ticker.toLowerCase().startsWith(query);
+        const bStarts = b.ticker.toLowerCase().startsWith(query);
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+        return 0;
+      });
+  }, [globalSearchInput, activeTab, trades]);
+
+  useEffect(() => {
+    if (isGlobalSearchOpen) {
+      setGlobalSearchInput('');
+      setGlobalSearchIndex(0);
+      document.body.classList.add('prism-locked'); // Lock background scrolling
+      const timer = setTimeout(() => {
+        globalSearchInputRef.current?.focus();
+      }, 80);
+      return () => {
+        clearTimeout(timer);
+        document.body.classList.remove('prism-locked'); // Unlock scrolling
+      };
+    } else {
+      document.body.classList.remove('prism-locked');
+    }
+  }, [isGlobalSearchOpen]);
+
+  useEffect(() => {
+    const handleGlobalSearchKeys = (e: KeyboardEvent) => {
+      // CMD+K or Global Search Focus key
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        const currentOpen = useContractStore.getState().isGlobalSearchOpen;
+        useContractStore.getState().setIsGlobalSearchOpen(!currentOpen);
+      } else if (e.key === 'Escape') {
+        useContractStore.getState().setIsGlobalSearchOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalSearchKeys);
+    return () => window.removeEventListener('keydown', handleGlobalSearchKeys);
+  }, []);
+
+  const handleGlobalSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setGlobalSearchIndex(prev => (prev + 1) % filterTickersList.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setGlobalSearchIndex(prev => (prev - 1 + filterTickersList.length) % filterTickersList.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (filterTickersList[globalSearchIndex]) {
+        const item = filterTickersList[globalSearchIndex] as any;
+        if (item.isContract) {
+          useContractStore.setState({
+            activeTab: 'auditor',
+            auditSearchQuery: item.contract,
+            expandedAuditId: item.id
+          });
+
+        } else if (item.isTool) {
+          if (item.id === 'svi-solver') {
+            useContractStore.setState({
+              activeTab: 'pinpoint',
+              auditSearchQuery: '',
+              expandedAuditId: null
+            });
+          } else if (item.id === 'gamma-surface') {
+            useContractStore.setState({
+              activeTab: 'skyvision',
+              auditSearchQuery: '',
+              expandedAuditId: null
+            });
+          } else if (item.id === 'vpin-tracker') {
+            useContractStore.setState({
+              activeTab: 'dealerflow',
+              auditSearchQuery: '',
+              expandedAuditId: null
+            });
+          }
+        } else {
+          const targetAsset = ASSET_LIST.find(a => a.ticker === item.ticker);
+          if (targetAsset) {
+            setSelectedAsset(targetAsset);
+            useContractStore.setState({
+              auditSearchQuery: '',
+              expandedAuditId: null
+            });
+          }
+        }
+        setIsGlobalSearchOpen(false);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setIsGlobalSearchOpen(false);
+    }
+  };
 
   // Fetch session on load
   const fetchSession = async () => {
@@ -235,7 +409,7 @@ export default function App() {
     const targetStrike = strike || Math.round(asset.defaultPrice / step) * step;
     
     useContractStore.getState().selectContractAtomically(asset, targetStrike, type === 'C');
-    setActiveTab('skyvision');
+    setActiveTab('skyvision', true);
   };
 
   // Safe fallback loading state and skeletal setup
@@ -310,11 +484,11 @@ export default function App() {
         )}
         {!showColoredBg && (
           <>
-            <div className={`absolute inset-0 ${isLight ? 'bg-gradient-to-b from-black/[0.005] via-transparent to-white/[0.05]' : 'bg-gradient-to-b from-white/[0.012] via-transparent to-black/[0.12]'} backdrop-blur-[1px] pointer-events-none transition-all duration-700`} />
-            <div className={`absolute top-[-10%] left-[-10%] w-[52%] h-[52%] rounded-full ${isLight ? 'bg-zinc-950/10' : 'bg-white/6'} blur-[120px] animate-fluid-blob-1 transition-all duration-700`} />
-            <div className={`absolute bottom-[-15%] right-[-10%] w-[60%] h-[55%] rounded-full ${isLight ? 'bg-slate-900/10' : 'bg-zinc-400/5'} blur-[140px] animate-fluid-blob-2 transition-all duration-700`} />
-            <div className={`absolute top-[35%] right-[20%] w-[40%] h-[40%] rounded-full ${isLight ? 'bg-zinc-900/8' : 'bg-zinc-650/4'} blur-[110px] animate-fluid-blob-3 transition-all duration-700`} />
-            <div className={`absolute top-[10%] right-[40%] w-[35%] h-[35%] rounded-full ${isLight ? 'bg-indigo-950/10' : 'bg-white/3'} blur-[90px] animate-pulse transition-all duration-700`} />
+            <div className="absolute inset-0 bg-gradient-to-b from-white/[0.012] via-transparent to-black/[0.12] backdrop-blur-[1px] pointer-events-none transition-all duration-700" />
+            <div className="absolute top-[-10%] left-[-10%] w-[52%] h-[52%] rounded-full bg-white/6 blur-[120px] animate-fluid-blob-1 transition-all duration-700" />
+            <div className="absolute bottom-[-15%] right-[-10%] w-[60%] h-[55%] rounded-full bg-zinc-400/5 blur-[140px] animate-fluid-blob-2 transition-all duration-700" />
+            <div className="absolute top-[35%] right-[20%] w-[40%] h-[40%] rounded-full bg-zinc-650/4 blur-[110px] animate-fluid-blob-3 transition-all duration-700" />
+            <div className="absolute top-[10%] right-[40%] w-[35%] h-[35%] rounded-full bg-white/3 blur-[90px] animate-pulse transition-all duration-700" />
           </>
         )}
       </div>
@@ -368,14 +542,14 @@ export default function App() {
           {/* Active Workstation selector dropdown on hover */}
           <div className="relative group py-1">
             <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 hover:text-white cursor-pointer select-none bg-zinc-950/80 hover:bg-zinc-900 border border-zinc-850 px-3 py-1.5 rounded-md transition-all">
-              <span className={`w-1.5 h-1.5 rounded-full ${['home', 'skyvision', 'pinpoint', 'auditor', 'dealerflow'].includes(activeTab) ? 'animate-pulse bg-emerald-400' : 'bg-zinc-650'}`} />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>ACTIVE ENGINE: <span className="text-white uppercase font-black">
                 {activeTab === 'home' && 'Ecosystem Introduction'}
                 {activeTab === 'skyvision' && 'Slayer // SkyVision'}
                 {activeTab === 'pinpoint' && 'Slayer // Pinpoint'}
                 {activeTab === 'auditor' && 'Trust Archive & Registry'}
                 {activeTab === 'dealerflow' && 'Dealer Flow'}
-                {!['home', 'skyvision', 'pinpoint', 'auditor', 'dealerflow'].includes(activeTab) && 'SELECT'}
+                {activeTab === 'arbor' && 'Research & Community'}
               </span></span>
               <span className="text-[8px] text-zinc-650 group-hover:text-white transition-transform duration-200">▼</span>
             </div>
@@ -457,26 +631,9 @@ export default function App() {
                 </span>
                 <span className="text-[8px] text-zinc-650">GAMMA FLOW</span>
               </button>
-            </div>
-          </div>
 
-          <span className="text-zinc-800 text-xs hidden sm:inline">/</span>
-
-          {/* More Power Tools selector dropdown on hover */}
-          <div className="relative group py-1">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 hover:text-white cursor-pointer select-none bg-zinc-950/80 hover:bg-zinc-900 border border-zinc-850 px-3 py-1.5 rounded-md transition-all">
-              <span className={`w-1.5 h-1.5 rounded-full ${['arbor'].includes(activeTab) ? 'animate-pulse bg-cyan-450' : 'bg-zinc-655'}`} />
-              <span>MORE POWER TOOLS: <span className="text-white uppercase font-black">
-                {activeTab === 'arbor' && 'Research & Community'}
-                {!['arbor'].includes(activeTab) && 'SELECT'}
-              </span></span>
-              <span className="text-[8px] text-zinc-650 group-hover:text-white transition-transform duration-200">▼</span>
-            </div>
-            
-            {/* Hover options list */}
-            <div className="absolute top-full left-0 mt-1 w-[22rem] bg-[#09090b] border border-zinc-850 rounded-sm shadow-2xl opacity-0 scale-95 origin-top-left invisible group-hover:opacity-100 group-hover:scale-100 group-hover:visible transition-all duration-150 z-50 p-2 space-y-1 max-h-[80vh] overflow-y-auto">
-              <div className="text-[8px] text-zinc-650 font-black tracking-widest px-2 py-1 border-b border-[#121214] uppercase mb-1">
-                SELECT POWER TOOL
+              <div className="text-[8px] text-zinc-650 font-black tracking-widest px-2 py-1 border-t border-b border-[#121214] uppercase my-1">
+                MORE POWER TOOLS
               </div>
 
               <button
@@ -493,12 +650,10 @@ export default function App() {
                 </span>
                 <span className="text-[8px] text-zinc-650">KNOWLEDGE</span>
               </button>
-
-
             </div>
           </div>
 
-
+          {/* Timeframe picker removed from top bar */}
         </div>
 
         {/* Real HTTP OAuth Action segment header (Bug #9) */}
@@ -541,63 +696,6 @@ export default function App() {
  
        {/* Main workspace frame */}
        <main className="flex-1 p-4 md:p-6 flex flex-col gap-6 w-full max-w-full justify-start">
-        {/* Global Asset & Timeframe pickers rendered at the top of the active page layout */}
-        {activeTab !== 'home' && activeTab !== 'skyvision' && activeTab !== 'auditor' && (
-          <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-lg border gap-3 ${
-            isLight 
-              ? 'bg-zinc-50 border-zinc-200 text-zinc-900 shadow-sm' 
-              : 'bg-[#09090b] border-zinc-900 text-zinc-100 shadow-2xl relative z-10'
-          }`}>
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className={`text-[10px] font-mono uppercase tracking-wider font-bold ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}>
-                Active Workstation Controls // {selectedAsset.name} ({selectedAsset.ticker})
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={`text-[9px] font-mono uppercase font-black ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>ACTIVE TICKER:</span>
-              <select
-                value={selectedAsset.ticker}
-                onChange={(e) => {
-                  const targetAsset = ASSET_LIST.find(a => a.ticker === e.target.value);
-                  if (targetAsset) {
-                    setSelectedAsset(targetAsset);
-                  }
-                }}
-                className={`border text-[10px] font-black py-1 px-3 rounded-md focus:outline-none focus:border-zinc-500 cursor-pointer transition-all ${
-                  isLight 
-                    ? 'bg-white border-zinc-300 text-zinc-800 hover:border-zinc-400' 
-                    : 'bg-black border-zinc-800 text-white focus:border-zinc-700'
-                }`}
-              >
-                {ASSET_LIST.map(a => (
-                  <option key={a.ticker} value={a.ticker}>{a.ticker}</option>
-                ))}
-              </select>
-              {activeTab !== 'dealerflow' && (
-                <>
-                  <span className="text-zinc-800 text-xs hidden sm:inline">|</span>
-                  <span className={`text-[9px] font-mono uppercase font-black ${isLight ? 'text-zinc-500' : 'text-zinc-400'}`}>TIMEFRAME:</span>
-                  <select
-                    value={selectedTimeframe}
-                    onChange={(e) => setSelectedTimeframe(e.target.value as any)}
-                    className={`border text-[10px] font-black py-1 px-3 rounded-md focus:outline-none focus:border-zinc-500 cursor-pointer transition-all ${
-                      isLight 
-                        ? 'bg-white border-zinc-300 text-zinc-800 hover:border-zinc-400' 
-                        : 'bg-black border-zinc-800 text-white focus:border-zinc-700'
-                    }`}
-                  >
-                    <option value="5m">5m</option>
-                    <option value="15m">15m</option>
-                    <option value="1h">1h</option>
-                    <option value="4h">4h</option>
-                    <option value="1d">1d</option>
-                  </select>
-                </>
-              )}
-            </div>
-          </div>
-        )}
         {/* TAB 1: HOME */}
         {activeTab === 'home' && (
           <div className="animate-fadeIn">
@@ -629,7 +727,7 @@ export default function App() {
 
         {/* TAB 3: PINPOINT AI (MARKET INTELLIGENCE) */}
         {activeTab === 'pinpoint' && (
-          <div className="view-enter border border-zinc-900 bg-[#060607] rounded-md p-1 drop-shadow-2xl relative z-10">
+          <div className="view-enter border border-zinc-900 bg-[#060607]/80 rounded-md p-1 drop-shadow-2xl">
             <PinpointAIView />
           </div>
         )}
@@ -655,18 +753,12 @@ export default function App() {
           </div>
         )}
 
-
-
-
-
         {/* TAB 11: RESEARCH & COMMUNITY */}
         {activeTab === 'arbor' && (
           <div className="view-enter">
             <ArborCapital />
           </div>
         )}
-
-
       </main>
 
       {/* Terminal Footer Status Bar */}
@@ -709,6 +801,146 @@ export default function App() {
           {isLight ? <Sun className="w-5.5 h-5.5 text-amber-500" /> : <Moon className="w-5.5 h-5.5 text-indigo-400" />}
         </motion.div>
       </button>
+
+      {/* ============================================================
+       PRISM GLOBAL COMMAND MENU PALETTE MODAL (CMD+K Gateway)
+       ============================================================ */}
+      <AnimatePresence>
+        {isGlobalSearchOpen && (
+          <div 
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setIsGlobalSearchOpen(false);
+              }
+            }}
+            className="fixed inset-0 bg-black/90 z-[999] flex items-center justify-center p-4 backdrop-blur-md font-mono cursor-default" 
+            id="prism-menu"
+          >
+            <motion.div 
+              initial={{ scale: 0.98, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.98, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="w-full max-w-lg bg-[#0e0e11] border border-zinc-850 rounded-lg shadow-2xl overflow-hidden text-left"
+            >
+              <div className="p-4 border-b border-zinc-900/60 flex items-center gap-3">
+                <Search className="w-4 h-4 text-zinc-500 animate-pulse" />
+                <input 
+                  type="text"
+                  ref={globalSearchInputRef}
+                  value={globalSearchInput}
+                  onChange={(e) => {
+                    setGlobalSearchInput(e.target.value);
+                    setGlobalSearchIndex(0);
+                  }}
+                  onKeyDown={handleGlobalSearchKeyDown}
+                  placeholder="Type search keyword or select computing token..."
+                  className="w-full bg-zinc-950 border border-zinc-850 px-3.5 py-1.5 text-white text-xs placeholder-zinc-650 font-mono rounded-md focus:ring-1 focus:ring-emerald-500/80 focus:border-emerald-500/80 focus:outline-none text-[11px]"
+                />
+                <button 
+                  type="button"
+                  onClick={() => setIsGlobalSearchOpen(false)}
+                  className="text-zinc-500 hover:text-white text-[9px] uppercase font-black transition-colors focus:outline-none"
+                >
+                  ESC
+                </button>
+              </div>
+
+              <div className="p-3 max-h-[320px] overflow-y-auto">
+                <div className="text-[7.5px] text-[#5c5c68] font-extrabold uppercase px-3 py-1.5 tracking-wider">
+                  {activeTab === 'auditor' ? 'SEARCH ACCOUNTABILITY TRANSACTIONS & OPTIONS' : 'SELECT INDEX OR INSTITUTIONAL ASSET TO COMPUTE'}
+                </div>
+
+                <div className="space-y-[1.5px] mt-1">
+                  {filterTickersList.map((tickerItemRaw, idx) => {
+                    const tickerItem = tickerItemRaw as any;
+                    const isActive = idx === globalSearchIndex;
+                    const isTkActive = selectedAsset.ticker === tickerItem.ticker;
+                    
+                    return (
+                      <button
+                        key={tickerItem.isContract ? tickerItem.id : tickerItem.ticker || tickerItem.id}
+                        type="button"
+                        onClick={() => {
+                          if (tickerItem.isContract) {
+                            useContractStore.setState({
+                              activeTab: 'auditor',
+                              auditSearchQuery: tickerItem.contract,
+                              expandedAuditId: tickerItem.id
+                            });
+
+                          } else if (tickerItem.isTool) {
+                            if (tickerItem.id === 'svi-solver') {
+                              useContractStore.setState({
+                                activeTab: 'pinpoint',
+                                auditSearchQuery: '',
+                                expandedAuditId: null
+                              });
+                            } else if (tickerItem.id === 'gamma-surface') {
+                              useContractStore.setState({
+                                activeTab: 'skyvision',
+                                auditSearchQuery: '',
+                                expandedAuditId: null
+                              });
+                            } else if (tickerItem.id === 'vpin-tracker') {
+                              useContractStore.setState({
+                                activeTab: 'dealerflow',
+                                auditSearchQuery: '',
+                                expandedAuditId: null
+                              });
+                            }
+                          } else {
+                            const targetAsset = ASSET_LIST.find(a => a.ticker === tickerItem.ticker);
+                            if (targetAsset) {
+                              setSelectedAsset(targetAsset);
+                              useContractStore.setState({
+                                auditSearchQuery: '',
+                                expandedAuditId: null
+                              });
+                            }
+                          }
+                          setIsGlobalSearchOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between text-left px-4 py-3 rounded-md transition-all border outline-none focus:outline-none cursor-pointer ${
+                          isActive 
+                            ? 'bg-[#18181c] border-zinc-800' 
+                            : 'bg-transparent border-transparent'
+                        }`}
+                        onMouseEnter={() => setGlobalSearchIndex(idx)}
+                      >
+                        <div className="flex items-center gap-3.5 flex-1 min-w-0 pr-2">
+                          <span className={`text-[12px] font-black tracking-wider shrink-0 ${isActive ? 'text-[#38bdf8]' : isTkActive ? 'text-emerald-450' : 'text-zinc-300'}`}>
+                            {tickerItem.isContract ? tickerItem.contract : tickerItem.ticker}
+                          </span>
+                          <span className="text-[10px] text-zinc-500 uppercase font-medium truncate">
+                            {tickerItem.name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2.5 shrink-0">
+                          <span className="text-[10px] font-bold text-zinc-400 font-mono">
+                            {tickerItem.isContract || tickerItem.isTool ? tickerItem.pnl : `$${tickerItem.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                          </span>
+                          <ChevronRight className={`w-3.5 h-3.5 transition-colors ${isActive ? 'text-white' : 'text-zinc-700'}`} />
+                        </div>
+                      </button>
+                    );
+                  })}
+                  {filterTickersList.length === 0 && (
+                    <div className="text-zinc-650 font-mono text-[9px] text-center uppercase py-8 tracking-widest">
+                      No matching records found
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-black/40 px-4 py-2 border-t border-zinc-900 flex justify-between items-center text-[7.5px] text-zinc-650 uppercase tracking-wider font-semibold font-mono">
+                <span>USE KEYBOARD ARROWS ↑↓ AND ENTER</span>
+                <span>CMD+K TO TOGGLE</span>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
