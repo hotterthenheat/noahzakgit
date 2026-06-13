@@ -100,6 +100,13 @@ div.apple-glass-dark::before {
   z-index: 0;
 }
 
+.animated-border-box:hover::before,
+div.apple-glass:hover::before,
+div.apple-glass-bright:hover::before,
+div.apple-glass-dark:hover::before {
+  animation-play-state: paused;
+}
+
 .apple-glass {
   background: rgba(10, 10, 12, 0.65);
   backdrop-filter: blur(24px) saturate(190%);
