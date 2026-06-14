@@ -17,8 +17,6 @@ import {
   Waves,
   Crosshair,
   Magnet,
-  Activity,
-  Gauge,
   Layers,
   Zap,
   ArrowUpRight,
@@ -39,6 +37,13 @@ import { ASSET_LIST } from '../data';
 
 const fmtBn = (v: number) => `${v >= 0 ? '+' : '−'}$${Math.abs(v / 1e9).toFixed(2)}B`;
 const fmtMn = (v: number) => `${v >= 0 ? '+' : '−'}$${Math.abs(v / 1e6).toFixed(1)}M`;
+const fmtGreek = (v: number) => {
+  const abs = Math.abs(v);
+  if (abs >= 1e9) {
+    return `${v >= 0 ? '+' : '−'}$${(abs / 1e9).toFixed(2)}B`;
+  }
+  return `${v >= 0 ? '+' : '−'}$${(abs / 1e6).toFixed(1)}M`;
+};
 
 function FeedChip({ feed }: { feed?: string }) {
   const live = feed === 'LIVE_TRADIER' || feed === 'LIVE_POLYGON';
@@ -56,17 +61,44 @@ function FeedChip({ feed }: { feed?: string }) {
 }
 
 // ----------------------------------------------------------------
-// GEX profile chart (strikegex-style horizontal bars)
+// Exposure profile chart (strikegex-style horizontal bars for GEX/DEX/VEX)
 // ----------------------------------------------------------------
-function GexProfileChart({ profile, decimals }: { profile: any; decimals: number }) {
+function ExposureProfileChart({ profile, decimals, type }: { profile: any; decimals: number; type: 'gex' | 'vex' | 'dex' }) {
   const themeMode = useContractStore(s => s.themeMode);
   const isLight = themeMode === 'light';
 
   const rows = useMemo(() => {
     const strikes: any[] = profile?.strikes || [];
+    const mapped = strikes.map(s => {
+      let callValue = 0, putValue = 0, netValue = 0;
+      if (type === 'gex') {
+        callValue = s.callGex;
+        putValue = s.putGex;
+        netValue = s.netGex;
+      } else if (type === 'dex') {
+        callValue = s.callDex || 0;
+        putValue = s.putDex || 0;
+        netValue = s.netDex || 0;
+      } else if (type === 'vex') {
+        callValue = s.callVex || 0;
+        putValue = s.putVex || 0;
+        netValue = s.netVex || 0;
+      }
+      return {
+        strike: s.strike,
+        callValue,
+        putValue,
+        netValue,
+        callOi: s.callOi,
+        putOi: s.putOi,
+        callVolume: s.callVolume,
+        putVolume: s.putVolume
+      };
+    });
+
     // Render at most 21 strikes centered around spot for readability.
-    if (strikes.length <= 21) return strikes;
-    const sorted = [...strikes].sort((a, b) => a.strike - b.strike);
+    if (mapped.length <= 21) return mapped;
+    const sorted = [...mapped].sort((a, b) => a.strike - b.strike);
     let centerIdx = 0;
     let best = Infinity;
     sorted.forEach((r, i) => {
@@ -78,18 +110,26 @@ function GexProfileChart({ profile, decimals }: { profile: any; decimals: number
     });
     const lo = Math.max(0, centerIdx - 10);
     return sorted.slice(lo, lo + 21);
-  }, [profile]);
+  }, [profile, type]);
 
-  if (!profile || rows.length === 0) {
+  if (!rows || rows.length === 0) {
     return (
-      <div className="h-[400px] flex items-center justify-center text-zinc-600 text-xs uppercase tracking-widest">
-        No chain data — GEX profile unresolved
+      <div className="text-center py-8 text-zinc-500 font-mono text-[11px]">
+        Awaiting options chain data to calculate {type.toUpperCase()} profile...
       </div>
     );
   }
 
-  const maxAbs = Math.max(...rows.map((r: any) => Math.max(Math.abs(r.callGex), Math.abs(r.putGex), Math.abs(r.netGex))), 1);
+  const maxAbs = Math.max(...rows.map((r: any) => Math.max(Math.abs(r.callValue), Math.abs(r.putValue), Math.abs(r.netValue))), 1);
   const sortedDesc = [...rows].sort((a, b) => b.strike - a.strike);
+
+  // Find the strike with max values for walls/pins dynamically for this exposure type
+  const maxCallValStrike = rows.reduce((max, cur) => Math.abs(cur.callValue) > Math.abs(max.callValue) ? cur : max, rows[0])?.strike;
+  const maxPutValStrike = rows.reduce((max, cur) => Math.abs(cur.putValue) > Math.abs(max.putValue) ? cur : max, rows[0])?.strike;
+
+  const typeUpper = type.toUpperCase();
+  const callColor = type === 'gex' ? 'emerald' : type === 'dex' ? 'sky' : 'indigo';
+  const putColor = 'rose';
 
   return (
     <div className="space-y-[3px]">
@@ -99,132 +139,126 @@ function GexProfileChart({ profile, decimals }: { profile: any; decimals: number
       }`}>
         <div className="w-[72px] shrink-0">Strike</div>
         <div className="flex-1 flex">
-          <div className="flex-1 text-right pr-2 text-rose-400/70">← Put GEX</div>
+          <div className="flex-1 text-right pr-2 text-rose-400/70">← Put {typeUpper}</div>
           <div className={`w-px ${isLight ? 'bg-zinc-200' : 'bg-zinc-800'}`} />
-          <div className="flex-1 pl-2 text-emerald-400/70">Call GEX →</div>
+          <div className={`flex-1 pl-2 ${
+            type === 'gex' ? 'text-emerald-400/70' : type === 'dex' ? 'text-sky-400/70' : 'text-indigo-400/70'
+          }`}>Call {typeUpper} →</div>
         </div>
         <div className="w-[64px] text-right shrink-0">Net</div>
       </div>
 
       {sortedDesc.map((r: any) => {
-        const callW = Math.min(100, (Math.abs(r.callGex) / maxAbs) * 100);
-        const putW = Math.min(100, (Math.abs(r.putGex) / maxAbs) * 100);
-        const isCallWall = r.strike === profile.callWall;
-        const isPutWall = r.strike === profile.putWall;
-        const isMagnet = r.strike === profile.magnet;
-        const isSpot = Math.abs(r.strike - profile.spot) === Math.min(...rows.map((x: any) => Math.abs(x.strike - profile.spot)));
-        const flipBetween =
-          profile.gammaFlip > Math.min(r.strike, profile.spot) - 1e9 &&
-          Math.abs(r.strike - profile.gammaFlip) <= (sortedDesc.length > 1 ? Math.abs(sortedDesc[0].strike - sortedDesc[1].strike) / 2 : 1);
+        const callW = Math.min(100, (Math.abs(r.callValue) / maxAbs) * 100);
+        const putW = Math.min(100, (Math.abs(r.putValue) / maxAbs) * 100);
+
+        // Highlight max strikes
+        const isCallMax = r.strike === maxCallValStrike;
+        const isPutMax = r.strike === maxPutValStrike;
+        const isSpot = Math.abs(r.strike - profile.spot) < 0.001; // exact match check or close to spot
+        
+        // Find if spot is between this strike and next
+        const idx = sortedDesc.findIndex(row => row.strike === r.strike);
+        const nextRow = sortedDesc[idx + 1];
+        const flipBetween = nextRow && profile.gammaFlip > nextRow.strike && profile.gammaFlip <= r.strike;
 
         return (
-          <div key={r.strike} className="group relative" id={`gex-strike-${r.strike}`}>
-            <div
-              className={`flex items-center h-[17px] rounded-[3px] transition-colors ${
-                isSpot
-                  ? isLight
-                    ? 'bg-zinc-100 ring-1 ring-zinc-300'
-                    : 'bg-white/[0.05] ring-1 ring-white/20'
-                  : isLight
-                  ? 'hover:bg-zinc-50'
-                  : 'hover:bg-white/[0.03]'
-              }`}
-            >
-              <div
-                className={`w-[72px] shrink-0 text-[10px] font-bold font-mono pl-1 ${
-                  isSpot
-                    ? isLight
-                      ? 'text-zinc-900 font-extrabold'
-                      : 'text-white'
-                    : isCallWall || isPutWall
-                    ? isLight
-                      ? 'text-zinc-800'
-                      : 'text-zinc-200'
-                    : isLight
-                    ? 'text-zinc-400'
-                    : 'text-zinc-500'
-                }`}
-              >
-                {r.strike.toFixed(decimals > 1 ? 0 : 0)}
-                {isCallWall && <span className="text-emerald-500 dark:text-emerald-400 ml-1 text-[7px] align-middle font-black">CW</span>}
-                {isPutWall && <span className="text-rose-500 dark:text-rose-400 ml-1 text-[7px] align-middle font-black">PW</span>}
-                {isMagnet && !isCallWall && !isPutWall && (
-                  <span className="text-amber-550 dark:text-amber-400 ml-1 text-[7px] align-middle font-black">PIN</span>
-                )}
-              </div>
-              <div className="flex-1 flex items-center h-full">
-                {/* Put side */}
-                <div className="relative group/put flex-1 flex justify-end items-center h-full pr-[1px]">
-                  <div
-                    className={`h-[11px] rounded-l-[2px] ${isPutWall ? 'bg-rose-500' : 'bg-rose-500/55'} cursor-help`}
-                    style={{ width: `${putW}%` }}
-                  />
-                  
-                  {/* Left Hover details for Put GEX */}
-                  <div className={`absolute left-0 top-full mt-0.5 z-30 hidden group-hover/put:block border rounded-[4px] p-2 text-[9px] font-mono whitespace-nowrap shadow-2xl backdrop-blur-md pointer-events-none ring-1 ${
-                    isLight 
-                      ? 'bg-white border-rose-200/80 ring-rose-500/5 text-zinc-650' 
-                      : 'bg-[#050506]/95 border-rose-500/35 ring-rose-500/10 text-zinc-300'
-                  }`}>
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
-                      <span className={`font-black tracking-widest uppercase text-[8px] ${isLight ? 'text-rose-600' : 'text-rose-400'}`}>PUT GEX OVERLAY</span>
-                      <span className={isLight ? 'text-zinc-300' : 'text-zinc-650'}>|</span>
-                      <span className={`font-bold ${isLight ? 'text-zinc-900' : 'text-white'}`}>STRIKE {r.strike.toFixed(decimals > 1 ? 2 : 0)}</span>
-                    </div>
-                    <div className="space-y-0.5">
-                      <div>GEX: <span className={`font-extrabold ${isLight ? 'text-rose-600' : 'text-rose-300'}`}>{fmtBn(r.putGex)}</span></div>
-                      <div>Open Interest: <span className={`font-bold ${isLight ? 'text-zinc-800' : 'text-zinc-100'}`}>{r.putOi.toLocaleString()}</span></div>
-                      <div>Volume: <span className={`font-bold ${isLight ? 'text-zinc-800' : 'text-zinc-100'}`}>{r.putVolume.toLocaleString()}</span></div>
-                    </div>
-                  </div>
-                </div>
-                <div className={`w-px self-stretch ${isLight ? 'bg-zinc-200' : 'bg-zinc-800'}`} />
-                {/* Call side */}
-                <div className="relative group/call flex-1 flex items-center h-full pl-[1px]">
-                  <div
-                    className={`h-[11px] rounded-r-[2px] ${isCallWall ? 'bg-emerald-500' : 'bg-emerald-500/55'} cursor-help`}
-                    style={{ width: `${callW}%` }}
-                  />
+          <div key={r.strike} className={`flex items-center text-[10px] h-6 border-b border-zinc-900/10 dark:border-zinc-900/30 ${
+            isSpot ? (isLight ? 'bg-zinc-100/80' : 'bg-white/[0.03]') : ''
+          }`}>
+            {/* Strike column */}
+            <div className={`w-[72px] shrink-0 text-[10px] font-bold font-mono pl-1 ${
+              isSpot ? (isLight ? 'text-zinc-900 font-extrabold' : 'text-white') : isLight ? 'text-zinc-550' : 'text-zinc-500'
+            }`}>
+              {r.strike.toFixed(0)}
+              {isCallMax && (
+                <span className={`ml-1 text-[7px] align-middle font-black ${
+                  type === 'gex' ? 'text-emerald-500 dark:text-emerald-400' : type === 'dex' ? 'text-sky-500 dark:text-sky-400' : 'text-indigo-500 dark:text-indigo-400'
+                }`}>MAX</span>
+              )}
+              {isPutMax && <span className="text-rose-500 dark:text-rose-400 ml-1 text-[7px] align-middle font-black">MAX</span>}
+            </div>
 
-                  {/* Right Hover details for Call GEX */}
-                  <div className={`absolute right-0 top-full mt-0.5 z-30 hidden group-hover/call:block border rounded-[4px] p-2 text-[9px] font-mono whitespace-nowrap shadow-2xl backdrop-blur-md pointer-events-none ring-1 ${
-                    isLight 
-                      ? 'bg-white border-emerald-200/80 ring-emerald-500/5 text-zinc-650' 
-                      : 'bg-[#050506]/95 border-emerald-500/35 ring-emerald-500/10 text-zinc-300'
-                  }`}>
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className={`font-black tracking-widest uppercase text-[8px] ${isLight ? 'text-emerald-600' : 'text-emerald-400'}`}>CALL GEX OVERLAY</span>
-                      <span className={isLight ? 'text-zinc-300' : 'text-zinc-650'}>|</span>
-                      <span className={`font-bold ${isLight ? 'text-zinc-900' : 'text-white'}`}>STRIKE {r.strike.toFixed(decimals > 1 ? 2 : 0)}</span>
-                    </div>
-                    <div className="space-y-0.5">
-                      <div>GEX: <span className={`font-extrabold ${isLight ? 'text-emerald-600' : 'text-emerald-300'}`}>{fmtBn(r.callGex)}</span></div>
-                      <div>Open Interest: <span className={`font-bold ${isLight ? 'text-zinc-800' : 'text-zinc-100'}`}>{r.callOi.toLocaleString()}</span></div>
-                      <div>Volume: <span className={`font-bold ${isLight ? 'text-zinc-800' : 'text-zinc-100'}`}>{r.callVolume.toLocaleString()}</span></div>
-                    </div>
+            <div className="flex-1 flex items-center h-full">
+              {/* Put side */}
+              <div className="relative group/put flex-1 flex justify-end items-center h-full pr-[1px]">
+                <div
+                  className={`h-[11px] rounded-l-[2px] ${isPutMax ? 'bg-rose-500' : 'bg-rose-500/55'} cursor-help`}
+                  style={{ width: `${putW}%` }}
+                />
+                
+                {/* Left Hover details for Put */}
+                <div className={`absolute left-0 top-full mt-0.5 z-30 hidden group-hover/put:block border rounded-[4px] p-2 text-[9px] font-mono whitespace-nowrap shadow-2xl backdrop-blur-md pointer-events-none ring-1 ${
+                  isLight 
+                    ? 'bg-white border-rose-200/80 ring-rose-500/5 text-zinc-650' 
+                    : 'bg-[#050506]/95 border-rose-500/35 ring-rose-500/10 text-zinc-300'
+                }`}>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+                    <span className={`font-black tracking-widest uppercase text-[8px] ${isLight ? 'text-rose-600' : 'text-rose-400'}`}>PUT {typeUpper} OVERLAY</span>
+                    <span className={isLight ? 'text-zinc-300' : 'text-zinc-650'}>|</span>
+                    <span className={`font-bold ${isLight ? 'text-zinc-900' : 'text-white'}`}>STRIKE {r.strike.toFixed(0)}</span>
+                  </div>
+                  <div className="space-y-0.5 text-left">
+                    <div>{typeUpper}: <span className={`font-extrabold ${isLight ? 'text-rose-600' : 'text-rose-300'}`}>{fmtGreek(r.putValue)}</span></div>
+                    <div>Open Interest: <span className={`font-bold ${isLight ? 'text-zinc-800' : 'text-zinc-100'}`}>{r.putOi.toLocaleString()}</span></div>
+                    <div>Volume: <span className={`font-bold ${isLight ? 'text-zinc-800' : 'text-zinc-100'}`}>{r.putVolume.toLocaleString()}</span></div>
                   </div>
                 </div>
               </div>
-              <div
-                className={`w-[64px] shrink-0 text-right text-[8.5px] font-mono pr-1 ${
-                  r.netGex >= 0 ? 'text-emerald-400/90' : 'text-rose-400/90'
-                }`}
-              >
-                {fmtBn(r.netGex)}
+
+              <div className={`w-px self-stretch ${isLight ? 'bg-zinc-200' : 'bg-zinc-800'}`} />
+
+              {/* Call side */}
+              <div className="relative group/call flex-1 flex justify-start items-center h-full pl-[1px]">
+                <div
+                  className={`h-[11px] rounded-r-[2px] ${
+                    isCallMax
+                      ? type === 'gex' ? 'bg-emerald-500' : type === 'dex' ? 'bg-sky-500' : 'bg-indigo-500'
+                      : type === 'gex' ? 'bg-emerald-500/55' : type === 'dex' ? 'bg-sky-500/55' : 'bg-indigo-500/55'
+                  } cursor-help`}
+                  style={{ width: `${callW}%` }}
+                />
+
+                {/* Right Hover details for Call */}
+                <div className={`absolute right-0 top-full mt-0.5 z-30 hidden group-hover/call:block border rounded-[4px] p-2 text-[9px] font-mono whitespace-nowrap shadow-2xl backdrop-blur-md pointer-events-none ring-1 ${
+                  isLight 
+                    ? 'bg-white border-zinc-200/80 ring-zinc-555/5 text-zinc-650' 
+                    : 'bg-[#050506]/95 border-zinc-900 ring-zinc-850 text-zinc-300'
+                }`}>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                      type === 'gex' ? 'bg-emerald-400' : type === 'dex' ? 'bg-sky-400' : 'bg-indigo-400'
+                    }`} />
+                    <span className={`font-black tracking-widest uppercase text-[8px] ${
+                      isLight
+                        ? type === 'gex' ? 'text-emerald-600' : type === 'dex' ? 'text-sky-600' : 'text-indigo-600'
+                        : type === 'gex' ? 'text-emerald-400' : type === 'dex' ? 'text-sky-400' : 'text-indigo-400'
+                    }`}>CALL {typeUpper} OVERLAY</span>
+                    <span className={isLight ? 'text-zinc-300' : 'text-zinc-650'}>|</span>
+                    <span className={`font-bold ${isLight ? 'text-zinc-900' : 'text-white'}`}>STRIKE {r.strike.toFixed(0)}</span>
+                  </div>
+                  <div className="space-y-0.5 text-left">
+                    <div>{typeUpper}: <span className={`font-extrabold ${
+                      isLight
+                        ? type === 'gex' ? 'text-emerald-600' : type === 'dex' ? 'text-sky-600' : 'text-indigo-600'
+                        : type === 'gex' ? 'text-emerald-300' : type === 'dex' ? 'text-sky-300' : 'text-indigo-300'
+                    }`}>{fmtGreek(r.callValue)}</span></div>
+                    <div>Open Interest: <span className={`font-bold ${isLight ? 'text-zinc-800' : 'text-zinc-100'}`}>{r.callOi.toLocaleString()}</span></div>
+                    <div>Volume: <span className={`font-bold ${isLight ? 'text-zinc-800' : 'text-zinc-100'}`}>{r.callVolume.toLocaleString()}</span></div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {flipBetween && (
-              <div className="flex items-center gap-2 py-[1px]">
-                <div className="flex-1 border-t border-dashed border-amber-500/60" />
-                <span className="text-[7.5px] font-black tracking-widest text-amber-400 uppercase">
-                  γ-FLIP {profile.gammaFlip.toFixed(0)}
-                </span>
-                <div className="flex-1 border-t border-dashed border-amber-500/60" />
-              </div>
-            )}
+            {/* Net Column */}
+            <div className={`w-[64px] shrink-0 text-right text-[8.5px] font-mono pr-1 ${
+              r.netValue >= 0 
+                ? type === 'gex' ? 'text-emerald-400/90' : type === 'dex' ? 'text-sky-400/90' : 'text-indigo-400/90' 
+                : 'text-rose-400/90'
+            }`}>
+              {fmtGreek(r.netValue)}
+            </div>
           </div>
         );
       })}
@@ -236,114 +270,6 @@ function GexProfileChart({ profile, decimals }: { profile: any; decimals: number
           SPOT {profile.spot.toFixed(2)}
         </span>
         <div className="flex-1 border-t border-white/30" />
-      </div>
-    </div>
-  );
-}
-
-// ----------------------------------------------------------------
-// Dealer pressure gauge (−100 sell … +100 buy)
-// ----------------------------------------------------------------
-function PressureGauge({ gauge, theme }: { gauge: any; theme: any }) {
-  const p = gauge?.pressure ?? 0;
-  const pct = (p + 100) / 2; // 0..100
-  const color = p >= 25 ? '#10b981' : p <= -25 ? '#f43f5e' : '#f59e0b';
-  
-  // Choose gradient based on selected theme context: Call (emerald/green), Put (rose/red), Neutral (glass white)
-  const gradientClass = theme.themeSuffix === 'call'
-    ? 'bg-gradient-to-r from-zinc-850 via-zinc-800 to-emerald-500/25 border-emerald-500/15'
-    : theme.themeSuffix === 'put'
-    ? 'bg-gradient-to-r from-rose-500/25 via-zinc-800 to-zinc-850 border-rose-500/15'
-    : 'bg-gradient-to-r from-zinc-850 via-zinc-800/80 to-zinc-850 border-white/10';
-
-  return (
-    <div className="space-y-3" id="dealer-pressure-gauge-container">
-      <div className={`relative h-3.5 rounded-full ${gradientClass} border overflow-visible`}>
-        <div className="absolute inset-y-0 left-1/2 w-px bg-zinc-650" />
-        <div
-          className="absolute -top-1 w-[3px] h-5 rounded-full"
-          style={{ 
-            left: `calc(${pct}% - 1.5px)`, 
-            backgroundColor: color, 
-            boxShadow: `0 0 10px ${color}` 
-          }}
-        />
-      </div>
-      <div className="flex justify-between text-[8px] font-black tracking-widest text-[#a1a1aa] uppercase">
-        <span className="text-rose-400/80 font-bold">Dealer Selling</span>
-        <span style={{ color }} className="text-[13px] font-mono leading-none font-black">
-          {p > 0 ? '+' : ''}
-          {p}
-        </span>
-        <span className="text-emerald-400/80 font-bold">Dealer Buying</span>
-      </div>
-    </div>
-  );
-}
-
-// ----------------------------------------------------------------
-// Volatility Engine banner
-// ----------------------------------------------------------------
-function VolatilityEngineCard({ vol, expectedMovePct, spot, theme }: { vol: any; expectedMovePct?: number; spot?: number; theme: any }) {
-  if (!vol) return null;
-  
-  let regimeColor = 'text-zinc-300 border-white/10 bg-[#FFFFFF]/[0.02]';
-  if (vol.regime === 'EXPANSION') {
-    regimeColor = 'text-rose-400 border-rose-500/30 bg-rose-500/10 font-bold';
-  } else if (vol.regime === 'COMPRESSION') {
-    regimeColor = 'text-sky-400 border-sky-500/30 bg-sky-500/10 font-bold';
-  }
-
-  return (
-    <div className={`${theme.cardBg} rounded-lg p-4 space-y-3.5`} id="volatility-engine-card">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-[9px] font-black tracking-widest text-[#a1a1aa] uppercase">
-          <Gauge className={`w-3.5 h-3.5 ${theme.iconColor}`} />
-          Volatility Engine
-        </div>
-        <div className="flex items-center gap-1.5">
-          {vol.squeeze && (
-            <span className="px-1.5 py-0.5 rounded-xs text-[7.5px] font-black tracking-widest uppercase bg-sky-500/15 border border-sky-500/40 text-sky-300">
-              SQUEEZE ARMED
-            </span>
-          )}
-          <span className={`px-2 py-0.5 rounded-xs text-[8px] font-black tracking-widest uppercase border ${regimeColor}`}>
-            {vol.regime}
-          </span>
-        </div>
-      </div>
-
-      {/* Energy bar */}
-      <div>
-        <div className="flex justify-between text-[8px] text-[#a1a1aa] font-bold uppercase tracking-widest mb-1">
-          <span>Expansion Energy</span>
-          <span className="text-white font-mono text-[10px] font-black">{vol.energy}/100</span>
-        </div>
-        <div className="h-2 rounded-full bg-zinc-950 border border-zinc-900 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-sky-500 via-amber-400 to-rose-500"
-            style={{ width: `${vol.energy}%` }}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <div className="bg-black/40 border border-zinc-900 rounded-sm py-2">
-          <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest animate-none">ATR %ile</div>
-          <div className="text-[13px] font-mono text-white font-bold">{vol.atrPercentile}</div>
-        </div>
-        <div className="bg-black/40 border border-zinc-900 rounded-sm py-2">
-          <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest animate-none">ATR Slope</div>
-          <div className={`text-[13px] font-mono font-bold ${vol.atrSlope >= 1 ? 'text-rose-450' : 'text-sky-450'}`}>
-            {vol.atrSlope}×
-          </div>
-        </div>
-        <div className="bg-black/40 border border-zinc-900 rounded-sm py-2">
-          <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest animate-none">Exp Move</div>
-          <div className="text-[13px] font-mono text-amber-300 font-bold">
-            {expectedMovePct && spot ? `±${(spot * expectedMovePct).toFixed(0)}` : '—'}
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -690,12 +616,12 @@ export function DealerFlowView() {
         <>
           {/* ============== MAIN GRID ============== */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4" id="dealerflow-main-grid">
-            {/* GEX PROFILE (left, 2 cols) */}
+            {/* GEX PROFILE */}
             <div className={`${theme.cardBg} rounded-lg p-5`} id="gex-profile-chart-panel">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2 text-[9px] font-black tracking-widest text-[#a1a1aa] uppercase">
                   <Layers className={`w-3.5 h-3.5 ${theme.iconColor}`} />
-                  Gamma Exposure By Strike
+                  Gamma Exposure (GEX)
                   <span className="text-zinc-700">|</span>
                   <span className="text-zinc-550">$ per 1% move</span>
                 </div>
@@ -708,118 +634,103 @@ export function DealerFlowView() {
                   </span>
                 </div>
               </div>
-              <GexProfileChart profile={profile} decimals={selectedAsset.decimals} />
+              <ExposureProfileChart profile={profile} decimals={selectedAsset.decimals} type="gex" />
 
-              {/* OI footer */}
+              {/* GEX footer */}
               {profile && (
                 <div className="mt-4 pt-3 border-t border-zinc-900/60 grid grid-cols-3 gap-2 text-center" id="gex-profile-chart-oi-footer">
                   <div>
-                    <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest">Call OI</div>
-                    <div className="text-[12px] font-mono text-emerald-300 font-bold">{profile.totalCallOi?.toLocaleString()}</div>
+                    <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest">Call GEX</div>
+                    <div className="text-[11px] font-mono text-emerald-300 font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.callGex || 0), 0))}</div>
                   </div>
                   <div>
-                    <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest">Put OI</div>
-                    <div className="text-[12px] font-mono text-rose-300 font-bold">{profile.totalPutOi?.toLocaleString()}</div>
+                    <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest">Put GEX</div>
+                    <div className="text-[11px] font-mono text-rose-300 font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.putGex || 0), 0))}</div>
                   </div>
                   <div>
-                    <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest">C/P Ratio</div>
-                    <div className="text-[12px] font-mono text-white font-bold">{profile.callPutOiRatio}</div>
+                    <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest">Net GEX</div>
+                    <div className="text-[11px] font-mono text-white font-bold">{fmtGreek(profile.netGex)}</div>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* RIGHT RAIL */}
-            <div className="space-y-4" id="dealerflow-right-rail-panel">
-              {/* Dealer pressure */}
-              <div className={`${theme.cardBg} rounded-lg p-4 space-y-3.5`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-[9px] font-black tracking-widest text-[#a1a1aa] uppercase">
-                    <Activity className={`w-3.5 h-3.5 ${theme.iconColor}`} />
-                    Dealer Buying Pressure
-                  </div>
-                  <span
-                    className={`px-2 py-0.5 rounded-xs text-[8px] font-black tracking-widest uppercase border ${
-                      (gauge?.bias || dm?.bias) === 'LONG GAMMA'
-                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold'
-                        : 'bg-rose-500/10 border-rose-500/30 text-rose-400 font-bold'
-                    }`}
-                  >
-                    {gauge?.bias || dm?.bias || '—'}
+            {/* DEX PROFILE */}
+            <div className={`${theme.cardBg} rounded-lg p-5`} id="dex-profile-chart-panel">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2 text-[9px] font-black tracking-widest text-[#a1a1aa] uppercase">
+                  <Waves className={`w-3.5 h-3.5 ${theme.iconColor}`} />
+                  Delta Exposure (DEX)
+                  <span className="text-zinc-700">|</span>
+                  <span className="text-zinc-550">$ per 1% spot move</span>
+                </div>
+                <div className="flex items-center gap-3 text-[8px] font-bold uppercase tracking-widest">
+                  <span className="flex items-center gap-1 text-sky-400">
+                    <span className="w-2 h-2 rounded-[2px] bg-sky-500/70 inline-block" /> Calls
+                  </span>
+                  <span className="flex items-center gap-1 text-rose-400">
+                    <span className="w-2 h-2 rounded-[2px] bg-rose-500/70 inline-block" /> Puts
                   </span>
                 </div>
-
-                <PressureGauge gauge={gauge} theme={theme} />
-
-                <p className="text-[9.5px] leading-relaxed text-zinc-400 border-l-2 border-zinc-800 pl-2.5">
-                  {gauge?.headline || 'Awaiting chain data to resolve hedging pressure.'}
-                </p>
-
-                {/* Component provenance */}
-                <div className="space-y-1.5 pt-1">
-                  {(gauge?.components || []).map((c: any) => (
-                    <div key={c.name} className="flex items-center gap-2" title={c.detail}>
-                      <span className="w-[104px] shrink-0 text-[8px] text-zinc-500 font-bold uppercase tracking-wider">
-                        {c.name}
-                      </span>
-                      <div className="flex-1 h-[5px] rounded-full bg-zinc-900 relative overflow-hidden">
-                        <div className="absolute inset-y-0 left-1/2 w-px bg-zinc-700" />
-                        <div
-                          className={`absolute inset-y-0 ${c.value >= 0 ? 'left-1/2 bg-emerald-500/80' : 'right-1/2 bg-rose-500/80'} rounded-full`}
-                          style={{ width: `${Math.min(Math.abs(c.value) * 50, 50)}%` }}
-                        />
-                      </div>
-                      <span className={`w-9 text-right text-[8.5px] font-mono font-bold ${c.value >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {(c.value * c.weight).toFixed(2)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
               </div>
+              <ExposureProfileChart profile={profile} decimals={selectedAsset.decimals} type="dex" />
 
-              {/* Volatility engine */}
-              <VolatilityEngineCard vol={disp?.volatility} expectedMovePct={profile?.expectedMovePct} spot={profile?.spot} theme={theme} />
-
-              {/* Structure read */}
-              <div className={`${theme.cardBg} rounded-lg p-4 space-y-3`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-[9px] font-black tracking-widest text-[#a1a1aa] uppercase">
-                    <Crosshair className={`w-3.5 h-3.5 ${theme.iconColor}`} />
-                    Market Structure (ICT)
+              {/* DEX footer */}
+              {profile && (
+                <div className="mt-4 pt-3 border-t border-zinc-900/60 grid grid-cols-3 gap-2 text-center" id="dex-profile-chart-footer">
+                  <div>
+                    <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest">Call DEX</div>
+                    <div className="text-[11px] font-mono text-sky-300 font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.callDex || 0), 0))}</div>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className={`px-2 py-0.5 rounded-xs text-[8px] font-black tracking-widest uppercase border ${
-                        disp?.structure?.trend === 'bullish'
-                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold'
-                          : disp?.structure?.trend === 'bearish'
-                            ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 font-bold'
-                            : 'bg-zinc-800 border-zinc-700 text-zinc-350'
-                      }`}
-                    >
-                      {disp?.structure?.trend || 'neutral'}
-                    </span>
-                    {disp?.structure?.pricePosition && (
-                      <span className="px-2 py-0.5 rounded-xs text-[8px] font-black tracking-widest uppercase border bg-zinc-950 border-zinc-800 text-zinc-400">
-                        {disp.structure.pricePosition}
-                      </span>
-                    )}
+                  <div>
+                    <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest">Put DEX</div>
+                    <div className="text-[11px] font-mono text-rose-300 font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.putDex || 0), 0))}</div>
+                  </div>
+                  <div>
+                    <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest">Net DEX</div>
+                    <div className="text-[11px] font-mono text-white font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.netDex || 0), 0))}</div>
                   </div>
                 </div>
-                <div className="space-y-1 max-h-[120px] overflow-y-auto pr-1">
-                  {(disp?.structure?.events || []).slice(-6).reverse().map((e: any) => (
-                    <div key={e.id} className="flex items-center justify-between text-[9px] font-mono bg-black/40 border border-zinc-900 rounded px-2 py-1">
-                      <span className={`font-black ${e.kind === 'CHoCH' ? 'text-amber-450 font-bold' : e.direction === 'bullish' ? 'text-emerald-450' : 'text-rose-455'}`}>
-                        {e.kind} {e.direction === 'bullish' ? '▲' : '▼'}
-                      </span>
-                      <span className="text-zinc-500">@ {Number(e.price).toFixed(selectedAsset.decimals)}</span>
-                    </div>
-                  ))}
-                  {(!disp?.structure?.events || disp.structure.events.length === 0) && (
-                    <div className="text-zinc-650 text-[9px] italic text-center py-2">No confirmed breaks in window</div>
-                  )}
+              )}
+            </div>
+
+            {/* VEX PROFILE */}
+            <div className={`${theme.cardBg} rounded-lg p-5`} id="vex-profile-chart-panel">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2 text-[9px] font-black tracking-widest text-[#a1a1aa] uppercase">
+                  <Zap className={`w-3.5 h-3.5 ${theme.iconColor}`} />
+                  Vega Exposure (VEX)
+                  <span className="text-zinc-700">|</span>
+                  <span className="text-zinc-550">$ per 1% vol shift</span>
+                </div>
+                <div className="flex items-center gap-3 text-[8px] font-bold uppercase tracking-widest">
+                  <span className="flex items-center gap-1 text-indigo-400">
+                    <span className="w-2 h-2 rounded-[2px] bg-indigo-500/70 inline-block" /> Calls
+                  </span>
+                  <span className="flex items-center gap-1 text-rose-400">
+                    <span className="w-2 h-2 rounded-[2px] bg-rose-500/70 inline-block" /> Puts
+                  </span>
                 </div>
               </div>
+              <ExposureProfileChart profile={profile} decimals={selectedAsset.decimals} type="vex" />
+
+              {/* VEX footer */}
+              {profile && (
+                <div className="mt-4 pt-3 border-t border-zinc-900/60 grid grid-cols-3 gap-2 text-center" id="vex-profile-chart-footer">
+                  <div>
+                    <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest">Call VEX</div>
+                    <div className="text-[11px] font-mono text-indigo-300 font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.callVex || 0), 0))}</div>
+                  </div>
+                  <div>
+                    <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest">Put VEX</div>
+                    <div className="text-[11px] font-mono text-rose-300 font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.putVex || 0), 0))}</div>
+                  </div>
+                  <div>
+                    <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest">Net VEX</div>
+                    <div className="text-[11px] font-mono text-white font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.netVex || 0), 0))}</div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

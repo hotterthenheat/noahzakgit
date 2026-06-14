@@ -1078,6 +1078,12 @@ const constructPayload = (params: {
     callGex: number;
     putGex: number;
     netGex: number;
+    callDex: number;
+    putDex: number;
+    netDex: number;
+    callVex: number;
+    putVex: number;
+    netVex: number;
     callOi: number;
     putOi: number;
     callVolume: number;
@@ -1092,6 +1098,12 @@ const constructPayload = (params: {
         callGex: 0,
         putGex: 0,
         netGex: 0,
+        callDex: 0,
+        putDex: 0,
+        netDex: 0,
+        callVex: 0,
+        putVex: 0,
+        netVex: 0,
         callOi: 0,
         putOi: 0,
         callVolume: 0,
@@ -1101,20 +1113,31 @@ const constructPayload = (params: {
     const isCallType = (c.type || '').toString().toUpperCase() === 'C' || (c.type || '').toString().toUpperCase() === 'CALL';
     const sign = isCallType ? 1 : -1;
     const gammaVal = typeof c.gamma === 'number' ? c.gamma : (c.greeks?.gamma || 0.01);
+    const deltaVal = typeof c.delta === 'number' ? c.delta : (c.greeks?.delta || (isCallType ? 0.5 : -0.5));
+    const vegaVal = typeof c.vega === 'number' ? c.vega : (c.greeks?.vega || 0.15);
     const oiVal = typeof c.oi === 'number' ? c.oi : (c.openInterest || 0);
     const volVal = typeof c.volume === 'number' ? c.volume : 0;
+    
     const gexAmt = gammaVal * oiVal * 100 * (lastPrice * lastPrice) * 0.01 * sign;
+    const dexAmt = deltaVal * oiVal * 100 * lastPrice * sign;
+    const vexAmt = vegaVal * oiVal * 100 * sign;
 
     if (isCallType) {
       strikesMap[stk].callGex += gexAmt;
+      strikesMap[stk].callDex += dexAmt;
+      strikesMap[stk].callVex += vexAmt;
       strikesMap[stk].callOi += oiVal;
       strikesMap[stk].callVolume += volVal;
     } else {
       strikesMap[stk].putGex += gexAmt;
+      strikesMap[stk].putDex += dexAmt;
+      strikesMap[stk].putVex += vexAmt;
       strikesMap[stk].putOi += oiVal;
       strikesMap[stk].putVolume += volVal;
     }
     strikesMap[stk].netGex += gexAmt;
+    strikesMap[stk].netDex += dexAmt;
+    strikesMap[stk].netVex += vexAmt;
   });
 
   const gex_profile = {
