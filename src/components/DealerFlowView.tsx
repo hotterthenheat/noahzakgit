@@ -131,8 +131,25 @@ function ExposureProfileChart({ profile, decimals, type }: { profile: any; decim
   const callColor = type === 'gex' ? 'emerald' : type === 'dex' ? 'sky' : 'indigo';
   const putColor = 'rose';
 
+  const spotLine = useMemo(() => {
+    if (!profile?.spot || rows.length === 0) return null;
+    const strikes = rows.map((r: any) => r.strike);
+    const maxStrike = Math.max(...strikes);
+    const minStrike = Math.min(...strikes);
+    const strikeRange = maxStrike - minStrike;
+    
+    const clampedSpot = Math.max(minStrike, Math.min(maxStrike, profile.spot));
+    const pct = strikeRange > 0 ? (maxStrike - clampedSpot) / strikeRange : 0.5;
+    
+    // Each row is h-6 (24px) + space-y-[3px] (3px) = 27px.
+    // The header is roughly 23px high.
+    // The center of the i-th row is at: 23px + 12px + i * 27px.
+    const spotY = 23 + 12 + pct * (rows.length - 1) * 27;
+    return { spotY };
+  }, [rows, profile?.spot]);
+
   return (
-    <div className="space-y-[3px]">
+    <div className="space-y-[3px] relative">
       {/* Axis header */}
       <div className={`flex items-center text-[8px] font-black tracking-widest uppercase pb-1.5 border-b mb-1.5 ${
         isLight ? 'text-zinc-500 border-zinc-200' : 'text-zinc-600 border-zinc-900'
@@ -271,6 +288,54 @@ function ExposureProfileChart({ profile, decimals, type }: { profile: any; decim
         </span>
         <div className="flex-1 border-t border-white/30" />
       </div>
+
+      {/* FLOATING LASER SPOT GLIDER */}
+      {spotLine && (
+        <motion.div
+          className="absolute left-0 right-0 z-20 pointer-events-none"
+          style={{ top: 0, originY: 0.5 }}
+          animate={{
+            y: spotLine.spotY
+          }}
+          transition={{
+            type: "spring",
+            stiffness: 90,
+            damping: 18
+          }}
+        >
+          <div className="relative flex items-center">
+            {/* Laser beam emitter core */}
+            <div className={`absolute -left-1.5 w-2.5 h-2.5 bg-white rounded-full border animate-pulse ${
+              type === 'gex' 
+                ? 'border-emerald-400 shadow-[0_0_8px_rgba(48,209,88,0.8)]' 
+                : type === 'dex' 
+                  ? 'border-sky-400 shadow-[0_0_8px_rgba(14,165,233,0.8)]' 
+                  : 'border-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.8)]'
+            }`} />
+            
+            {/* White-to-accent gradient laser glow line */}
+            <div className={`w-full h-[1.5px] bg-gradient-to-r from-white to-transparent ${
+              type === 'gex' 
+                ? 'via-emerald-400 shadow-[0_0_6px_rgba(48,209,88,0.4)]' 
+                : type === 'dex' 
+                  ? 'via-sky-400 shadow-[0_0_6px_rgba(14,165,233,0.4)]' 
+                  : 'via-indigo-400 shadow-[0_0_6px_rgba(99,102,241,0.4)]'
+            }`} />
+            
+            {/* Floating centered coordinates tag */}
+            <div className={`absolute left-1/2 -translate-x-1/2 -top-3 px-2 py-0.5 rounded-xs font-mono font-black text-[7.5px] uppercase shadow-lg flex items-center gap-1 border z-30 ${
+              isLight 
+                ? 'bg-white text-zinc-900 border-zinc-200' 
+                : 'bg-black/90 text-white border-zinc-800'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full animate-ping ${
+                type === 'gex' ? 'bg-emerald-400' : type === 'dex' ? 'bg-sky-400' : 'bg-indigo-400'
+              }`} />
+              <span>SPOT: {profile.spot.toFixed(2)}</span>
+            </div>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
