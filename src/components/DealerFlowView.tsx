@@ -13,6 +13,7 @@ import { motion } from 'motion/react';
 import { useContractStore } from '../lib/store';
 import { InteractiveChart } from './InteractiveChart';
 import { InstitutionalPhysicsDashboard } from './InstitutionalPhysicsDashboard';
+import { PinpointAIView } from './PinpointAIView';
 import {
   Waves,
   Crosshair,
@@ -32,7 +33,8 @@ import {
   Briefcase,
   Sliders,
   HelpCircle,
-  Activity
+  Activity,
+  Compass
 } from 'lucide-react';
 import { ASSET_LIST } from '../data';
 
@@ -410,7 +412,7 @@ export function DealerFlowView() {
   const selectedAsset = useContractStore(s => s.selectedAsset);
   const setSelectedAsset = useContractStore(s => s.setSelectedAsset);
   const selectedTimeframe = useContractStore(s => s.selectedTimeframe);
-  const [activeEngineView, setActiveEngineView] = useState<'profile' | 'physics'>('profile');
+  const [activeEngineView, setActiveEngineView] = useState<'profile' | 'physics' | 'pinpoint'>('profile');
   const [mocDirection, setMocDirection] = useState<'BUY' | 'SELL' | 'NEUTRAL'>('BUY');
   const [mocValue, setMocValue] = useState<number>(1.24 * 1e9);
 
@@ -799,6 +801,17 @@ export function DealerFlowView() {
           HEDGING PROFILE & LIQUIDITY MATRIX
         </button>
         <button
+          onClick={() => setActiveEngineView('pinpoint')}
+          className={`flex items-center gap-2 px-4.5 py-2.5 font-mono text-[9px] font-black uppercase tracking-wider border rounded transition-all cursor-pointer ${
+            activeEngineView === 'pinpoint'
+              ? 'bg-blue-500/10 border-blue-500 text-white shadow-[0_0_12px_rgba(59,130,246,0.12)]'
+              : 'bg-[#060607]/45 border-zinc-900 text-zinc-500 hover:text-zinc-300 hover:border-zinc-800'
+          }`}
+        >
+          <Compass className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
+          NEAR THE MONEY EXPOSURE
+        </button>
+        <button
           onClick={() => setActiveEngineView('physics')}
           className={`flex items-center gap-2 px-4.5 py-2.5 font-mono text-[9px] font-black uppercase tracking-wider border rounded transition-all cursor-pointer ${
             activeEngineView === 'physics'
@@ -1045,13 +1058,17 @@ export function DealerFlowView() {
             </div>
           </div>
         </>
-      ) : (
+      ) : activeEngineView === 'physics' ? (
         <div id="institutional-physics-dash-wrapper">
           <InstitutionalPhysicsDashboard
             profile={profile}
             ticker={selectedAsset.ticker}
             decimals={selectedAsset.decimals}
           />
+        </div>
+      ) : (
+        <div id="pinpoint-ai-view-wrapper" className="mt-2">
+          <PinpointAIView />
         </div>
       )}
     </div>

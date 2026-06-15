@@ -233,7 +233,7 @@ export const FeatureMatrix: React.FC<FeatureMatrixProps> = ({ onEnterApp }) => {
 
             <div className="pt-2">
               <button 
-                onClick={() => handleLaunchToTab('pinpoint')}
+                onClick={() => handleLaunchToTab('dealerflow')}
                 className="px-5 py-3 bg-[#0a0a0c] hover:bg-zinc-900 text-white border border-zinc-800 font-extrabold uppercase tracking-widest text-[9px] rounded-lg transition-all duration-300 flex items-center gap-1.5 cursor-pointer hover:scale-[1.01]"
               >
                 <span>Launch Pinpoint Matrix</span>

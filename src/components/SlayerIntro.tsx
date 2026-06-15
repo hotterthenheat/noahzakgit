@@ -672,7 +672,7 @@ export default function SlayerIntro({
 
             <div className="pt-6">
               <button 
-                onClick={() => onEnterApp('pinpoint')}
+                onClick={() => onEnterApp('dealerflow')}
                 className="w-full py-4 bg-zinc-900/90 hover:bg-white hover:text-black border border-zinc-800 text-zinc-350 font-bold uppercase tracking-widest text-[11px] rounded-lg transition-all duration-150 cursor-pointer"
               >
                 Access Pinpoint Gexbot

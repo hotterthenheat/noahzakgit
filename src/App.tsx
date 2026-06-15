@@ -255,7 +255,7 @@ export default function App() {
         } else if (item.isTool) {
           if (item.id === 'svi-solver') {
             useContractStore.setState({
-              activeTab: 'pinpoint',
+              activeTab: 'dealerflow',
               auditSearchQuery: '',
               expandedAuditId: null
             });
@@ -546,9 +546,8 @@ export default function App() {
               <span>ACTIVE ENGINE: <span className="text-white uppercase font-black">
                 {activeTab === 'home' && 'Ecosystem Introduction'}
                 {activeTab === 'skyvision' && 'Slayer // SkyVision'}
-                {activeTab === 'pinpoint' && 'Slayer // Pinpoint'}
                 {activeTab === 'auditor' && 'Trust Archive & Registry'}
-                {activeTab === 'dealerflow' && 'Dealer Flow'}
+                {activeTab === 'dealerflow' && 'Pinpoint AI'}
                 {activeTab === 'arbor' && 'Research & Community'}
               </span></span>
               <span className="text-[8px] text-zinc-650 group-hover:text-white transition-transform duration-200">▼</span>
@@ -588,18 +587,18 @@ export default function App() {
               </button>
 
               <button
-                onClick={() => setActiveTab('pinpoint')}
+                onClick={() => setActiveTab('dealerflow')}
                 className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
-                  activeTab === 'pinpoint'
+                  activeTab === 'dealerflow'
                     ? 'bg-zinc-900 text-white font-bold border-l-2 border-emerald-450 pl-2'
                     : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-white'
                 }`}
               >
                 <span className="flex items-center gap-1.5">
-                  <Dna className="w-3 h-3 text-emerald-400" />
-                  <span>3. SLAYER // PINPOINT</span>
+                  <Waves className="w-3 h-3 text-emerald-400" />
+                  <span>3. PINPOINT AI</span>
                 </span>
-                <span className="text-[8px] text-zinc-650">MARKET INTEL</span>
+                <span className="text-[8px] text-zinc-650">GAMMA FLOW</span>
               </button>
 
               <button
@@ -617,21 +616,6 @@ export default function App() {
                 <span className="text-[8px] text-zinc-650">EXECUTION LOGS</span>
               </button>
 
-              <button
-                onClick={() => setActiveTab('dealerflow')}
-                className={`w-full text-left px-2.5 py-2 text-[10px] font-medium transition-all rounded-xs flex items-center justify-between cursor-pointer ${
-                  activeTab === 'dealerflow'
-                    ? 'bg-zinc-900 text-white font-bold border-l-2 border-emerald-450 pl-2'
-                    : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-white'
-                }`}
-              >
-                <span className="flex items-center gap-1.5">
-                  <Waves className="w-3 h-3 text-emerald-400" />
-                  <span>5. DEALER FLOW</span>
-                </span>
-                <span className="text-[8px] text-zinc-650">GAMMA FLOW</span>
-              </button>
-
               <div className="text-[8px] text-zinc-650 font-black tracking-widest px-2 py-1 border-t border-b border-[#121214] uppercase my-1">
                 MORE POWER TOOLS
               </div>
@@ -646,7 +630,7 @@ export default function App() {
               >
                 <span className="flex items-center gap-1.5">
                   <GraduationCap className="w-3 h-3 text-emerald-400" />
-                  <span>6. RESEARCH & COMMUNITY</span>
+                  <span>5. RESEARCH & COMMUNITY</span>
                 </span>
                 <span className="text-[8px] text-zinc-650">KNOWLEDGE</span>
               </button>
@@ -725,12 +709,7 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 3: PINPOINT AI (MARKET INTELLIGENCE) */}
-        {activeTab === 'pinpoint' && (
-          <div className="view-enter border border-zinc-900 bg-[#060607]/80 rounded-md p-1 drop-shadow-2xl">
-            <PinpointAIView />
-          </div>
-        )}
+
 
         {/* TAB 5: AUDIT (TRUST ENGINE) */}
         {activeTab === 'auditor' && (
@@ -872,7 +851,7 @@ export default function App() {
                           } else if (tickerItem.isTool) {
                             if (tickerItem.id === 'svi-solver') {
                               useContractStore.setState({
-                                activeTab: 'pinpoint',
+                                activeTab: 'dealerflow',
                                 auditSearchQuery: '',
                                 expandedAuditId: null
                               });
