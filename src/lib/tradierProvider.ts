@@ -8,6 +8,7 @@ import { ASSET_LIST } from '../data';
 import { AssetInfo, Candle } from '../types';
 import { calculateAnalyticGreeks } from './v11Math';
 import { LiveOptionContract } from './marketDataProvider';
+import { recordApiTelemetry } from './telemetry';
 
 const CACHE_TTL_MS = 6000; // 6-second cache for spots/chains
 const CANDLE_CACHE_TTL_MS = 60000; // 60-second cache for candles
@@ -69,9 +70,6 @@ export function isTradierConfigured(): boolean {
   return !!process.env.TRADIER_API_KEY;
 }
 
-/**
- * Helper to fetch with Bearer credentials and JSON headers
- */
 async function tradierFetch(endpoint: string): Promise<any> {
   const apiKey = process.env.TRADIER_API_KEY;
   if (!apiKey) {
@@ -80,6 +78,7 @@ async function tradierFetch(endpoint: string): Promise<any> {
 
   const baseUrl = getTradierBaseUrl();
   const url = `${baseUrl}${endpoint}`;
+  const startTime = Date.now();
 
   try {
     const response = await fetch(url, {
@@ -89,13 +88,21 @@ async function tradierFetch(endpoint: string): Promise<any> {
       }
     });
 
+    const duration = Date.now() - startTime;
     if (!response.ok) {
-      throw new Error(`Tradier API Error: HTTP ${response.status} ${response.statusText}`);
+      const errMsg = `HTTP ${response.status} ${response.statusText}`;
+      recordApiTelemetry('tradier', endpoint, 'ERROR', duration, errMsg);
+      throw new Error(`Tradier API Error: ${errMsg}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    recordApiTelemetry('tradier', endpoint, 'SUCCESS', duration);
+    return data;
   } catch (error: any) {
-    lastTradierErrors.push(error?.message || String(error));
+    const duration = Date.now() - startTime;
+    const msg = error?.message || String(error);
+    recordApiTelemetry('tradier', endpoint, 'ERROR', duration, msg);
+    lastTradierErrors.push(msg);
     if (lastTradierErrors.length > 10) lastTradierErrors.shift();
     throw error;
   }

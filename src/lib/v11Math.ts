@@ -131,9 +131,10 @@ export function calculateAnalyticGreeks(
   isCall: boolean,
   r = 0.05
 ) {
+  const spotClamped = Math.max(0.01, spot);
   const T = Math.max(0.0001, dteDays / 365);
   const sigma = Math.max(0.01, iv);
-  const d1 = (Math.log(spot / strike) + (r + (sigma * sigma) / 2) * T) / (sigma * Math.sqrt(T));
+  const d1 = (Math.log(spotClamped / strike) + (r + (sigma * sigma) / 2) * T) / (sigma * Math.sqrt(T));
   const d2 = d1 - sigma * Math.sqrt(T);
 
   const nd1 = stdNormalPDF(d1);
@@ -141,16 +142,16 @@ export function calculateAnalyticGreeks(
   const Nd2 = stdNormalCDF(d2);
 
   let delta = 0;
-  let gamma = nd1 / (spot * sigma * Math.sqrt(T));
-  let vega = spot * Math.sqrt(T) * nd1;
+  let gamma = nd1 / (spotClamped * sigma * Math.sqrt(T));
+  let vega = spotClamped * Math.sqrt(T) * nd1;
   let theta = 0;
 
   if (isCall) {
     delta = Nd1;
-    theta = -(spot * nd1 * sigma) / (2 * Math.sqrt(T)) - r * strike * Math.exp(-r * T) * Nd2;
+    theta = -(spotClamped * nd1 * sigma) / (2 * Math.sqrt(T)) - r * strike * Math.exp(-r * T) * Nd2;
   } else {
     delta = Nd1 - 1;
-    theta = -(spot * nd1 * sigma) / (2 * Math.sqrt(T)) + r * strike * Math.exp(-r * T) * stdNormalCDF(-d2);
+    theta = -(spotClamped * nd1 * sigma) / (2 * Math.sqrt(T)) + r * strike * Math.exp(-r * T) * stdNormalCDF(-d2);
   }
 
   // Convert theta to daily (÷365) to represent standard options daily decay rate
@@ -162,7 +163,7 @@ export function calculateAnalyticGreeks(
   // Correct Charm: put charm equals call charm in dividend-free BSM
   const charm = -nd1 * (r / (sigma * Math.sqrt(T)) - d2 / (2 * Math.max(0.0001, T)));
   // Speed (∂³V/∂S³) — V5.1 §3.4. Third derivative of value wrt spot.
-  const speed = -(gamma / Math.max(spot, 1e-9)) * (d1 / (sigma * Math.sqrt(T)) + 1);
+  const speed = -(gamma / Math.max(spotClamped, 1e-9)) * (d1 / (sigma * Math.sqrt(T)) + 1);
 
   return { delta, gamma, vega, theta: dailyTheta, vanna, charm, speed };
 }

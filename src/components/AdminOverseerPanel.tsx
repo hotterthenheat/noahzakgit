@@ -9,7 +9,7 @@ interface AdminPanelProps {
   onSimulateTier: (tierStr: string, tierNum: number) => void;
 }
 
-type Tab = 'overview' | 'users' | 'audit' | 'coupons';
+type Tab = 'overview' | 'users' | 'audit' | 'coupons' | 'telemetry';
 
 async function api(path: string, opts: RequestInit = {}) {
   const res = await fetch(path, { credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, ...opts });
@@ -45,6 +45,7 @@ export function AdminOverseerPanel({ session, onSimulateTier }: AdminPanelProps)
 
   const TABS: { id: Tab; label: string; icon: any }[] = [
     { id: 'overview', label: 'Command Overview', icon: Activity },
+    { id: 'telemetry', label: 'API Telemetry & Controls', icon: Radio },
     { id: 'users', label: 'User CRM & Moderation', icon: Users },
     { id: 'audit', label: 'Audit Trail', icon: ScrollText },
     { id: 'coupons', label: 'Coupon Generator', icon: Ticket },
@@ -88,6 +89,7 @@ export function AdminOverseerPanel({ session, onSimulateTier }: AdminPanelProps)
       </div>
 
       {tab === 'overview' && <OverviewTab overview={overview} reload={loadOverview} onSimulateTier={onSimulateTier} />}
+      {tab === 'telemetry' && <TelemetryTab />}
       {tab === 'users' && <UsersTab />}
       {tab === 'audit' && <AuditTab />}
       {tab === 'coupons' && <CouponsTab />}
@@ -338,6 +340,179 @@ function CouponsTab() {
             {coupons.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-zinc-600 uppercase tracking-widest">No coupons yet</td></tr>}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+function TelemetryTab() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [intervalVal, setIntervalVal] = useState(6000);
+  const [sandboxVal, setSandboxVal] = useState(false);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    api('/api/admin/api-telemetry')
+      .then(d => {
+        setData(d);
+        setIntervalVal(d.pollingInterval);
+        setSandboxVal(d.forceSandbox);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    load();
+    const t = setInterval(load, 5000);
+    return () => clearInterval(t);
+  }, [load]);
+
+  const updateThrottle = async (newInt: number, newSandbox: boolean) => {
+    try {
+      const res = await api('/api/admin/api-throttle', {
+        method: 'POST',
+        body: JSON.stringify({ interval: newInt, forceSandbox: newSandbox })
+      });
+      if (res.success) {
+        setIntervalVal(res.interval);
+        setSandboxVal(res.forceSandbox);
+        load();
+      }
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
+
+  if (!data) return <div className="p-8 text-center text-zinc-500 uppercase tracking-widest">Loading Telemetry...</div>;
+
+  return (
+    <div className="space-y-6 animate-fadeIn text-[11px]">
+      {/* Configuration Control Panel */}
+      <div className="bg-[#0a0a0c] border border-zinc-900 rounded-lg p-5 space-y-4">
+        <div className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+          <Radio className="w-4 h-4 text-rose-500 animate-pulse" /> Live Telemetry Configuration
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Polling Interval Throttle */}
+          <div className="space-y-2">
+            <label className="block text-zinc-400 font-bold uppercase tracking-wider">Dynamic Telemetry Polling Rate</label>
+            <div className="flex items-center gap-3">
+              <input type="range" min="1000" max="30000" step="1000" value={intervalVal}
+                onChange={(e) => setIntervalVal(Number(e.target.value))}
+                onMouseUp={() => updateThrottle(intervalVal, sandboxVal)}
+                onTouchEnd={() => updateThrottle(intervalVal, sandboxVal)}
+                className="flex-1 accent-rose-500 cursor-ew-resize" />
+              <span className="text-white font-bold w-16 text-right">{(intervalVal / 1000).toFixed(1)}s</span>
+            </div>
+            <p className="text-[9px] text-zinc-500 uppercase tracking-widest">Adjusts how frequently the server checks spot prices and option chains for active workspace sessions.</p>
+          </div>
+
+          {/* Force Sandbox override */}
+          <div className="flex items-center justify-between border-l border-zinc-900 pl-6">
+            <div>
+              <span className="text-zinc-400 font-bold uppercase tracking-wider block">Admin Override: Sandbox Mode</span>
+              <p className="text-[9px] text-zinc-500 uppercase tracking-widest mt-1">Forces server to run simulation data even if live Polygon/Tradier keys are configured.</p>
+            </div>
+            <button onClick={() => updateThrottle(intervalVal, !sandboxVal)} className="text-zinc-300">
+              {sandboxVal ? <ToggleRight className="w-9 h-9 text-rose-400" /> : <ToggleLeft className="w-9 h-9 text-zinc-600" />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Live Provider Health Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {Object.entries(data.stats).map(([prov, stat]: [string, any]) => {
+          const isRateLimited = stat.rateLimitedUntil > Date.now();
+          const hasError = stat.errorCalls > 0;
+          return (
+            <div key={prov} className="bg-[#0a0a0c] border border-zinc-900 rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-white font-black uppercase tracking-widest">{prov} API Engine</span>
+                <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase border ${
+                  isRateLimited ? 'bg-rose-950/20 border-rose-500/30 text-rose-400' :
+                  hasError ? 'bg-amber-950/20 border-amber-500/30 text-amber-400' : 'bg-emerald-950/20 border-emerald-500/30 text-emerald-400'
+                }`}>
+                  {isRateLimited ? 'RATE LIMITED' : 'CONNECTED'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+                <div className="bg-black/30 border border-zinc-950 p-2 rounded">
+                  <div className="text-zinc-500 uppercase tracking-wider text-[8px]">Total Calls</div>
+                  <div className="text-white font-bold mt-1">{stat.totalCalls}</div>
+                </div>
+                <div className="bg-black/30 border border-zinc-950 p-2 rounded">
+                  <div className="text-zinc-500 uppercase tracking-wider text-[8px]">Error Calls</div>
+                  <div className={`font-bold mt-1 ${stat.errorCalls > 0 ? 'text-amber-400' : 'text-zinc-500'}`}>{stat.errorCalls}</div>
+                </div>
+                <div className="bg-black/30 border border-zinc-950 p-2 rounded">
+                  <div className="text-zinc-500 uppercase tracking-wider text-[8px]">Avg Latency</div>
+                  <div className="text-white font-bold mt-1">
+                    {stat.totalCalls > 0 ? `${Math.round(stat.sumResponseTime / stat.totalCalls)}ms` : '—'}
+                  </div>
+                </div>
+              </div>
+
+              {isRateLimited && (
+                <div className="text-[9px] text-rose-400 uppercase tracking-widest font-bold">
+                  ⚠️ API rate limit cooling down. Re-enabling in {Math.round((stat.rateLimitedUntil - Date.now()) / 1000)}s
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* SQL Logging Ledger */}
+      <div className="bg-[#0a0a0c] border border-zinc-900 rounded-lg p-5">
+        <div className="text-sm font-bold text-white uppercase tracking-widest mb-3 flex items-center justify-between">
+          <span>Database Telemetry Logs (SQLite)</span>
+          <span className="text-[9px] text-zinc-500 lowercase">showing last 20 queries</span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-[10.5px]">
+            <thead>
+              <tr className="text-zinc-600 uppercase tracking-widest text-[8px] border-b border-zinc-900 pb-2">
+                <th className="py-2">Timestamp</th>
+                <th className="py-2">Provider</th>
+                <th className="py-2">Endpoint</th>
+                <th className="py-2 text-center">Status</th>
+                <th className="py-2 text-right">Latency</th>
+                <th className="py-2 text-right pr-4">Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.logs.map((log: any) => (
+                <tr key={log.id} className="border-b border-zinc-950/50 hover:bg-white/[0.01]">
+                  <td className="py-2 text-zinc-500">{new Date(log.timestamp).toLocaleTimeString()}</td>
+                  <td className="py-2 uppercase font-bold text-zinc-400">{log.provider}</td>
+                  <td className="py-2 text-zinc-400 max-w-[200px] truncate" title={log.endpoint}>{log.endpoint}</td>
+                  <td className="py-2 text-center">
+                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black ${
+                      log.status === 'SUCCESS' ? 'text-emerald-400 bg-emerald-950/10' : 'text-rose-400 bg-rose-950/10'
+                    }`}>
+                      {log.status}
+                    </span>
+                  </td>
+                  <td className="py-2 text-right text-zinc-300 font-mono">{log.response_time}ms</td>
+                  <td className="py-2 text-right pr-4 text-zinc-500 max-w-[250px] truncate" title={log.error_message || 'OK'}>
+                    {log.error_message || <span className="text-emerald-600">● OK</span>}
+                  </td>
+                </tr>
+              ))}
+              {data.logs.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-zinc-600 uppercase tracking-widest">No API queries logged yet.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

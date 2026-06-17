@@ -31,6 +31,7 @@ import {
 import { buildGexProfile, computeDealerFlowGauge } from './src/lib/gexEngine';
 import { computeDisplacementIntelligence } from './src/lib/displacementEngine';
 import { getLastTradierError } from './src/lib/tradierProvider';
+import { registerTelemetryCallback, apiStats } from './src/lib/telemetry';
 
 const app = express();
 app.set('trust proxy', true);
@@ -395,15 +396,16 @@ const bootstrappedAssets: Record<string, boolean> = {};
 
 let sandboxTimeShift = 0; // Accelerates time in sandbox mode
 
-// Simulation ticks run continuously server-side
-const TICK_INTERVAL = 1000; // 1s for fast real-time telemetry but stable chart
+let dynamicTickInterval = 6000; // 6s poll rate default for live mode
+let forceSandboxMode = false;
+const lastBackgroundSpotTimes: Record<string, number> = {};
 
 // Central async ticker queue pulling real market feeds or simulation fallbacks
 async function runTickerCycle() {
   try {
-    const mode = getDataSourceType();
+    const mode = forceSandboxMode ? 'SANDBOX_SYNTHETIC' : getDataSourceType();
     db.dataSource = mode as any;
-    db.apiStatusMessage = getProviderStatusMessage();
+    db.apiStatusMessage = forceSandboxMode ? 'Offline Sandbox Simulation Running (Admin Override)' : getProviderStatusMessage();
     
     if (mode === 'SANDBOX_SYNTHETIC') {
        sandboxTimeShift += 5000; // Fast time in simulation (5s per 1s tick)
@@ -414,34 +416,47 @@ async function runTickerCycle() {
     for (const asset of ASSET_LIST) {
       let spotPrice = asset.defaultPrice;
 
+      const isAssetWatched = sseClients.some(c => c.params.asset === asset.ticker);
+
+      // If asset is not watched and we are live, throttle spot checks and skip options entirely
+      if (mode !== 'SANDBOX_SYNTHETIC' && !isAssetWatched) {
+        const lastSpotTime = lastBackgroundSpotTimes[asset.ticker] || 0;
+        if (Date.now() - lastSpotTime < 30000) {
+          continue; // skip this cycle
+        }
+        lastBackgroundSpotTimes[asset.ticker] = Date.now();
+      }
+
       const spotRes = await getUnifiedSpotPrice(asset.ticker, asset.defaultPrice);
       if (spotRes.source !== 'SANDBOX_SYNTHETIC') {
         spotPrice = spotRes.price;
         db.liveSpotPrices[asset.ticker] = spotPrice;
 
-        // Fetch unified options chain
-        getUnifiedOptionChain(asset, spotPrice)
-          .then(chainRes => {
-            if (chainRes && chainRes.contracts && chainRes.contracts.length > 0) {
-              db.liveOptionChains[asset.ticker] = chainRes.contracts;
+        // Fetch unified options chain only if actively watched
+        if (isAssetWatched) {
+          getUnifiedOptionChain(asset, spotPrice)
+            .then(chainRes => {
+              if (chainRes && chainRes.contracts && chainRes.contracts.length > 0) {
+                db.liveOptionChains[asset.ticker] = chainRes.contracts;
 
-              // Collect unified flows
-              collectUnifiedFlows(asset.ticker, spotPrice, chainRes.contracts)
-                .then(liveFlows => {
-                  if (liveFlows && liveFlows.length > 0) {
-                    db.globalFlowFeed = [...liveFlows, ...db.globalFlowFeed].slice(0, 50);
-                  }
-                })
-                .catch(e => {
-                  // Safe catch
-                });
-            } else {
+                // Collect unified flows
+                collectUnifiedFlows(asset.ticker, spotPrice, chainRes.contracts)
+                  .then(liveFlows => {
+                    if (liveFlows && liveFlows.length > 0) {
+                      db.globalFlowFeed = [...liveFlows, ...db.globalFlowFeed].slice(0, 50);
+                    }
+                  })
+                  .catch(e => {
+                    // Safe catch
+                  });
+              } else {
+                db.liveOptionChains[asset.ticker] = [];
+              }
+            })
+            .catch(e => {
               db.liveOptionChains[asset.ticker] = [];
-            }
-          })
-          .catch(e => {
-            db.liveOptionChains[asset.ticker] = [];
-          });
+            });
+        }
       } else {
         // High fidelity sandbox random walk
         const prev5m = db.candles[`${asset.ticker}-5m`];
@@ -628,8 +643,14 @@ async function runTickerCycle() {
   }
 }
 
-// Start central telemetry clock
-setInterval(runTickerCycle, TICK_INTERVAL);
+// Start central telemetry clock with dynamic scheduling
+let lastTickTime = 0;
+setInterval(() => {
+  if (Date.now() - lastTickTime >= dynamicTickInterval) {
+    lastTickTime = Date.now();
+    runTickerCycle().catch(err => console.error('[Telemetry Tick Cycle Error]', err));
+  }
+}, 500);
 
 // SSE connection pool
 interface SSEClient {
@@ -1659,6 +1680,24 @@ function dbAll(sql: string, params: any[] = []): Promise<any[]> {
   });
 }
 
+function logApiCall(provider: string, endpoint: string, status: string, responseTime: number, errorMessage?: string | null) {
+  dbRun(`
+    INSERT INTO api_logs (timestamp, provider, endpoint, status, response_time, error_message)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `, [
+    new Date().toISOString(),
+    provider,
+    endpoint,
+    status,
+    responseTime,
+    errorMessage || null
+  ]).catch(err => console.error('[SQLite API Log Error]', err));
+}
+
+registerTelemetryCallback((provider, endpoint, status, responseTime, errorMessage) => {
+  logApiCall(provider, endpoint, status, responseTime, errorMessage);
+});
+
 const usersMemory = new Map<string, UserAccount>();
 const sessionsMemory = new Map<string, ActiveSession>();
 
@@ -1980,6 +2019,18 @@ async function initDb() {
       created_at TEXT,
       last_active TEXT,
       terminated INTEGER DEFAULT 0
+    )
+  `);
+
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS api_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      timestamp TEXT,
+      provider TEXT,
+      endpoint TEXT,
+      status TEXT,
+      response_time INTEGER,
+      error_message TEXT
     )
   `);
 
@@ -4115,6 +4166,38 @@ app.get('/api/admin/overview', requireAdmin(), (req: any, res) => {
 // this reflects the live SSE connection pool.
 app.get('/api/admin/live', requireAdmin(), (req, res) => {
   res.json({ live_connections: sseClients.length, ts: Date.now() });
+});
+
+// Telemetry statistics and API logs
+app.get('/api/admin/api-telemetry', requireAdmin(), (req: any, res) => {
+  dbAll('SELECT * FROM api_logs ORDER BY id DESC LIMIT 20')
+    .then(logs => {
+      res.json({
+        stats: apiStats,
+        logs,
+        dataSource: forceSandboxMode ? 'SANDBOX_SYNTHETIC' : getDataSourceType(),
+        apiStatusMessage: forceSandboxMode ? 'Offline Sandbox Simulation Running (Admin Override)' : getProviderStatusMessage(),
+        pollingInterval: dynamicTickInterval,
+        forceSandbox: forceSandboxMode
+      });
+    })
+    .catch(err => {
+      res.status(500).json({ error: 'Failed to retrieve telemetry logs.' });
+    });
+});
+
+// Admin throttle configuration
+app.post('/api/admin/api-throttle', requireAdmin(), (req: any, res) => {
+  const { interval, forceSandbox } = req.body;
+  if (typeof interval === 'number' && interval >= 1000 && interval <= 60000) {
+    dynamicTickInterval = interval;
+    logAudit(req, 'api_throttle_interval', `Interval set to ${interval}ms`);
+  }
+  if (typeof forceSandbox === 'boolean') {
+    forceSandboxMode = forceSandbox;
+    logAudit(req, 'api_force_sandbox', `Forced sandbox set to ${forceSandbox}`);
+  }
+  res.json({ success: true, interval: dynamicTickInterval, forceSandbox: forceSandboxMode });
 });
 
 // Paginated user CRM

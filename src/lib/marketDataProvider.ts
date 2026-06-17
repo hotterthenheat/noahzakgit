@@ -5,8 +5,30 @@
 
 import { ASSET_LIST } from '../data.js';
 import { AssetInfo } from '../types.js';
+import { recordApiTelemetry } from './telemetry';
 
 const CACHE_TTL_MS = 6000; // 6-second caching to prevent rate-limit exhaustion during active SSE ticks
+
+async function polygonFetch(url: string, endpointDescription: string): Promise<any> {
+  const startTime = Date.now();
+  try {
+    const response = await fetch(url);
+    const duration = Date.now() - startTime;
+    if (!response.ok) {
+      const errMsg = `HTTP ${response.status} ${response.statusText}`;
+      recordApiTelemetry('polygon', endpointDescription, 'ERROR', duration, errMsg);
+      throw new Error(`Polygon API Error: ${errMsg}`);
+    }
+    const data = await response.json();
+    recordApiTelemetry('polygon', endpointDescription, 'SUCCESS', duration);
+    return data;
+  } catch (error: any) {
+    const duration = Date.now() - startTime;
+    const msg = error?.message || String(error);
+    recordApiTelemetry('polygon', endpointDescription, 'ERROR', duration, msg);
+    throw error;
+  }
+}
 
 interface CachedData<T> {
   data: T;
@@ -60,11 +82,7 @@ export async function fetchLiveSpotPrice(ticker: string, defaultFallbackPrice: n
       try {
         // Query correct V3 indices snapshot endpoint
         const url = `https://api.polygon.io/v3/snapshot/indices?tickers=${polyTicker}&apiKey=${apiKey}`;
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        const json = await response.json();
+        const json = await polygonFetch(url, '/v3/snapshot/indices');
         if (json?.results && json.results.length > 0 && json.results[0].value) {
           price = json.results[0].value;
         } else {
@@ -88,11 +106,7 @@ export async function fetchLiveSpotPrice(ticker: string, defaultFallbackPrice: n
     } else {
       // Correct V2 stocks snapshot endpoint for ETFs & Equities
       const url = `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${polyTicker}?apiKey=${apiKey}`;
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const json = await response.json();
+      const json = await polygonFetch(url, '/v2/snapshot/stocks');
       price = json?.ticker?.lastTrade?.p || json?.ticker?.min?.c || json?.ticker?.day?.c || json?.ticker?.prevDay?.c || defaultFallbackPrice;
     }
 
@@ -149,12 +163,7 @@ export async function fetchLiveOptionChain(asset: AssetInfo, spotPrice: number):
     // Removed unsupported limit=400 parameter causing HTTP 400 errors
     const url = `https://api.polygon.io/v3/snapshot/options/${queryUnderlying}?apiKey=${apiKey}`;
     
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const resJson = await response.json();
+    const resJson = await polygonFetch(url, `/v3/snapshot/options-chain/${queryUnderlying}`);
     if (!resJson.results || !Array.isArray(resJson.results)) {
       throw new Error(`No active results formatted by Polygon snapshot`);
     }
@@ -218,10 +227,7 @@ export async function collectLiveFlows(ticker: string, currentSpot: number): Pro
     const queryUnderlying = (ticker === 'SPX') ? 'SPY' : (ticker === 'NDX' ? 'QQQ' : ticker);
     // Removed unsupported limit=50 parameter causing HTTP 400 errors
     const url = `https://api.polygon.io/v3/snapshot/options/${queryUnderlying}?apiKey=${apiKey}`;
-    const response = await fetch(url);
-    if (!response.ok) return [];
-
-    const resJson = await response.json();
+    const resJson = await polygonFetch(url, `/v3/snapshot/options-flows/${queryUnderlying}`);
     if (!resJson.results || !Array.isArray(resJson.results)) return [];
 
     const flowBlocks: any[] = [];
