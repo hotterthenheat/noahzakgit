@@ -46,7 +46,7 @@ async function runBacktest() {
   console.log(`Date Range: ${CONFIG.startDate} to ${CONFIG.endDate}`);
   console.log(`TP Target: ${(CONFIG.takeProfitPct * 100).toFixed(2)}% | SL Stop: ${(CONFIG.stopLossPct * 100).toFixed(2)}%`);
   console.log(`GEX Scan Interval: ${CONFIG.stepSeconds}s (1 minute)`);
-  console.log(`Connecting to local Theta Terminal on port 25510...`);
+  console.log(`Connecting to local Theta Terminal on port 25503...`);
 
   const client = new ThetaClient();
   const tradeHistory: Position[] = [];

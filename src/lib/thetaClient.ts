@@ -18,7 +18,7 @@ export interface ThetaQuoteSnapshot {
 export class ThetaClient {
   private baseUrl: string;
 
-  constructor(port = 25510) {
+  constructor(port = 25503) {
     this.baseUrl = `http://127.0.0.1:${port}`;
   }
 
