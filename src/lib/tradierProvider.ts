@@ -280,8 +280,7 @@ export async function fetchTradierOptionChain(asset: AssetInfo, spotPrice: numbe
       const options = Array.isArray(optionData) ? optionData : [optionData];
 
       const contracts: LiveOptionContract[] = options.map((item: any) => {
-        const rawType = (item.option_type || item.type || '').toString().toUpperCase();
-        const type: 'C' | 'P' = rawType === 'CALL' || rawType === 'C' ? 'C' : 'P';
+        const type: 'C' | 'P' = item.type === 'call' || item.type === 'C' ? 'C' : 'P';
         const strike = Number(item.strike) || 0;
         const oi = Number(item.open_interest) || 0;
         const volume = Number(item.volume) || 0;
@@ -408,9 +407,9 @@ export function aggregateCandles(candles: Candle[], minutes: number): Candle[] {
     const list = groupMap.get(key)!;
     const open = list[0].open;
     const close = list[list.length - 1].close;
-    const high = Math.max(...list.map(c => c.high));
-    const low = Math.min(...list.map(c => c.low));
-    const volume = list.reduce((sum, c) => sum + Uint32Array.of(c.volume)[0], 0);
+    const high = list.reduce((m, c) => Math.max(m, c.high), -Infinity);
+    const low = list.reduce((m, c) => Math.min(m, c.low), Infinity);
+    const volume = list.reduce((sum, c) => sum + (Number(c.volume) || 0), 0);
     const vwapSum = list.reduce((sum, c) => sum + (c.vwap || c.close) * c.volume, 0);
     const vwap = volume > 0 ? vwapSum / volume : close;
 

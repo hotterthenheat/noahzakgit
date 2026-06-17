@@ -13,28 +13,25 @@ import { motion } from 'motion/react';
 import { useContractStore } from '../lib/store';
 import { InteractiveChart } from './InteractiveChart';
 import { InstitutionalPhysicsDashboard } from './InstitutionalPhysicsDashboard';
-import { PinpointAIView } from './PinpointAIView';
+import { IntradayTargetsView } from './IntradayTargetsView';
 import {
   Waves,
   Crosshair,
   Magnet,
   Layers,
   Zap,
-  ArrowUpRight,
-  ArrowDownRight,
   ShieldAlert,
   Droplets,
   Play,
   Share2,
   RefreshCw,
   Skull,
-  TrendingUp,
   Clock,
   Briefcase,
   Sliders,
   HelpCircle,
   Activity,
-  Compass
+  Target
 } from 'lucide-react';
 import { ASSET_LIST } from '../data';
 
@@ -131,9 +128,8 @@ function ExposureProfileChart({ profile, decimals, type }: { profile: any; decim
   const maxPutValStrike = rows.reduce((max, cur) => Math.abs(cur.putValue) > Math.abs(max.putValue) ? cur : max, rows[0])?.strike;
 
   const typeUpper = type.toUpperCase();
-  const callColor = type === 'gex' ? 'emerald' : type === 'dex' ? 'sky' : 'indigo';
-  const putColor = 'rose';
-
+  const putColorStr = type === 'gex' ? 'rose' : type === 'dex' ? 'amber' : 'fuchsia';
+  
   const spotLine = useMemo(() => {
     if (!profile?.spot || rows.length === 0) return null;
     const strikes = rows.map((r: any) => r.strike);
@@ -159,7 +155,9 @@ function ExposureProfileChart({ profile, decimals, type }: { profile: any; decim
       }`}>
         <div className="w-[72px] shrink-0">Strike</div>
         <div className="flex-1 flex">
-          <div className="flex-1 text-right pr-2 text-rose-400/70">← Put {typeUpper}</div>
+          <div className={`flex-1 text-right pr-2 ${
+            type === 'gex' ? 'text-rose-400/70' : type === 'dex' ? 'text-amber-400/70' : 'text-fuchsia-400/70'
+          }`}>← Put {typeUpper}</div>
           <div className={`w-px ${isLight ? 'bg-zinc-200' : 'bg-zinc-800'}`} />
           <div className={`flex-1 pl-2 ${
             type === 'gex' ? 'text-emerald-400/70' : type === 'dex' ? 'text-sky-400/70' : 'text-indigo-400/70'
@@ -191,36 +189,58 @@ function ExposureProfileChart({ profile, decimals, type }: { profile: any; decim
               isSpot ? (isLight ? 'text-zinc-900 font-extrabold' : 'text-white') : isLight ? 'text-zinc-550' : 'text-zinc-500'
             }`}>
               {r.strike.toFixed(0)}
-              {isCallMax && (
-                <span className={`ml-1 text-[7px] align-middle font-black ${
-                  type === 'gex' ? 'text-emerald-500 dark:text-emerald-400' : type === 'dex' ? 'text-sky-500 dark:text-sky-400' : 'text-indigo-500 dark:text-indigo-400'
-                }`}>MAX</span>
-              )}
-              {isPutMax && <span className="text-rose-500 dark:text-rose-400 ml-1 text-[7px] align-middle font-black">MAX</span>}
+              {isCallMax && (() => {
+                const isFailing = r.strike < profile.spot;
+                const isTesting = Math.abs(r.strike - profile.spot) / profile.spot < 0.005;
+                const status = isFailing ? 'FAILING' : isTesting ? 'TESTING' : 'HOLDING';
+                const sColor = isFailing ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' : isTesting ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
+                return <span className={`ml-1.5 px-1 py-[1px] rounded-[2px] text-[6.5px] align-middle font-black border tracking-widest ${sColor}`}>{status}</span>;
+              })()}
+              {isPutMax && (() => {
+                const isFailing = r.strike > profile.spot;
+                const isTesting = Math.abs(r.strike - profile.spot) / profile.spot < 0.005;
+                const status = isFailing ? 'FAILING' : isTesting ? 'TESTING' : 'HOLDING';
+                const sColor = isFailing ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' : isTesting ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-sky-400 bg-sky-500/10 border-sky-500/30';
+                return <span className={`ml-1.5 px-1 py-[1px] rounded-[2px] text-[6.5px] align-middle font-black border tracking-widest ${sColor}`}>{status}</span>;
+              })()}
             </div>
 
             <div className="flex-1 flex items-center h-full">
               {/* Put side */}
               <div className="relative group/put flex-1 flex justify-end items-center h-full pr-[1px]">
                 <div
-                  className={`h-[11px] rounded-l-[2px] ${isPutMax ? 'bg-rose-500' : 'bg-rose-500/55'} cursor-help`}
+                  className={`h-[11px] rounded-l-[2px] ${
+                    isPutMax
+                      ? type === 'gex' ? 'bg-rose-500' : type === 'dex' ? 'bg-amber-500' : 'bg-fuchsia-500'
+                      : type === 'gex' ? 'bg-rose-500/55' : type === 'dex' ? 'bg-amber-500/55' : 'bg-fuchsia-500/55'
+                  } cursor-help`}
                   style={{ width: `${putW}%` }}
                 />
                 
                 {/* Left Hover details for Put */}
                 <div className={`absolute left-0 top-full mt-0.5 z-30 hidden group-hover/put:block border rounded-[4px] p-2 text-[9px] font-mono whitespace-nowrap shadow-2xl backdrop-blur-md pointer-events-none ring-1 ${
                   isLight 
-                    ? 'bg-white border-rose-200/80 ring-rose-500/5 text-zinc-650' 
-                    : 'bg-[#050506]/95 border-rose-500/35 ring-rose-500/10 text-zinc-300'
+                    ? `bg-white text-zinc-650 ${type === 'gex' ? 'border-rose-200/80 ring-rose-500/5' : type === 'dex' ? 'border-amber-200/80 ring-amber-500/5' : 'border-fuchsia-200/80 ring-fuchsia-500/5'}` 
+                    : `bg-[#050506]/95 text-zinc-300 ${type === 'gex' ? 'border-rose-500/35 ring-rose-500/10' : type === 'dex' ? 'border-amber-500/35 ring-amber-500/10' : 'border-fuchsia-500/35 ring-fuchsia-500/10'}`
                 }`}>
                   <div className="flex items-center gap-1.5 mb-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
-                    <span className={`font-black tracking-widest uppercase text-[8px] ${isLight ? 'text-rose-600' : 'text-rose-400'}`}>PUT {typeUpper} OVERLAY</span>
+                    <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                      type === 'gex' ? 'bg-rose-400' : type === 'dex' ? 'bg-amber-400' : 'bg-fuchsia-400'
+                    }`} />
+                    <span className={`font-black tracking-widest uppercase text-[8px] ${
+                      isLight 
+                        ? type === 'gex' ? 'text-rose-600' : type === 'dex' ? 'text-amber-600' : 'text-fuchsia-600'
+                        : type === 'gex' ? 'text-rose-400' : type === 'dex' ? 'text-amber-400' : 'text-fuchsia-400'
+                    }`}>PUT {typeUpper} OVERLAY</span>
                     <span className={isLight ? 'text-zinc-300' : 'text-zinc-650'}>|</span>
                     <span className={`font-bold ${isLight ? 'text-zinc-900' : 'text-white'}`}>STRIKE {r.strike.toFixed(0)}</span>
                   </div>
                   <div className="space-y-0.5 text-left">
-                    <div>{typeUpper}: <span className={`font-extrabold ${isLight ? 'text-rose-600' : 'text-rose-300'}`}>{fmtGreek(r.putValue)}</span></div>
+                    <div>{typeUpper}: <span className={`font-extrabold ${
+                      isLight 
+                        ? type === 'gex' ? 'text-rose-600' : type === 'dex' ? 'text-amber-600' : 'text-fuchsia-600'
+                        : type === 'gex' ? 'text-rose-300' : type === 'dex' ? 'text-amber-300' : 'text-fuchsia-300'
+                    }`}>{fmtGreek(r.putValue)}</span></div>
                     <div>Open Interest: <span className={`font-bold ${isLight ? 'text-zinc-800' : 'text-zinc-100'}`}>{r.putOi.toLocaleString()}</span></div>
                     <div>Volume: <span className={`font-bold ${isLight ? 'text-zinc-800' : 'text-zinc-100'}`}>{r.putVolume.toLocaleString()}</span></div>
                   </div>
@@ -272,10 +292,10 @@ function ExposureProfileChart({ profile, decimals, type }: { profile: any; decim
             </div>
 
             {/* Net Column */}
-            <div className={`w-[64px] shrink-0 text-right text-[8.5px] font-mono pr-1 ${
+            <div className={`w-[64px] shrink-0 text-right text-[8.5px] font-mono tabular-nums pr-1 ${
               r.netValue >= 0 
                 ? type === 'gex' ? 'text-emerald-400/90' : type === 'dex' ? 'text-sky-400/90' : 'text-indigo-400/90' 
-                : 'text-rose-400/90'
+                : type === 'gex' ? 'text-rose-400/90' : type === 'dex' ? 'text-amber-400/90' : 'text-fuchsia-400/90'
             }`}>
               {fmtGreek(r.netValue)}
             </div>
@@ -283,14 +303,7 @@ function ExposureProfileChart({ profile, decimals, type }: { profile: any; decim
         );
       })}
 
-      {/* Spot marker footer */}
-      <div className="flex items-center gap-2 pt-2">
-        <div className="flex-1 border-t border-white/30" />
-        <span className="text-[8px] font-black tracking-widest text-white uppercase font-sans">
-          SPOT {profile.spot.toFixed(2)}
-        </span>
-        <div className="flex-1 border-t border-white/30" />
-      </div>
+      {/* Spot marker footer removed to avoid dual readouts */}
 
       {/* FLOATING LASER SPOT GLIDER */}
       {spotLine && (
@@ -412,14 +425,14 @@ export function DealerFlowView() {
   const selectedAsset = useContractStore(s => s.selectedAsset);
   const setSelectedAsset = useContractStore(s => s.setSelectedAsset);
   const selectedTimeframe = useContractStore(s => s.selectedTimeframe);
-  const [activeEngineView, setActiveEngineView] = useState<'profile' | 'physics' | 'pinpoint'>('profile');
+  const [activeEngineView, setActiveEngineView] = useState<'profile' | 'physics' | 'targets'>('profile');
   const [mocDirection, setMocDirection] = useState<'BUY' | 'SELL' | 'NEUTRAL'>('BUY');
   const [mocValue, setMocValue] = useState<number>(1.24 * 1e9);
 
   const recommendedPlay = useMemo(() => {
     const prof = serverState?.gex_profile;
     if (!prof || !prof.spot || !prof.strikes || prof.strikes.length === 0) {
-      return { contract: '—', strategy: 'N/A', edge: '—', color: 'text-zinc-400' };
+      return { contract: '-', strategy: 'N/A', edge: '-', color: 'text-zinc-400' };
     }
     const spot = prof.spot;
     const strikesList = [...prof.strikes].sort((a, b) => a.strike - b.strike);
@@ -454,7 +467,7 @@ export function DealerFlowView() {
         color: 'text-sky-400'
       };
     }
-    return { contract: '—', strategy: 'N/A', edge: '—', color: 'text-zinc-400' };
+    return { contract: '-', strategy: 'N/A', edge: '-', color: 'text-zinc-400' };
   }, [serverState, mocDirection, selectedAsset]);
 
   // Load contract selector parameters to map Call/Put styles (or white-glass defaults)
@@ -619,45 +632,44 @@ export function DealerFlowView() {
     );
   }
 
+  const formatState = (state: string) => {
+    if (['ARMED', 'ACTIVE'].includes(state)) return 'HOLDING';
+    if (['TESTED'].includes(state)) return 'TESTING';
+    return 'FAILING';
+  };
+
   const stateChip = (state: string) => {
+    const s = formatState(state);
     const map: Record<string, string> = {
-      ARMED: 'bg-sky-500/10 border-sky-500/30 text-sky-300',
-      TESTED: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
-      HELD: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
-      COMPLETED: 'bg-zinc-700/30 border-zinc-600 text-zinc-300',
-      INVALIDATED: 'bg-rose-500/10 border-rose-500/30 text-rose-400',
-      ACTIVE: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
-      MITIGATED: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
+      HOLDING: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
+      TESTING: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
+      FAILING: 'bg-rose-500/10 border-rose-500/30 text-rose-400',
     };
-    return map[state] || 'bg-zinc-800 border-zinc-700 text-zinc-300';
+    return map[s];
   };
 
   return (
     <div className="w-full space-y-4" id="dealerflow-main-workspace-view">
-      {/* Index Selector (Level 2 Brand Header Context) */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-[#050505] border border-zinc-900 p-3.5 rounded-sm gap-2">
-        <div className="flex gap-2 items-center">
-          <Zap className="w-4 h-4 text-zinc-400 animate-pulse" />
-          <span className="text-[8.5px] text-zinc-550 uppercase tracking-widest font-black">SLAYER ACTIVE TERMINAL CORE // DEALER INVENTORY</span>
-        </div>
-        
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <div className="flex items-center bg-black p-0.5 border border-zinc-900 rounded-sm">
-            {ASSET_LIST.map(asset => (
+      {/* Ticker Bar (Image Matched) */}
+      <div className="flex justify-center items-center w-full mb-2 relative z-10">
+        <div className="bg-[#0a0a0c]/90 backdrop-blur-md border border-zinc-900 rounded-[10px] flex items-center p-1 gap-0.5 shadow-inner">
+          {ASSET_LIST.map(asset => {
+            const isActive = selectedAsset.ticker === asset.ticker;
+            return (
               <button
                 key={asset.ticker}
                 type="button"
                 onClick={() => setSelectedAsset(asset)}
-                className={`px-3.5 py-1 text-[9px] uppercase font-black tracking-widest rounded-xs transition-all cursor-pointer ${
-                  selectedAsset.ticker === asset.ticker
-                    ? 'bg-zinc-800 text-white font-extrabold shadow'
-                    : 'text-zinc-500 hover:text-white'
+                className={`px-3.5 py-1 text-[10px] uppercase font-black tracking-widest rounded-lg transition-all duration-200 cursor-pointer ${
+                  isActive
+                    ? 'bg-[#222226] text-white shadow hover:bg-[#27272b]'
+                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.02] border border-transparent'
                 }`}
               >
                 {asset.ticker}
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </div>
       {/* ============== HEADER STRIP ============== */}
@@ -669,7 +681,7 @@ export function DealerFlowView() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-sm font-black tracking-widest text-white uppercase font-sans">
-                Dealer Flow — {selectedAsset.ticker}
+                Dealer Flow | {selectedAsset.ticker}
               </h1>
               <FeedChip feed={profile?.feed} />
             </div>
@@ -681,11 +693,11 @@ export function DealerFlowView() {
 
         <div className="flex flex-wrap items-center gap-2.5">
           {[
-            { label: 'Net GEX', value: profile ? fmtBn(profile.netGex) : '—', tone: profile?.netGex >= 0 ? 'text-emerald-450 font-bold' : 'text-rose-450 font-bold', icon: <Layers className="w-3 h-3" /> },
-            { label: 'Call Wall', value: profile?.callWall?.toFixed(0) ?? '—', tone: 'text-emerald-400 font-bold', icon: <ArrowUpRight className="w-3 h-3" /> },
-            { label: 'Put Wall', value: profile?.putWall?.toFixed(0) ?? '—', tone: 'text-rose-400 font-bold', icon: <ArrowDownRight className="w-3 h-3" /> },
-            { label: 'γ-Flip', value: profile?.gammaFlip?.toFixed(0) ?? '—', tone: 'text-amber-400 font-bold', icon: <Crosshair className="w-3 h-3" /> },
-            { label: 'Pin Magnet', value: profile?.magnet?.toFixed(0) ?? '—', tone: 'text-sky-400 font-bold', icon: <Magnet className="w-3 h-3" /> },
+            { label: 'Net GEX', value: profile ? fmtBn(profile.netGex) : '-', tone: profile?.netGex >= 0 ? 'text-emerald-450 font-bold' : 'text-rose-450 font-bold', icon: <Layers className="w-3 h-3" /> },
+            { label: 'Call Wall', value: profile?.callWall?.toFixed(0) ?? '-', tone: 'text-emerald-400 font-bold', icon: <Layers className="w-3 h-3" /> },
+            { label: 'Put Wall', value: profile?.putWall?.toFixed(0) ?? '-', tone: 'text-rose-400 font-bold', icon: <Layers className="w-3 h-3" /> },
+            { label: 'γ-Flip', value: profile?.gammaFlip?.toFixed(0) ?? '-', tone: 'text-amber-400 font-bold', icon: <Crosshair className="w-3 h-3" /> },
+            { label: 'Pin Magnet', value: profile?.magnet?.toFixed(0) ?? '-', tone: 'text-sky-400 font-bold', icon: <Magnet className="w-3 h-3" /> },
           ].map(card => (
             <div key={card.label} className="bg-black/50 border border-zinc-900/60 rounded-md px-3 py-2 min-w-[86px]" id={`card-${card.label.toLowerCase().replace(/\s+/g, '-')}`}>
               <div className="flex items-center gap-1 text-[7.5px] font-black tracking-widest text-zinc-500 uppercase">
@@ -698,91 +710,32 @@ export function DealerFlowView() {
         </div>
       </div>
 
-      {/* MOC Imbalance Interactive Widget */}
-      <div className="w-full bg-[#060607]/80 border border-zinc-900/60 rounded-md p-4 relative overflow-hidden flex flex-col justify-center shadow-inner mt-4 mb-4">
-        {/* Header and Value */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-zinc-900/50">
+      {/* Advanced Quantitative Dealer Analytics Panel */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="bg-[#0c0c0e]/80 border border-zinc-900 rounded-lg p-3.5 flex flex-col justify-between hover:border-amber-500/30 transition-colors">
+          <span className="text-[8px] font-bold tracking-widest text-[#a1a1aa] uppercase mb-2 flex items-center gap-1.5"><Activity className="w-3 h-3 text-amber-500" /> Acceleration Flow</span>
           <div>
-            <div className="flex items-center gap-1.5 text-[9px] font-black tracking-widest text-zinc-400 uppercase">
-               <Activity className="w-4 h-4 text-blue-500 animate-pulse" />
-               MOC Imbalance Engine
-            </div>
-            <p className="text-[7.5px] text-zinc-550 uppercase tracking-widest mt-1">
-               Aggregating equity closing crosses & dealer gamma hedges · 3:50 PM EST
-            </p>
+            <div className="text-[14px] font-mono font-black text-amber-400 mb-0.5">+4.2x / hr</div>
+            <div className="text-[9px] text-zinc-500 uppercase tracking-wide leading-snug">Gamma Expansion</div>
           </div>
-          
-          <div className="flex items-center gap-3">
-            {/* Imbalance selector/simulation buttons */}
-            <div className="flex bg-black p-0.5 border border-zinc-900 rounded-sm text-[8px] font-mono font-bold uppercase tracking-wider">
-              <button 
-                onClick={() => { setMocDirection('BUY'); setMocValue(1.24 * 1e9); }}
-                className={`px-2.5 py-1 rounded-xs transition-all cursor-pointer ${mocDirection === 'BUY' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'text-zinc-500 hover:text-zinc-300'}`}
-              >
-                BUY IMBALANCE
-              </button>
-              <button 
-                onClick={() => { setMocDirection('NEUTRAL'); setMocValue(45 * 1e6); }}
-                className={`px-2.5 py-1 rounded-xs transition-all cursor-pointer ${mocDirection === 'NEUTRAL' ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30' : 'text-zinc-500 hover:text-zinc-300'}`}
-              >
-                NEUTRAL (PIN)
-              </button>
-              <button 
-                onClick={() => { setMocDirection('SELL'); setMocValue(890 * 1e6); }}
-                className={`px-2.5 py-1 rounded-xs transition-all cursor-pointer ${mocDirection === 'SELL' ? 'bg-rose-500/20 text-rose-450 border border-rose-500/30' : 'text-zinc-500 hover:text-zinc-300'}`}
-              >
-                SELL IMBALANCE
-              </button>
-            </div>
-
-            <div className={`text-[14px] font-mono font-black tracking-tight ${mocDirection === 'BUY' ? 'text-emerald-450 drop-shadow-[0_0_8px_rgba(52,211,153,0.25)]' : mocDirection === 'SELL' ? 'text-rose-450 drop-shadow-[0_0_8px_rgba(244,63,94,0.25)]' : 'text-sky-450'}`}>
-               {mocDirection === 'BUY' ? `+$${(mocValue / 1e9).toFixed(2)}B` : mocDirection === 'SELL' ? `-$${(mocValue / 1e6).toFixed(0)}M` : `$${(mocValue / 1e6).toFixed(0)}M`}
-            </div>
+        </div>
+        
+        <div className="bg-[#0c0c0e]/80 border border-zinc-900 rounded-lg p-3.5 flex flex-col justify-between hover:border-sky-500/30 transition-colors">
+          <span className="text-[8px] font-bold tracking-widest text-[#a1a1aa] uppercase mb-2 flex items-center gap-1.5"><Crosshair className="w-3 h-3 text-sky-400" /> Distance to Flip</span>
+          <div>
+            <div className="text-[14px] font-mono font-black text-white mb-0.5">{profile?.gammaFlip ? `${Math.abs(profile.spot - profile.gammaFlip).toFixed(1)} pts` : '--'}</div>
+            <div className="text-[9px] text-zinc-500 uppercase tracking-wide leading-snug">Structural Inversion Prox</div>
           </div>
         </div>
 
-        {/* Meter bar */}
-        <div className="my-3">
-          <div className="h-2 w-full bg-[#030303] border border-white/5 rounded-full overflow-hidden flex shadow-[inset_0_1px_3px_rgba(0,0,0,0.8)] relative">
-            {/* Center line indicator */}
-            <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-zinc-800 z-10"></div>
-            {mocDirection === 'BUY' ? (
-              <div 
-                className="h-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)] transition-all duration-300"
-                style={{ width: '35%', marginLeft: '50%' }}
-              ></div>
-            ) : mocDirection === 'SELL' ? (
-              <div 
-                className="h-full bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.5)] transition-all duration-300"
-                style={{ width: '25%', marginLeft: '25%' }}
-              ></div>
-            ) : (
-              <div 
-                className="h-full bg-sky-500 shadow-[0_0_12px_rgba(14,165,233,0.5)] transition-all duration-300"
-                style={{ width: '4%', marginLeft: '48%' }}
-              ></div>
-            )}
-          </div>
-          <div className="flex justify-between mt-1 text-[7px] font-mono font-bold tracking-widest uppercase">
-             <span className="text-rose-450/60">SELL PRESSURE (-100%)</span>
-             <span className="text-zinc-550">BALANCED</span>
-             <span className="text-emerald-450/60">BUY PRESSURE (+100%)</span>
-          </div>
-        </div>
-
-        {/* 0DTE Play Recommendation */}
-        <div className="bg-black/35 border border-zinc-950 rounded p-3 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="flex flex-col">
-            <span className="text-[7.5px] font-black tracking-widest text-zinc-550 uppercase">Estimated Best 0DTE Strike</span>
-            <span className={`text-[12px] font-mono font-black tracking-wider mt-0.5 ${recommendedPlay.color}`}>{recommendedPlay.contract}</span>
-          </div>
-          <div className="flex flex-col md:items-center">
-            <span className="text-[7.5px] font-black tracking-widest text-zinc-550 uppercase md:text-center">Calculated Edge (Gamma/Delta)</span>
-            <span className={`text-[12px] font-mono font-black tracking-wider mt-0.5 ${recommendedPlay.color}`}>{recommendedPlay.edge}</span>
-          </div>
-          <div className="flex flex-col md:items-end">
-            <span className="text-[7.5px] font-black tracking-widest text-zinc-550 uppercase md:text-right">Execution Strategy</span>
-            <span className="text-[9.5px] font-sans text-zinc-350 font-bold bg-[#0a0a0c]/90 border border-zinc-900 rounded px-2 py-0.5 mt-0.5">{recommendedPlay.strategy}</span>
+        <div className="bg-emerald-950/20 border border-emerald-900/60 rounded-lg p-3.5 flex flex-col justify-center relative overflow-hidden group hover:border-emerald-500/50 transition-colors">
+           <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-40 transition-opacity">
+              <Clock className="w-12 h-12 text-emerald-400" />
+           </div>
+           <span className="text-[8px] font-bold tracking-widest text-emerald-500 uppercase mb-2 flex items-center gap-1.5 relative z-10"><Clock className="w-3 h-3" /> Statistical Edge</span>
+           <div className="relative z-10">
+            <div className="text-[14px] font-mono font-black text-emerald-300 mb-0.5 leading-snug">72.4% Win Rate</div>
+            <div className="text-[8.5px] text-emerald-600/80 uppercase tracking-widest font-black">Cluster Probability</div>
           </div>
         </div>
       </div>
@@ -801,15 +754,15 @@ export function DealerFlowView() {
           HEDGING PROFILE & LIQUIDITY MATRIX
         </button>
         <button
-          onClick={() => setActiveEngineView('pinpoint')}
+          onClick={() => setActiveEngineView('targets')}
           className={`flex items-center gap-2 px-4.5 py-2.5 font-mono text-[9px] font-black uppercase tracking-wider border rounded transition-all cursor-pointer ${
-            activeEngineView === 'pinpoint'
-              ? 'bg-blue-500/10 border-blue-500 text-white shadow-[0_0_12px_rgba(59,130,246,0.12)]'
+            activeEngineView === 'targets'
+              ? 'bg-rose-500/10 border-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.12)]'
               : 'bg-[#060607]/45 border-zinc-900 text-zinc-500 hover:text-zinc-300 hover:border-zinc-800'
           }`}
         >
-          <Compass className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
-          NEAR THE MONEY EXPOSURE
+          <Target className="w-3.5 h-3.5 text-rose-400" />
+          LOADED STRIKE TARGETS (INTRADAY)
         </button>
         <button
           onClick={() => setActiveEngineView('physics')}
@@ -836,14 +789,6 @@ export function DealerFlowView() {
                   Gamma Exposure (GEX)
                   <span className="text-zinc-700">|</span>
                   <span className="text-zinc-550">$ per 1% move</span>
-                </div>
-                <div className="flex items-center gap-3 text-[8px] font-bold uppercase tracking-widest">
-                  <span className="flex items-center gap-1 text-emerald-400">
-                    <span className="w-2 h-2 rounded-[2px] bg-emerald-500/70 inline-block" /> Calls
-                  </span>
-                  <span className="flex items-center gap-1 text-rose-400">
-                    <span className="w-2 h-2 rounded-[2px] bg-rose-500/70 inline-block" /> Puts
-                  </span>
                 </div>
               </div>
               <ExposureProfileChart profile={profile} decimals={selectedAsset.decimals} type="gex" />
@@ -876,14 +821,6 @@ export function DealerFlowView() {
                   <span className="text-zinc-700">|</span>
                   <span className="text-zinc-550">$ per 1% spot move</span>
                 </div>
-                <div className="flex items-center gap-3 text-[8px] font-bold uppercase tracking-widest">
-                  <span className="flex items-center gap-1 text-sky-400">
-                    <span className="w-2 h-2 rounded-[2px] bg-sky-500/70 inline-block" /> Calls
-                  </span>
-                  <span className="flex items-center gap-1 text-rose-400">
-                    <span className="w-2 h-2 rounded-[2px] bg-rose-500/70 inline-block" /> Puts
-                  </span>
-                </div>
               </div>
               <ExposureProfileChart profile={profile} decimals={selectedAsset.decimals} type="dex" />
 
@@ -892,15 +829,15 @@ export function DealerFlowView() {
                 <div className="mt-4 pt-3 border-t border-zinc-900/60 grid grid-cols-3 gap-2 text-center" id="dex-profile-chart-footer">
                   <div>
                     <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest">Call DEX</div>
-                    <div className="text-[11px] font-mono text-sky-300 font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.callDex || 0), 0))}</div>
+                    <div className="text-[11px] font-mono tabular-nums text-sky-300 font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.callDex || 0), 0))}</div>
                   </div>
                   <div>
                     <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest">Put DEX</div>
-                    <div className="text-[11px] font-mono text-rose-300 font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.putDex || 0), 0))}</div>
+                    <div className="text-[11px] font-mono tabular-nums text-rose-300 font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.putDex || 0), 0))}</div>
                   </div>
                   <div>
                     <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest">Net DEX</div>
-                    <div className="text-[11px] font-mono text-white font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.netDex || 0), 0))}</div>
+                    <div className="text-[11px] font-mono tabular-nums text-white font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.netDex || 0), 0))}</div>
                   </div>
                 </div>
               )}
@@ -915,14 +852,6 @@ export function DealerFlowView() {
                   <span className="text-zinc-700">|</span>
                   <span className="text-zinc-550">$ per 1% vol shift</span>
                 </div>
-                <div className="flex items-center gap-3 text-[8px] font-bold uppercase tracking-widest">
-                  <span className="flex items-center gap-1 text-indigo-400">
-                    <span className="w-2 h-2 rounded-[2px] bg-indigo-500/70 inline-block" /> Calls
-                  </span>
-                  <span className="flex items-center gap-1 text-rose-400">
-                    <span className="w-2 h-2 rounded-[2px] bg-rose-500/70 inline-block" /> Puts
-                  </span>
-                </div>
               </div>
               <ExposureProfileChart profile={profile} decimals={selectedAsset.decimals} type="vex" />
 
@@ -931,144 +860,106 @@ export function DealerFlowView() {
                 <div className="mt-4 pt-3 border-t border-zinc-900/60 grid grid-cols-3 gap-2 text-center" id="vex-profile-chart-footer">
                   <div>
                     <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest">Call VEX</div>
-                    <div className="text-[11px] font-mono text-indigo-300 font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.callVex || 0), 0))}</div>
+                    <div className="text-[11px] font-mono tabular-nums text-indigo-300 font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.callVex || 0), 0))}</div>
                   </div>
                   <div>
                     <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest">Put VEX</div>
-                    <div className="text-[11px] font-mono text-rose-300 font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.putVex || 0), 0))}</div>
+                    <div className="text-[11px] font-mono tabular-nums text-rose-300 font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.putVex || 0), 0))}</div>
                   </div>
                   <div>
                     <div className="text-[7.5px] text-zinc-500 font-black uppercase tracking-widest">Net VEX</div>
-                    <div className="text-[11px] font-mono text-white font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.netVex || 0), 0))}</div>
+                    <div className="text-[11px] font-mono tabular-nums text-white font-bold">{fmtGreek(profile.strikes.reduce((acc, cur) => acc + (cur.netVex || 0), 0))}</div>
                   </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* ============== DISPLACEMENT INTELLIGENCE ROW ============== */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4" id="dealerflow-displacement-row">
-            {/* Displacement zones */}
-            <div className={`${theme.cardBg} rounded-lg p-4`} id="displacement-zones-panel">
-              <div className="flex items-center gap-2 text-[9px] font-black tracking-widest text-[#a1a1aa] uppercase mb-3">
-                <Zap className={`w-3.5 h-3.5 ${theme.iconColor}`} />
-                Displacement Zones
-                <span className="text-zinc-550 ml-auto font-mono text-[8px]">{(disp?.zones || []).length} tracked</span>
-              </div>
-              <div className="space-y-1.5 max-h-[230px] overflow-y-auto pr-1">
-                {(disp?.zones || []).slice().reverse().map((z: any) => (
-                  <div key={z.id} className="bg-black/40 border border-zinc-900 rounded-sm px-2.5 py-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className={`text-[9px] font-black uppercase ${z.type === 'bullish' ? 'text-emerald-450' : 'text-rose-400'}`}>
-                        {z.type === 'bullish' ? '▲' : '▼'} {z.bottom.toFixed(selectedAsset.decimals)} – {z.top.toFixed(selectedAsset.decimals)}
-                      </span>
-                      <span className={`px-1.5 py-0.5 rounded-xs text-[7px] font-black tracking-widest uppercase border ${stateChip(z.state)}`}>
-                        {z.state}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 mt-1 text-[8px] font-mono text-zinc-500">
-                      <span>FORCE {z.atrMultiple}×ATR</span>
-                      <span>BODY {(z.bodyDominance * 100).toFixed(0)}%</span>
-                      <span className="text-amber-400 font-bold">SCORE {z.score}</span>
-                    </div>
+          {/* ============== INSTITUTIONAL MICRO-STRUCTURE METRICS ============== */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-hidden mb-4" id="dealerflow-displacement-row">
+              {/* Gamma Squeeze Matrix */}
+              <div className={`${theme.cardBg} rounded-lg p-4 flex flex-col`} id="gamma-squeeze-panel">
+                <div className="flex items-center gap-2 text-[9px] font-black tracking-widest text-[#a1a1aa] uppercase mb-3 shrink-0">
+                  <Zap className={`w-3.5 h-3.5 ${theme.iconColor}`} />
+                  Gamma Squeeze Potential
+                </div>
+                <div className="space-y-2 flex-1 pt-2">
+                  <div className="flex justify-between items-center bg-black/40 border border-zinc-900 rounded p-2">
+                    <span className="text-[9px] text-zinc-500 uppercase tracking-widest">Squeeze Trigger Level</span>
+                    <span className="font-mono font-bold text-white uppercase tabular-nums">{profile?.gammaFlip ? `$${profile.gammaFlip.toFixed(2)}` : 'N/A'}</span>
                   </div>
-                ))}
-                {(!disp?.zones || disp.zones.length === 0) && (
-                  <div className="text-zinc-650 text-[9px] italic text-center py-6">
-                    No displacement candles in the active window
+                  <div className="flex justify-between items-center bg-black/40 border border-zinc-900 rounded p-2">
+                    <span className="text-[9px] text-zinc-500 uppercase tracking-widest">Resistance Wall</span>
+                    <span className="font-mono font-bold text-rose-400 uppercase tabular-nums">{profile?.callWall ? `$${profile.callWall.toFixed(2)}` : 'N/A'}</span>
                   </div>
-                )}
+                  <div className="flex justify-between items-center bg-black/40 border border-zinc-900 rounded p-2">
+                    <span className="text-[9px] text-zinc-500 uppercase tracking-widest">Support Wall</span>
+                    <span className="font-mono font-bold text-emerald-400 uppercase tabular-nums">{profile?.putWall ? `$${profile.putWall.toFixed(2)}` : 'N/A'}</span>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* Fair value gaps */}
-            <div className={`${theme.cardBg} rounded-lg p-4`} id="fair-value-gaps-panel">
-              <div className="flex items-center gap-2 text-[9px] font-black tracking-widest text-[#a1a1aa] uppercase mb-3">
-                <Layers className={`w-3.5 h-3.5 ${theme.iconColor}`} />
-                Fair Value Gaps
-                <span className="text-zinc-550 ml-auto font-mono text-[8px]">{(disp?.fvgs || []).length} mapped</span>
-              </div>
-              <div className="space-y-1.5 max-h-[230px] overflow-y-auto pr-1">
-                {(disp?.fvgs || []).slice().reverse().map((f: any) => (
-                  <div key={f.id} className="bg-black/40 border border-zinc-900 rounded-sm px-2.5 py-1.5 flex items-center justify-between">
-                    <div>
-                      <span className={`text-[9px] font-black uppercase ${f.type === 'bullish' ? 'text-emerald-450' : 'text-rose-400'}`}>
-                        {f.type === 'bullish' ? '▲ BISI' : '▼ SIBI'}
-                      </span>
-                      <span className="text-[8.5px] font-mono text-zinc-400 ml-2">
-                        {f.bottom.toFixed(selectedAsset.decimals)} – {f.top.toFixed(selectedAsset.decimals)}
-                      </span>
-                      <div className="text-[7.5px] text-zinc-600 font-mono mt-0.5">EQ {f.equilibrium.toFixed(selectedAsset.decimals)}</div>
-                    </div>
-                    <span className={`px-1.5 py-0.5 rounded-xs text-[7px] font-black tracking-widest uppercase border ${stateChip(f.state)}`}>
-                      {f.state}
+              {/* Liquidity Absorption Rate */}
+              <div className={`${theme.cardBg} rounded-lg p-4 flex flex-col`} id="liquidity-absorption-panel">
+                <div className="flex items-center gap-2 text-[9px] font-black tracking-widest text-[#a1a1aa] uppercase mb-3 shrink-0">
+                  <Layers className={`w-3.5 h-3.5 ${theme.iconColor}`} />
+                  Liquidity Absorption Status
+                </div>
+                <div className="space-y-2 flex-1 pt-2">
+                  <div className="flex justify-between items-center bg-black/40 border border-zinc-900 rounded p-2">
+                    <span className="text-[9px] text-zinc-500 uppercase tracking-widest">Dealer Positioning</span>
+                    <span className={`font-black tracking-widest text-[9px] uppercase ${profile?.netGex > 0 ? 'text-sky-400' : 'text-amber-400'}`}>
+                      {profile?.netGex > 0 ? 'LONG GAMMA' : 'SHORT GAMMA'}
                     </span>
                   </div>
-                ))}
-                {(!disp?.fvgs || disp.fvgs.length === 0) && (
-                  <div className="text-zinc-650 text-[9px] italic text-center py-6">No open imbalances detected</div>
-                )}
-              </div>
-            </div>
-
-            {/* Liquidity sweeps */}
-            <div className={`${theme.cardBg} rounded-lg p-4`} id="liquidity-raids-panel">
-              <div className="flex items-center gap-2 text-[9px] font-black tracking-widest text-[#a1a1aa] uppercase mb-3">
-                <Droplets className={`w-3.5 h-3.5 ${theme.iconColor}`} />
-                Liquidity Raids
-                <span className="text-zinc-650 ml-auto font-mono text-[8px]">{(disp?.sweeps || []).length} events</span>
-              </div>
-              <div className="space-y-1.5 max-h-[230px] overflow-y-auto pr-1">
-                {(disp?.sweeps || []).slice().reverse().map((s: any) => (
-                  <div key={s.id} className="bg-black/40 border border-zinc-900 rounded-sm px-2.5 py-1.5 flex items-center justify-between">
-                    <span className={`text-[8.5px] font-black uppercase ${s.type === 'bullish' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {s.label}
-                    </span>
-                    <span className="text-[9px] font-mono text-zinc-400">@ {Number(s.price).toFixed(selectedAsset.decimals)}</span>
+                  <div className="flex justify-between items-center bg-black/40 border border-zinc-900 rounded p-2">
+                    <span className="text-[9px] text-zinc-500 uppercase tracking-widest">Volatility Cushion</span>
+                    <span className="font-mono font-bold text-indigo-400">{profile?.netVex > 0 ? 'EXPANDING' : 'SUPPRESSED'}</span>
                   </div>
-                ))}
-                {(!disp?.sweeps || disp.sweeps.length === 0) && (
-                  <div className="text-zinc-650 text-[9px] italic text-center py-6">No stops taken in window</div>
-                )}
+                  <div className="flex justify-between items-center bg-black/40 border border-zinc-900 rounded p-2">
+                    <span className="text-[9px] text-zinc-500 uppercase tracking-widest">Flow Imbalance</span>
+                    <span className="font-mono font-bold text-white uppercase tabular-nums">{Math.abs(profile?.netDex / (profile?.strikes.reduce((a,c) => a + (c.callDex||0)+(c.putDex||0), 0) || 1) * 100).toFixed(1)}% SKEW</span>
+                  </div>
+                </div>
               </div>
-            </div>
           </div>
 
-          {/* ============== CHART WITH ZONES ============== */}
-          <div className={`${theme.cardBg} rounded-lg p-5`} id="displacement-overlay-chart-panel">
-            <div className="flex items-center justify-between mb-3">
+          {/* ============== FULL WIDTH CHART AT BOTTOM ============== */}
+          <div className={`${theme.cardBg} rounded-lg p-5 flex flex-col w-full overflow-hidden`} id="displacement-overlay-chart-panel" style={{ minHeight: '380px' }}>
+            <div className="flex items-center justify-between mb-3 shrink-0">
               <div className="flex items-center gap-2 text-[9px] font-black tracking-widest text-[#a1a1aa] uppercase">
                 <ShieldAlert className={`w-3.5 h-3.5 ${theme.iconColor}`} />
-                Price Action — displacement & imbalance overlay
+                Price Action — Displacement & Imbalance Overlay
               </div>
               <FeedChip feed={serverState?.candle_feed} />
             </div>
-            <div className="h-[300px] w-full">
+            <div className="flex-1 w-full h-[320px]">
               <InteractiveChart
                 candles={candles}
+                displacementZones={disp?.zones || []}
                 fvgs={disp?.fvgs || []}
                 liquidityEvents={disp?.sweeps || []}
+                tape={serverState?.tape || []}
                 timeframe={selectedTimeframe}
                 selectedTicker={selectedAsset.ticker}
                 priceDecimals={selectedAsset.decimals}
                 showFVGs={true}
                 showLiquiditySweeps={true}
                 showDisplacementEvents={true}
+                watermarkText="PRICE ACTION — DISPLACEMENT & IMBALANCE OVERLAY"
               />
             </div>
           </div>
         </>
-      ) : activeEngineView === 'physics' ? (
+      ) : activeEngineView === 'targets' ? (
+        <IntradayTargetsView profile={profile} ticker={selectedAsset.ticker} decimals={selectedAsset.decimals} />
+      ) : (
         <div id="institutional-physics-dash-wrapper">
           <InstitutionalPhysicsDashboard
             profile={profile}
             ticker={selectedAsset.ticker}
             decimals={selectedAsset.decimals}
           />
-        </div>
-      ) : (
-        <div id="pinpoint-ai-view-wrapper" className="mt-2">
-          <PinpointAIView />
         </div>
       )}
     </div>

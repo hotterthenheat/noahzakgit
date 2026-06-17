@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import { createChart, CandlestickSeries, LineSeries, createSeriesMarkers } from 'lightweight-charts';
+import { createChart, CandlestickSeries, LineSeries, createSeriesMarkers, ColorType } from 'lightweight-charts';
 import { Candle, TargetLevel } from '../types';
 import { useContractStore } from '../lib/store';
 
@@ -7,6 +7,8 @@ interface InteractiveChartProps {
   candles: Candle[];
   fvgs?: any[];
   liquidityEvents?: any[];
+  displacementZones?: any[];
+  tape?: any[];
   targets?: TargetLevel[];
   priceDecimals?: number;
   timeframe: string;
@@ -14,6 +16,7 @@ interface InteractiveChartProps {
   showFVGs?: boolean;
   showLiquiditySweeps?: boolean;
   showDisplacementEvents?: boolean;
+  watermarkText?: string;
   onPlaceAuditTrade?: (direction: 'BULLISH' | 'BEARISH', entry: number, target: number, stop: number) => void;
   triggerInvalidation?: boolean;
 }
@@ -22,6 +25,8 @@ export function InteractiveChart({
   candles,
   fvgs = [],
   liquidityEvents = [],
+  displacementZones = [],
+  tape = [],
   targets = [],
   priceDecimals = 2,
   timeframe,
@@ -29,6 +34,7 @@ export function InteractiveChart({
   showFVGs = true,
   showLiquiditySweeps = true,
   showDisplacementEvents = true,
+  watermarkText,
   onPlaceAuditTrade,
   triggerInvalidation
 }: InteractiveChartProps) {
@@ -37,6 +43,7 @@ export function InteractiveChart({
   const seriesRef = useRef<any>(null);
   const markersRef = useRef<any>(null);
   const fvgSeriesRefs = useRef<any[]>([]);
+  const tapeSeriesRefs = useRef<any[]>([]);
 
   const themeMode = useContractStore(s => s.themeMode);
   const isLight = themeMode === 'light';
@@ -61,11 +68,10 @@ export function InteractiveChart({
 
     // 1. Create Chart once, using deep configuration
     const chart: any = createChart(containerRef.current, {
-      width: containerRef.current.clientWidth,
-      height: containerRef.current.clientHeight || 200,
+      autoSize: true, // Auto-size to container
       layout: {
-        background: { color: isLight ? '#ffffff' : '#000000' },
-        textColor: isLight ? '#1f2937' : '#a1a1aa',
+        background: { type: ColorType.Solid, color: isLight ? '#ffffff' : '#0d0d0d' },
+        textColor: isLight ? '#1f2937' : '#d1d4dc',
         fontFamily: 'JetBrains Mono, monospace',
       },
       grid: {
@@ -86,11 +92,23 @@ export function InteractiveChart({
         }
       },
       timeScale: {
+        rightOffset: 10,
+        barSpacing: 6,
+        fixLeftEdge: false,
+        lockVisibleTimeRangeOnResize: true,
         borderColor: isLight ? '#e5e7eb' : '#18181b',
         timeVisible: true,
         secondsVisible: false,
       },
-    });
+      watermark: {
+        visible: !!watermarkText,
+        fontSize: 24,
+        horzAlign: 'center',
+        vertAlign: 'center',
+        color: isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.04)',
+        text: watermarkText || '',
+      },
+    } as any);
 
     // 2. Add Candlestick Series once with high contrast neon branding
     const candlestickSeries = chart.addSeries(CandlestickSeries, {
@@ -142,8 +160,8 @@ export function InteractiveChart({
     if (chartRef.current) {
       chartRef.current.applyOptions({
         layout: {
-          background: { color: isLight ? '#ffffff' : '#000000' },
-          textColor: isLight ? '#1f2937' : '#a1a1aa',
+          background: { type: ColorType.Solid, color: isLight ? '#ffffff' : '#0d0d0d' },
+          textColor: isLight ? '#1f2937' : '#d1d4dc',
         },
         grid: {
           vertLines: { color: isLight ? '#f3f4f6' : '#09090b' },
@@ -159,6 +177,9 @@ export function InteractiveChart({
         },
         timeScale: {
           borderColor: isLight ? '#e5e7eb' : '#18181b',
+        },
+        watermark: {
+          color: isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.04)',
         }
       });
     }
@@ -177,24 +198,50 @@ export function InteractiveChart({
 
     const markers: any[] = [];
 
-    // 1. Draw Liquidity Sweeps
+    // 1. Draw Liquidity Sweeps / Dealer Events
     if (showLiquiditySweeps && liquidityEvents.length > 0) {
       liquidityEvents.forEach((evt) => {
-        const timeSecs = Math.floor(evt.timestamp / 1000);
-        const matchesCandle = chartData.some(d => d.time === timeSecs);
-        if (matchesCandle) {
+        let timeSecs = evt.timestamp ? Math.floor(evt.timestamp / 1000) : 0;
+        if (!timeSecs && evt.candleIdx !== undefined && chartData[evt.candleIdx]) {
+           timeSecs = chartData[evt.candleIdx].time;
+        }
+        
+        if (timeSecs) {
+          const isBullish = evt.type === 'bullish';
           markers.push({
             time: timeSecs,
-            position: evt.type === 'sweep_high' ? 'aboveBar' : 'belowBar',
-            color: evt.type === 'sweep_high' ? '#ff4545' : '#00ff88',
-            shape: 'arrowDown',
-            text: `SWEEP`
+            position: isBullish ? 'belowBar' : 'aboveBar',
+            color: isBullish ? '#00ff88' : '#ff4545',
+            shape: 'circle',
+            size: 2
           });
         }
       });
     }
 
-    // 2. Draw Targets (T1/T2 as markers at the last known candle)
+    // 2. Draw Displacement Zones
+    if (showDisplacementEvents && displacementZones && displacementZones.length > 0) {
+      displacementZones.forEach((z) => {
+        let timeSecs = 0;
+        if (z.endIndex !== undefined && chartData[z.endIndex]) {
+           timeSecs = chartData[z.endIndex].time;
+        }
+        
+        if (timeSecs) {
+          const isBullish = z.direction === 'BULLISH';
+          markers.push({
+            time: timeSecs,
+            position: isBullish ? 'belowBar' : 'aboveBar',
+            color: isBullish ? '#30d158' : '#ff453a', // distinct from sweeps
+            shape: isBullish ? 'arrowUp' : 'arrowDown',
+            text: `DISP ${z.score}`,
+            size: 2
+          });
+        }
+      });
+    }
+
+    // 3. Draw Targets (T1/T2 as markers at the last known candle)
     if (targets && targets.length > 0 && chartData.length > 0) {
       const lastCandle = chartData[chartData.length - 1];
       targets.forEach((tgt) => {
@@ -211,6 +258,59 @@ export function InteractiveChart({
     // Set interactive markers on the series
     if (markersRef.current) {
       markersRef.current.setMarkers(markers);
+    }
+
+    // Clean up old tape overlays
+    tapeSeriesRefs.current.forEach(s => {
+      try {
+        if (chartRef.current) chartRef.current.removeSeries(s);
+      } catch (e) {}
+    });
+    tapeSeriesRefs.current = [];
+
+    // Draw tape events directly at requested prices
+    if (tape && tape.length > 0 && chartRef.current) {
+      // Group tape events by direction
+      const buys = tape.filter(t => t.direction === 'buy');
+      const sells = tape.filter(t => t.direction === 'sell');
+
+      if (buys.length > 0) {
+        const buySeries = chartRef.current.addSeries(LineSeries, {
+          color: 'rgba(48, 209, 88, 0.8)',
+          lineWidth: 0,
+          pointMarkersVisible: true,
+          pointMarkersRadius: 3,
+          crosshairMarkerVisible: false,
+          lastValueVisible: false,
+          priceLineVisible: false
+        });
+        buySeries.setData(
+          buys.map(b => ({
+            time: Math.floor(b.timestamp / 1000),
+            value: b.price
+          })).sort((a,b) => a.time - b.time)
+        );
+        tapeSeriesRefs.current.push(buySeries);
+      }
+
+      if (sells.length > 0) {
+        const sellSeries = chartRef.current.addSeries(LineSeries, {
+          color: 'rgba(255, 69, 58, 0.8)',
+          lineWidth: 0,
+          pointMarkersVisible: true,
+          pointMarkersRadius: 3,
+          crosshairMarkerVisible: false,
+          lastValueVisible: false,
+          priceLineVisible: false
+        });
+        sellSeries.setData(
+          sells.map(s => ({
+            time: Math.floor(s.timestamp / 1000),
+            value: s.price
+          })).sort((a,b) => a.time - b.time)
+        );
+        tapeSeriesRefs.current.push(sellSeries);
+      }
     }
 
     // Clean up old FVG overlays
@@ -247,7 +347,7 @@ export function InteractiveChart({
       });
     }
 
-  }, [chartData, showLiquiditySweeps, liquidityEvents, targets, showFVGs, fvgs]);
+  }, [chartData, showLiquiditySweeps, liquidityEvents, targets, showFVGs, fvgs, showDisplacementEvents, displacementZones, tape]);
 
   return (
     <div className="w-full h-full relative bg-black flex flex-col border border-zinc-900 rounded-sm">

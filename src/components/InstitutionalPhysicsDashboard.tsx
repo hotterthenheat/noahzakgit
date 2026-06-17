@@ -13,7 +13,6 @@ import {
   Activity, 
   Terminal,
   ChevronRight,
-  TrendingDown,
   Percent,
   Crosshair,
   GitCommit,
@@ -245,16 +244,14 @@ export function InstitutionalPhysicsDashboard({ profile: externalProfile, ticker
   const handleSelectTickerObj = (selectedTk: string) => {
     setSystemState('COMPUTING CASCADE...');
     
-    // Smooth transition simulation
-    setTimeout(() => {
-      const asset = ASSET_LIST.find(a => a.ticker === selectedTk);
-      if (asset) {
-        storeSetAsset(asset);
-      }
-      setTicker(selectedTk);
-      setProfile(TICKER_PROFILES[selectedTk]);
-      setSystemState('SYSTEM ACTIVE');
-    }, 750);
+    // Instant execution to remove slow rendering delays
+    const asset = ASSET_LIST.find(a => a.ticker === selectedTk);
+    if (asset) {
+      storeSetAsset(asset);
+    }
+    setTicker(selectedTk);
+    setProfile(TICKER_PROFILES[selectedTk]);
+    setSystemState('SYSTEM ACTIVE');
   };
 
   // Compute strikes table with completed call and put details
@@ -516,6 +513,43 @@ export function InstitutionalPhysicsDashboard({ profile: externalProfile, ticker
 
     const topVolBound = points[Math.floor(size / 2)][size - 1];
     ctx.fillText('+IV VARIANCE', topVolBound.x2d - 32, topVolBound.y2d + 12);
+
+    // Dynamic spot coordinate tracker (Current Reality Anchor)
+    const centerPoint = points[Math.floor(size / 2)][Math.floor(size / 2)];
+    
+    // Pulse glow
+    ctx.beginPath();
+    ctx.arc(centerPoint.x2d, centerPoint.y2d, 18, 0, 2 * Math.PI);
+    ctx.fillStyle = 'rgba(234, 179, 8, 0.15)'; // amber-500 glow
+    ctx.fill();
+    
+    // Core dot
+    ctx.beginPath();
+    ctx.arc(centerPoint.x2d, centerPoint.y2d, 3, 0, 2 * Math.PI);
+    ctx.fillStyle = '#fbbf24'; // amber-400
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Slicing lines originating from the center
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.6)';
+    ctx.lineDashOffset = Date.now() / 20; // moving dash effect
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(centerPoint.x2d, centerPoint.y2d - 40);
+    ctx.lineTo(centerPoint.x2d, centerPoint.y2d + 40);
+    ctx.stroke();
+
+    // Coordinate Label
+    ctx.fillStyle = '#fcd34d'; // amber-300
+    ctx.font = 'bold 9px monospace';
+    ctx.fillText(`SPOT ${profile.spot.toFixed(2)}`, centerPoint.x2d + 8, centerPoint.y2d - 12);
+    ctx.fillStyle = 'rgba(251, 191, 36, 0.7)';
+    ctx.font = '7px monospace';
+    ctx.fillText(`IV LOCAL SKEW`, centerPoint.x2d + 8, centerPoint.y2d - 4);
+    
+    ctx.setLineDash([]);
 
   }, [rot, elev, profile, ticker, impliedStrikes, surfaceMode, isExpanded, resizeKey]);
 
@@ -803,14 +837,14 @@ export function InstitutionalPhysicsDashboard({ profile: externalProfile, ticker
                   onClick={() => setSurfaceMode('call')}
                   className={`px-3 py-1 text-[8.5px] uppercase font-extrabold tracking-wider rounded-xs focus:outline-none transition-colors ${surfaceMode === 'call' ? 'bg-emerald-950 border border-emerald-900 text-emerald-400' : 'text-zinc-500 hover:text-zinc-400'}`}
                 >
-                  ▲ CALL WALL Topography
+                  CALL WALL Topography
                 </button>
                 <button
                   type="button"
                   onClick={() => setSurfaceMode('put')}
                   className={`px-3 py-1 text-[8.5px] uppercase font-extrabold tracking-wider rounded-xs focus:outline-none transition-colors ${surfaceMode === 'put' ? 'bg-rose-950 border border-rose-900 text-rose-400' : 'text-zinc-500 hover:text-zinc-400'}`}
                 >
-                  ▼ PUT WALL Topography
+                  PUT WALL Topography
                 </button>
               </div>
             </div>
@@ -895,14 +929,20 @@ export function InstitutionalPhysicsDashboard({ profile: externalProfile, ticker
             </div>
 
             <div className="bg-zinc-950/45 p-3 border border-zinc-900 rounded-sm flex-1 flex flex-col justify-between">
-              <div className="space-y-2">
-                <div className="text-[8.5px] text-zinc-400 leading-normal">
-                  Mathematical Euler-Maruyama diffusion bounds computed recursively using local vol inputs across {ticker} spot structures.
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-[9px] font-mono">
+                  <span className="text-zinc-500 font-black tracking-widest uppercase">Decay Velocity (Θ_rad)</span>
+                  <span className="text-zinc-300 font-bold">-0.842v / hr</span>
                 </div>
-                <div className="h-px bg-zinc-900" />
-                <div className="text-[8px] text-zinc-500 font-mono leading-relaxed uppercase">
-                  Equation: dS_t = κ(θ - S_t)dt + σ S_t dW_t
+                <div className="flex justify-between items-center text-[9px] font-mono">
+                  <span className="text-zinc-500 font-black tracking-widest uppercase">Local Friction (Λ)</span>
+                  <span className="text-emerald-400 font-bold">1.22μ</span>
                 </div>
+                <div className="flex justify-between items-center text-[9px] font-mono">
+                  <span className="text-zinc-500 font-black tracking-widest uppercase">Dealer Hedging Pressure</span>
+                  <span className="text-rose-450 font-bold">94.2%</span>
+                </div>
+                <div className="h-px bg-zinc-900/60 my-1" />
               </div>
 
               <div className="pt-3">
@@ -958,7 +998,7 @@ export function InstitutionalPhysicsDashboard({ profile: externalProfile, ticker
             {/* CARD 3: VANNA COVARIANCE */}
             <div className="greek-card">
               <label>
-                <TrendingDown className="w-3.5 h-3.5 text-rose-455 icon-small" /> 
+                <Percent className="w-3.5 h-3.5 text-rose-450 icon-small" /> 
                 VANNA COVARIANCE (∂Δ/∂Σ)
               </label>
               <span>

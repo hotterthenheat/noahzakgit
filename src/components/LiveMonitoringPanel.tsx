@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ShieldAlert, BadgeInfo, CheckCircle, ArrowUp, ArrowDown, Crosshair, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, BadgeInfo, CheckCircle, Crosshair, AlertTriangle } from 'lucide-react';
 import { SystemScore } from '../types';
 
 interface LiveMonitoringPanelProps {
@@ -112,7 +112,7 @@ export function LiveMonitoringPanel({
             <span className="text-zinc-650">➔</span>
             <span className={`font-black flex items-center gap-1 ${statusStr === 'ACTIVE' ? 'text-emerald-400' : 'text-rose-500'}`}>
               {projectedConf}% [PROJ]
-              {statusStr === 'ACTIVE' ? <ArrowUp className="w-3" /> : <ArrowDown className="w-3" />}
+              {statusStr === 'ACTIVE' ? 'holding' : statusStr === 'INVALIDATED' ? 'failing' : 'testing'}
             </span>
           </div>
         </div>

@@ -2,15 +2,11 @@ import { LiveOptionContract } from './marketDataProvider';
 import { stdNormalPDF } from './v11Math';
 
 export interface GexStrikeRow {
-  strike: number; 
-  callGex: number; putGex: number; netGex: number;
-  callDex: number; putDex: number; netDex: number;
-  callVex: number; putVex: number; netVex: number;
+  strike: number; callGex: number; putGex: number; netGex: number;
   callOi: number; putOi: number; callVolume: number; putVolume: number;
 }
 export interface GexProfile {
   spot: number; strikes: GexStrikeRow[]; netGex: number; netGexBn: number;
-  netDex: number; netVex: number;
   callWall: number; putWall: number; gammaFlip: number; magnet: number;
   totalCallOi: number; totalPutOi: number; callPutOiRatio: number;
   expectedMovePct: number; dealerBias: 'LONG GAMMA' | 'SHORT GAMMA'; aboveFlip: boolean;
@@ -40,45 +36,17 @@ export function buildGexProfile(
   let netGex = 0, totalCallOi = 0, totalPutOi = 0;
 
   for (const c of chain) {
-    const isCallType = (c.type || '').toString().toUpperCase() === 'C' || (c.type || '').toString().toUpperCase() === 'CALL';
-    const sign = isCallType ? 1 : -1;
+    const sign = c.type === 'C' ? 1 : -1;
     const gex = (c.greeks?.gamma || 0) * c.oi * 100 * spot * spot * 0.01 * sign;
-    const deltaVal = c.greeks?.delta || (isCallType ? 0.5 : -0.5);
-    const dex = deltaVal * c.oi * 100 * spot * sign;
-    const vegaVal = c.greeks?.vega || 0.15;
-    const vex = vegaVal * c.oi * 100 * sign;
-
     netGex += gex;
     let row = byStrike.get(c.strike);
     if (!row) {
-      row = { 
-        strike: c.strike, 
-        callGex: 0, putGex: 0, netGex: 0, 
-        callDex: 0, putDex: 0, netDex: 0,
-        callVex: 0, putVex: 0, netVex: 0,
-        callOi: 0, putOi: 0, callVolume: 0, putVolume: 0 
-      };
+      row = { strike: c.strike, callGex: 0, putGex: 0, netGex: 0, callOi: 0, putOi: 0, callVolume: 0, putVolume: 0 };
       byStrike.set(c.strike, row);
     }
-    if (isCallType) { 
-      row.callGex += gex; 
-      row.callDex += dex; 
-      row.callVex += vex; 
-      row.callOi += c.oi; 
-      row.callVolume += c.volume; 
-      totalCallOi += c.oi; 
-    }
-    else { 
-      row.putGex += gex; 
-      row.putDex += dex; 
-      row.putVex += vex; 
-      row.putOi += c.oi; 
-      row.putVolume += c.volume; 
-      totalPutOi += c.oi; 
-    }
+    if (c.type === 'C') { row.callGex += gex; row.callOi += c.oi; row.callVolume += c.volume; totalCallOi += c.oi; }
+    else { row.putGex += gex; row.putOi += c.oi; row.putVolume += c.volume; totalPutOi += c.oi; }
     row.netGex = row.callGex + row.putGex;
-    row.netDex = row.callDex + row.putDex;
-    row.netVex = row.callVex + row.putVex;
   }
 
   const allRows = [...byStrike.values()].sort((a, b) => a.strike - b.strike);
@@ -109,26 +77,10 @@ export function buildGexProfile(
   const atm = chain.reduce((b, c) => Math.abs(c.strike - spot) < Math.abs(b.strike - spot) ? c : b, chain[0]);
   const expectedMovePct = Math.max(0.0005, atm.impliedVolatility * Math.sqrt(Math.max(tauYears, 0.0001)));
   const windowRows = allRows.filter(r => Math.abs(r.strike - spot) / spot <= windowPct);
-  const sourceRows = windowRows.length >= 5 ? windowRows : allRows;
-  let centerIdx = 0;
-  let best = Infinity;
-  sourceRows.forEach((r, i) => {
-    const d = Math.abs(r.strike - spot);
-    if (d < best) {
-      best = d;
-      centerIdx = i;
-    }
-  });
-  const startIdx = Math.max(0, centerIdx - 40);
-  const endIdx = Math.min(sourceRows.length, startIdx + 80);
-  const adjustedStartIdx = Math.max(0, endIdx - 80);
-  const strikesSlice = sourceRows.slice(adjustedStartIdx, endIdx);
 
   return {
-    spot, strikes: strikesSlice,
+    spot, strikes: (windowRows.length >= 5 ? windowRows : allRows).slice(0, 80),
     netGex, netGexBn: Number((netGex / 1e9).toFixed(3)),
-    netDex: allRows.reduce((sum, r) => sum + (r.netDex || 0), 0),
-    netVex: allRows.reduce((sum, r) => sum + (r.netVex || 0), 0),
     callWall, putWall, gammaFlip: Number(gammaFlip.toFixed(2)), magnet,
     totalCallOi, totalPutOi,
     callPutOiRatio: totalPutOi > 0 ? Number((totalCallOi / totalPutOi).toFixed(2)) : 0,

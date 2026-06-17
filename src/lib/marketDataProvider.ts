@@ -93,7 +93,7 @@ export async function fetchLiveSpotPrice(ticker: string, defaultFallbackPrice: n
         throw new Error(`HTTP ${response.status}`);
       }
       const json = await response.json();
-      price = json?.ticker?.lastTrade?.p || json?.ticker?.todaysPayment || json?.ticker?.prevDay?.c || defaultFallbackPrice;
+      price = json?.ticker?.lastTrade?.p || json?.ticker?.min?.c || json?.ticker?.day?.c || json?.ticker?.prevDay?.c || defaultFallbackPrice;
     }
 
     snapshotCache[cacheKey] = { data: price, timestamp: now };
@@ -168,7 +168,7 @@ export async function fetchLiveOptionChain(asset: AssetInfo, spotPrice: number):
       const day = item.day || {};
       
       const parsedStrike = details.strike_price || 0;
-      const type = (details.contract_type || '').toString().toLowerCase() === 'call' ? 'C' : 'P';
+      const type = details.contract_type === 'call' ? 'C' : 'P';
       const parsedOi = item.open_interest || 0;
       const parsedVol = day.volume || 0;
       const parsedIv = item.implied_volatility || 0.15;

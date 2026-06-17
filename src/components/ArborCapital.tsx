@@ -151,7 +151,7 @@ export default function ArborCapital() {
         <div className="relative">
           <h3 className="text-xs font-black tracking-widest text-[#E0E0E0] uppercase font-mono mb-2">Ecosystem Philosophy</h3>
           <p className="text-xs md:text-sm text-zinc-300 leading-relaxed font-sans max-w-4xl pt-0.5">
-            Slayer.trade is a financial technology company — <span className="font-bold text-[#30d158]">Arbor Capital is not a signal group or standard Discord alert room</span>. We believe in software that helps traders make better decisions using measurable data. The community exists to support the software and build elite accountability. The software does not exist to support the community.
+            Slayer.trade is a financial technology company - <span className="font-bold text-[#30d158]">Arbor Capital is not a signal group or standard Discord alert room</span>. We believe in software that helps traders make better decisions using measurable data. The community exists to support the software and build elite accountability. The software does not exist to support the community.
           </p>
           <div className="flex flex-wrap gap-4 mt-4 text-[10px] text-zinc-400 font-mono uppercase">
             <div className="flex items-center gap-1.5">

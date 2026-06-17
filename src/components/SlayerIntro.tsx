@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useContractStore } from '../lib/store';
 import { FeatureMatrix } from './FeatureMatrix';
+import { SubscriptionPricing } from './SubscriptionPricing';
 import { 
   ArrowRight, 
   Globe, 
@@ -17,7 +18,6 @@ import {
   Database,
   Layers,
   MessageSquare,
-  TrendingUp,
   Sliders,
   CheckCircle2,
   ShieldCheck,
@@ -27,13 +27,18 @@ import {
   ExternalLink,
   Lock,
   Search,
-  Bell
+  Bell,
+  CreditCard,
+  X,
+  Mail,
+  User
 } from 'lucide-react';
 import { AssetInfo, TimeframeVal, SystemScore, V8TradeRecord } from '../types';
 import { ASSET_LIST } from '../data';
 
 interface SlayerIntroProps {
   onEnterApp: (targetTab?: string) => void;
+  onUpgradeComplete?: (newTier: number) => void;
   selectedAsset: AssetInfo;
   setSelectedAsset: (asset: AssetInfo) => void;
   selectedTimeframe: TimeframeVal;
@@ -53,10 +58,13 @@ interface SlayerIntroProps {
   topSub10Puts: Array<{ asset: AssetInfo; ticker: string; confidence: number }>;
   onSelectOpportunity: (asset: AssetInfo, type: 'C' | 'P', strike?: number) => void;
   renderTerminalWorkspace: () => React.ReactNode;
+  session?: any;
+  onRequestAuth?: () => void;
 }
 
 export default function SlayerIntro({
   onEnterApp,
+  onUpgradeComplete,
   selectedAsset,
   setSelectedAsset,
   selectedTimeframe,
@@ -67,11 +75,14 @@ export default function SlayerIntro({
   topSub10Calls,
   topSub10Puts,
   onSelectOpportunity,
+  session,
+  onRequestAuth,
 }: SlayerIntroProps) {
   const serverState = useContractStore(s => s.serverState);
   
   // State for active chosen index on landing hero
   const [activeHeroIdx, setActiveHeroIdx] = useState<'SPX' | 'NDX' | 'QQQ' | 'SPY' | 'RUT'>('SPX');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
 
   // Synchronize with external selectedAsset when it updates
   useEffect(() => {
@@ -160,7 +171,7 @@ export default function SlayerIntro({
       ref={containerRef}
       onMouseMove={handleMouseMove}
       id="slayer-ecosystem-landing" 
-      className="min-h-screen bg-transparent text-[#D4D4D8] flex flex-col font-sans selection:bg-white selection:text-black overflow-y-auto relative pb-0 select-none antialiased"
+      className="w-full bg-transparent text-[#D4D4D8] flex flex-col font-sans selection:bg-white selection:text-black relative pb-0 antialiased scroll-smooth"
     >
       
       {/* ==================================================
@@ -324,7 +335,7 @@ export default function SlayerIntro({
               <Search className="w-3.5 h-3.5 text-emerald-455 group-hover:scale-105 transition-transform" />
               <span>SEARCH ALL SECURITIES & INDEX GREEKS</span>
             </div>
-            <kbd className="hidden sm:inline-block bg-[#0e0e11] text-zinc-600 border border-zinc-850 px-1.5 py-0.5 rounded-xs text-[8px] font-mono shadow-inner">CMD+K</kbd>
+            <kbd className="hidden sm:inline-block bg-[#0e0e11] text-zinc-600 border border-zinc-850 px-1.5 py-0.5 rounded-xs text-[8px] font-mono shadow-inner">{useContractStore(s => s.keybinds).prismMenu?.replace('cmd', typeof window !== 'undefined' && navigator.userAgent.includes('Mac') ? '⌘' : 'Ctrl').toUpperCase()}</kbd>
           </button>
         </div>
 
@@ -470,233 +481,14 @@ export default function SlayerIntro({
           ================================================== */}
       <FeatureMatrix onEnterApp={onEnterApp} />
 
-      {/* ==================================================
-          TACTICAL MEMBERSHIP SUBSCRIPTION MATRICES
-          ================================================== */}
-      <motion.section 
-        id="pricing-matrices" 
-        initial={{ opacity: 0, y: 50, scale: 0.98 }}
-        whileInView={{ opacity: 1, y: 0, scale: 1 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 py-10 px-6 max-w-6xl mx-auto w-full border-t border-zinc-900"
-      >
-        <div className="text-center space-y-2 mb-10">
-          <span className="text-zinc-500 text-[10px] font-mono uppercase tracking-[0.3em] block">
-            SUBSCRIPTION MODELS & PLATFORM SERVICES
-          </span>
-          <h2 className="text-2xl font-black text-white uppercase tracking-tight font-sans">
-            Simple Subscriptions
-          </h2>
-        </div>
+      {/* Subscription Matrices */}
+      <SubscriptionPricing
+        onUpgradeComplete={onUpgradeComplete}
+        onEnterApp={onEnterApp}
+        session={session}
+        onRequestAuth={onRequestAuth}
+      />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 font-mono items-stretch">
-          
-          {/* DISCORD CARD */}
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{
-              type: "spring",
-              stiffness: 400,
-              damping: 28,
-              opacity: { duration: 0.6, delay: 0.1 }
-            }}
-            whileHover={{ scale: 1.05, y: -10, boxShadow: "0 30px 60px -15px rgba(52, 199, 89, 0.12)" }}
-            className="apple-glass rounded-2xl p-10 flex flex-col justify-between relative transition-all duration-150"
-          >
-            <div className="space-y-4">
-              <div className="flex justify-between items-baseline border-b border-zinc-900/40 pb-4">
-                <div>
-                  <span className="text-zinc-500 text-[10px] uppercase tracking-wider block font-bold">Platform</span>
-                  <span className="text-[12px] font-mono font-black text-rose-400 block mt-1">COMMUNITY CHAT</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-[#A1A1AA] text-xs block font-bold">DISCORD</span>
-                  <span className="text-4xl font-black text-white">$49</span>
-                  <span className="text-[10px] text-zinc-650 block">/ Month</span>
-                </div>
-              </div>
-
-              <div className="space-y-3.5 text-xs font-sans">
-                <span className="text-[11px] text-[#71717A] block uppercase font-mono tracking-wider font-bold">Inclusions:</span>
-                <ul className="space-y-2.5 font-mono text-xs text-zinc-300">
-                  <li className="flex gap-2.5 items-center">
-                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
-                    <span>Real-time Discord Chat & Alerts</span>
-                  </li>
-                  <li className="flex gap-2.5 items-center">
-                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
-                    <span>Daily Option Discovery Reports</span>
-                  </li>
-                  <li className="flex gap-2.5 items-center">
-                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
-                    <span>Verified Historic Trade Archive</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="pt-6">
-              <button 
-                onClick={() => onEnterApp('arbor')}
-                className="w-full py-4 bg-zinc-900/90 hover:bg-white hover:text-black border border-zinc-800 text-zinc-350 font-bold uppercase tracking-widest text-[11px] rounded-lg transition-all duration-150 cursor-pointer"
-              >
-                Subscribe to Discord
-              </button>
-            </div>
-          </motion.div>
-
-          {/* SKYVISION CARD */}
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{
-              type: "spring",
-              stiffness: 400,
-              damping: 28,
-              opacity: { duration: 0.6, delay: 0.25 }
-            }}
-            whileHover={{ scale: 1.07, y: -12, boxShadow: "0 30px 60px -15px rgba(99, 102, 241, 0.25)" }}
-            className="apple-glass-bright rounded-2xl p-10 flex flex-col justify-between relative shadow-2xl transition-all duration-150 border-2 border-white/25"
-          >
-            <div className="absolute top-0 right-10 -translate-y-1/2 bg-white text-black text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
-              RECOMMENDED SUBSCRIPTION
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex justify-between items-baseline border-b border-white/10 pb-4">
-                <div>
-                  <span className="text-zinc-500 text-[10px] uppercase tracking-wider block font-bold">Dashboard</span>
-                  <span className="text-[12px] font-mono font-black text-indigo-400 block mt-1 uppercase">DECISION ENGINE</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-white text-xs block font-black">SKYVISION</span>
-                  <span className="text-4xl font-black text-white">$99</span>
-                  <span className="text-[10px] text-zinc-450 block">/ Month</span>
-                </div>
-              </div>
-
-              <div className="space-y-3.5 text-xs font-sans">
-                <span className="text-[11px] text-[#71717A] block uppercase font-mono tracking-wider font-bold">Inclusions:</span>
-                <ul className="space-y-2.5 font-mono text-xs text-zinc-300">
-                  <li className="flex gap-2.5 items-center">
-                    <Check className="w-4 h-4 text-indigo-400 shrink-0" />
-                    <span className="font-medium text-white">Full Discord Integration</span>
-                  </li>
-                  <li className="flex gap-2.5 items-center">
-                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
-                    <span>SkyVision Decision Dashboard</span>
-                  </li>
-                  <li className="flex gap-2.5 items-center">
-                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
-                    <span>Real-time Trade Health Indexes</span>
-                  </li>
-                  <li className="flex gap-2.5 items-center">
-                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
-                    <span>Option Goalposts (T1, T2, T3)</span>
-                  </li>
-                  <li className="flex gap-2.5 items-center">
-                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
-                    <span>Expected P&L Calculations</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="pt-6">
-              <button 
-                onClick={() => onEnterApp('skyvision')}
-                className="w-full py-4 bg-white text-black font-extrabold uppercase tracking-widest text-[11px] rounded-lg hover:bg-zinc-200 hover:scale-[1.01] transition-all duration-150 cursor-pointer shadow-lg"
-              >
-                Subscribe to SkyVision
-              </button>
-            </div>
-          </motion.div>
-
-          {/* PINPOINT GEXBOT CARD */}
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{
-              type: "spring",
-              stiffness: 400,
-              damping: 28,
-              opacity: { duration: 0.6, delay: 0.4 }
-            }}
-            whileHover={{ scale: 1.05, y: -10, boxShadow: "0 30px 60px -15px rgba(16, 185, 129, 0.12)" }}
-            className="apple-glass rounded-2xl p-10 flex flex-col justify-between relative transition-all duration-150"
-          >
-            <div className="space-y-4">
-              <div className="flex justify-between items-baseline border-b border-zinc-900/40 pb-4">
-                <div>
-                  <span className="text-zinc-500 text-[10px] uppercase tracking-wider block font-bold">Automated GEX</span>
-                  <span className="text-[12px] font-mono font-black text-emerald-450 block mt-1 uppercase">POSITION TRACKING</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-[#A1A1AA] text-xs block font-bold">PINPOINT GEXBOT</span>
-                  <span className="text-4xl font-black text-white">$249</span>
-                  <span className="text-[10px] text-zinc-650 block">/ Month</span>
-                </div>
-              </div>
-
-              <div className="space-y-3.5 text-xs font-sans">
-                <span className="text-[11px] text-[#71717A] block uppercase font-mono tracking-wider font-bold">Inclusions:</span>
-                <ul className="space-y-2.5 font-mono text-xs text-zinc-300">
-                  <li className="flex gap-2.5 items-center">
-                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="font-medium text-white">Full SkyVision Features</span>
-                  </li>
-                  <li className="flex gap-2.5 items-center">
-                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
-                    <span>Pinpoint Gexbot Live Feed</span>
-                  </li>
-                  <li className="flex gap-2.5 items-center">
-                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
-                    <span>Live Gamma Exposure Grids</span>
-                  </li>
-                  <li className="flex gap-2.5 items-center">
-                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
-                    <span>Dealer Positioning Heatmaps</span>
-                  </li>
-                  <li className="flex gap-2.5 items-center">
-                    <Check className="w-4 h-4 text-[#30d158] shrink-0" />
-                    <span>Boundary Expiration Pin Zones</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="pt-6">
-              <button 
-                onClick={() => onEnterApp('dealerflow')}
-                className="w-full py-4 bg-zinc-900/90 hover:bg-white hover:text-black border border-zinc-800 text-zinc-350 font-bold uppercase tracking-widest text-[11px] rounded-lg transition-all duration-150 cursor-pointer"
-              >
-                Access Pinpoint Gexbot
-              </button>
-            </div>
-          </motion.div>
-
-        </div>
-      </motion.section>
-
-      {/* Pristine Minimal Footer - No telemetry noise clutter */}
-      <motion.footer 
-        initial={{ opacity: 0, y: 25 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        className="border-t border-zinc-900 bg-[#000000] py-12 px-6 text-center text-[10px] text-zinc-500 font-mono mt-auto relative z-10 w-full"
-      >
-        <p>&copy; 2026 slayertrade. ALL RIGHTS RESERVED.</p>
-        <p className="mt-1 text-[8px] text-zinc-650 uppercase tracking-widest">
-          Slayer provides real-time mathematical decision guidelines. No investment advising is rendered.
-        </p>
-      </motion.footer>
-
-    </div>
+      </div>
   );
 }

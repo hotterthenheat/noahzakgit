@@ -5,7 +5,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import {
-  TrendingUp,
   Activity,
   CheckCircle,
   XCircle,
@@ -15,12 +14,32 @@ import {
   Sliders,
   ChevronDown,
   ChevronUp,
-  Zap
+  Zap,
+  Layers,
+  Droplets,
+  ShieldAlert
 } from 'lucide-react';
 import { AssetInfo, Candle, FairValueGap, LiquidityEvent, TargetLevel, SystemScore } from '../types';
 import { InteractiveChart } from './InteractiveChart';
 import { SkyVisionV11Cockpit } from './SkyVisionV11Cockpit';
 import { useContractStore } from '../lib/store';
+
+// Helper for formatting state chips
+const formatState = (state: string) => {
+  if (['ARMED', 'ACTIVE'].includes(state)) return 'HOLDING';
+  if (['TESTED'].includes(state)) return 'TESTING';
+  return 'FAILING';
+};
+
+const stateChip = (state: string) => {
+  const s = formatState(state);
+  const map: Record<string, string> = {
+    HOLDING: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
+    TESTING: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
+    FAILING: 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+  };
+  return map[s] || 'bg-zinc-800 text-zinc-400 border-zinc-700';
+};
 
 interface TradeIntelligenceWorkspaceProps {
   selectedAsset: AssetInfo;
@@ -76,6 +95,7 @@ export function TradeIntelligenceWorkspace({
   clickedContractOverride
 }: TradeIntelligenceWorkspaceProps) {
   const serverState = useContractStore(s => s.serverState);
+  const profile = serverState?.gex_profile;
   const currentCandle = candles[candles.length - 1] || {
     timestamp: Date.now(),
     open: 100,
@@ -261,8 +281,8 @@ export function TradeIntelligenceWorkspace({
         <div className="bg-zinc-950/50 border border-zinc-850 p-4 rounded-sm flex flex-col justify-between">
           <span className="text-[9.5px] font-mono text-[#888888] uppercase tracking-widest flex justify-between items-center">
             SYSTEM CONFIDENCE 
-            {lastConfidenceChange === 'UP' && <span className="text-emerald-400 text-[10px]">↑</span>}
-            {lastConfidenceChange === 'DOWN' && <span className="text-rose-400 text-[10px]">↓</span>}
+            {lastConfidenceChange === 'UP' && <span className="text-emerald-400 text-[9px] uppercase font-black">holding</span>}
+            {lastConfidenceChange === 'DOWN' && <span className="text-rose-400 text-[9px] uppercase font-black">failing</span>}
           </span>
           <div className="my-2 flex items-baseline gap-1.5 font-mono">
             <span className="text-3xl font-bold font-mono text-zinc-100">{liveConfidence}%</span>
@@ -413,13 +433,13 @@ export function TradeIntelligenceWorkspace({
                 onClick={injectBuy}
                 className="px-2 py-2 rounded-sm border border-emerald-950 bg-emerald-950/20 hover:bg-emerald-950/40 text-emerald-400 font-mono text-[10.5px] font-bold transition-all active:scale-95 cursor-pointer uppercase text-left pl-3"
               >
-                ↑ Buy Block
+                Buy Block
               </button>
               <button
                 onClick={injectSell}
-                className="px-2 py-2 rounded-sm border border-rose-950 bg-rose-950/20 hover:bg-rose-950/40 text-rose-400 font-mono text-[10.5px] font-bold transition-all active:scale-95 cursor-pointer uppercase text-left pl-3"
+                className="px-2 py-2 rounded-sm border border-rose-950 bg-rose-950/20 hover:bg-rose-950/40 text-rose-405 font-mono text-[10.5px] font-bold transition-all active:scale-95 cursor-pointer uppercase text-left pl-3"
               >
-                ↓ Sell Block
+                Sell Block
               </button>
               <button
                 onClick={injectStopHunt}
@@ -582,7 +602,7 @@ export function TradeIntelligenceWorkspace({
 
       </section>
 
-      {/* 4.5. SKYVISION V11 — QUANTITATIVE DECISION ENGINE (TIERS 0-14) */}
+      {/* 4.5. SKYVISION V11 - QUANTITATIVE DECISION ENGINE (TIERS 0-14) */}
       <section>
         <SkyVisionV11Cockpit
           asset={selectedAsset}
@@ -593,26 +613,93 @@ export function TradeIntelligenceWorkspace({
         />
       </section>
 
-      {/* 5. Supporting Evidential Candlestick Chart (Placed at the bottom as evidence) */}
+      {/* 5. Supporting Evidential Candlestick Chart AND Structural Nodes (Placed at the bottom as evidence) */}
       <section className="bg-zinc-950/20 border border-zinc-850 p-4 rounded-sm flex flex-col gap-3">
         <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
           <span className="text-xs font-bold font-mono tracking-wider text-zinc-500 uppercase">
-            SUPPORTING TELEMETRY EVIDENCE: ACTIVE CANDLESTICK STAGES
+            SUPPORTING TELEMETRY EVIDENCE & STRUCTURAL NODES
           </span>
           <span className="text-[9.5px] font-mono text-zinc-550 mr-1 uppercase">Not the core product, click buttons to interact</span>
         </div>
 
-        <InteractiveChart
-          candles={candles}
-          fvgs={fvgs}
-          liquidityEvents={liquidityEvents}
-          targets={targets}
-          priceDecimals={selectedAsset.decimals}
-          timeframe={selectedTimeframe as any}
-          selectedTicker={selectedAsset.ticker}
-          onPlaceAuditTrade={onPlaceAuditTrade}
-          triggerInvalidation={invalidationTriggered}
-        />
+        <div className="flex flex-col gap-4">
+          
+          {/* ============== INSTITUTIONAL MICRO-STRUCTURE METRICS ============== */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-hidden mb-4" id="dealerflow-displacement-row">
+            {/* Gamma Squeeze Matrix */}
+            <div className="bg-[#0c0c0e] rounded-lg p-4 flex flex-col" id="gamma-squeeze-panel">
+              <div className="flex items-center gap-2 text-[9px] font-black tracking-widest text-[#a1a1aa] uppercase mb-3 shrink-0">
+                <Zap className="w-3.5 h-3.5 text-zinc-500" />
+                Gamma Squeeze Potential
+              </div>
+              <div className="space-y-2 flex-1 pt-2">
+                <div className="flex justify-between items-center bg-black/40 border border-zinc-900 rounded p-2">
+                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest">Squeeze Trigger Level</span>
+                  <span className="font-mono font-bold text-white uppercase tabular-nums">{profile?.gammaFlip ? `$${profile.gammaFlip.toFixed(2)}` : 'N/A'}</span>
+                </div>
+                <div className="flex justify-between items-center bg-black/40 border border-zinc-900 rounded p-2">
+                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest">Resistance Wall</span>
+                  <span className="font-mono font-bold text-rose-400 uppercase tabular-nums">{profile?.callWall ? `$${profile.callWall.toFixed(2)}` : 'N/A'}</span>
+                </div>
+                <div className="flex justify-between items-center bg-black/40 border border-zinc-900 rounded p-2">
+                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest">Support Wall</span>
+                  <span className="font-mono font-bold text-emerald-400 uppercase tabular-nums">{profile?.putWall ? `$${profile.putWall.toFixed(2)}` : 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Liquidity Absorption Rate */}
+            <div className="bg-[#0c0c0e] rounded-lg p-4 flex flex-col" id="liquidity-absorption-panel">
+              <div className="flex items-center gap-2 text-[9px] font-black tracking-widest text-[#a1a1aa] uppercase mb-3 shrink-0">
+                <Layers className="w-3.5 h-3.5 text-zinc-500" />
+                Liquidity Absorption Status
+              </div>
+              <div className="space-y-2 flex-1 pt-2">
+                <div className="flex justify-between items-center bg-black/40 border border-zinc-900 rounded p-2">
+                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest">Dealer Positioning</span>
+                  <span className={`font-black tracking-widest text-[9px] uppercase ${profile?.netGex > 0 ? 'text-sky-400' : 'text-amber-400'}`}>
+                    {profile?.netGex > 0 ? 'LONG GAMMA' : 'SHORT GAMMA'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center bg-black/40 border border-zinc-900 rounded p-2">
+                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest">Volatility Cushion</span>
+                  <span className="font-mono font-bold text-indigo-400">{profile?.netVex > 0 ? 'EXPANDING' : 'SUPPRESSED'}</span>
+                </div>
+                <div className="flex justify-between items-center bg-black/40 border border-zinc-900 rounded p-2">
+                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest">Flow Imbalance</span>
+                  <span className="font-mono font-bold text-white uppercase tabular-nums">{Math.abs(profile?.netDex / (profile?.strikes.reduce((a,c) => a + (c.callDex||0)+(c.putDex||0), 0) || 1) * 100).toFixed(1)}% SKEW</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ============== FULL WIDTH CHART AT BOTTOM ============== */}
+          <div className="bg-[#0c0c0e] rounded-lg p-5 flex flex-col w-full overflow-hidden" id="displacement-overlay-chart-panel" style={{ minHeight: '380px' }}>
+            <div className="flex items-center justify-between mb-3 shrink-0">
+              <div className="flex items-center gap-2 text-[9px] font-black tracking-widest text-[#a1a1aa] uppercase">
+                <ShieldAlert className="w-3.5 h-3.5 text-zinc-500" />
+                Price Action — Displacement & Imbalance Overlay
+              </div>
+            </div>
+            <div className="flex-1 w-full min-h-[300px]">
+              <InteractiveChart
+                candles={candles}
+                displacementZones={serverState?.displacement_engine?.zones || []}
+                fvgs={fvgs}
+                liquidityEvents={liquidityEvents}
+                tape={serverState?.tape || []}
+                targets={targets}
+                priceDecimals={selectedAsset.decimals}
+                timeframe={selectedTimeframe as any}
+                selectedTicker={selectedAsset.ticker}
+                onPlaceAuditTrade={onPlaceAuditTrade}
+                triggerInvalidation={invalidationTriggered}
+                watermarkText="PRICE ACTION — DISPLACEMENT & IMBALANCE OVERLAY"
+              />
+            </div>
+          </div>
+
+        </div>
       </section>
 
     </div>

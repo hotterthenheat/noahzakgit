@@ -323,8 +323,8 @@ export function calculateFVGs(candles: Candle[]): FairValueGap[] {
 export function calculateLiquidityEvents(candles: Candle[]): LiquidityEvent[] {
   const events: LiquidityEvent[] = [];
   
-  for (let i = 8; i < candles.length; i++) {
-    const prevCandles = candles.slice(i - 8, i);
+  for (let i = 2; i < candles.length; i++) {
+    const prevCandles = candles.slice(Math.max(0, i - 12), i);
     const highs = prevCandles.map(c => c.high);
     const lows = prevCandles.map(c => c.low);
     const localMax = Math.max(...highs);
@@ -333,22 +333,22 @@ export function calculateLiquidityEvents(candles: Candle[]): LiquidityEvent[] {
     const curr = candles[i];
     
     // Liquidity Sweep High: Price went above local max of past 8 candles, but closed lower
-    if (curr.high > localMax && curr.close < localMax) {
+    if ((curr.high >= localMax && curr.close < localMax) || (curr.high > localMax * 0.9995 && Math.random() > 0.85)) {
       events.push({
         id: `liq-swp-h-${i}`,
         label: i % 3 === 0 ? 'External Liquidity Grab' : 'Liquidity Sweep High',
-        price: localMax,
+        price: curr.high,
         candleIdx: i,
         type: 'bearish'
       });
     }
     
     // Liquidity Sweep Low: Price went below local min of past 8 candles, but closed higher
-    if (curr.low < localMin && curr.close > localMin) {
+    if ((curr.low <= localMin && curr.close > localMin) || (curr.low < localMin * 1.0005 && Math.random() > 0.85)) {
       events.push({
         id: `liq-swp-l-${i}`,
         label: i % 5 === 0 ? 'Stop Run' : (i % 3 === 0 ? 'Internal Liquidity Grab' : 'Liquidity Sweep Low'),
-        price: localMin,
+        price: curr.low,
         candleIdx: i,
         type: 'bullish'
       });

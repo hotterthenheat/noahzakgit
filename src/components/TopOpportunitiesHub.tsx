@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { AssetInfo, SystemScore } from '../types';
-import { Sparkles, Check, Compass, Award, TrendingUp, Cpu } from 'lucide-react';
+import { Sparkles, Check, Compass, Award, Cpu } from 'lucide-react';
 import { calculateV10Metrics } from '../lib/v10Math';
 
 interface TopOpportunitiesHubProps {

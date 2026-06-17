@@ -893,7 +893,7 @@ export function QuantAuditView({
         <div className="bg-[#050508] border border-zinc-900 p-4 rounded-lg flex flex-col justify-between hover:border-zinc-800 transition-all">
           <div className="flex justify-between items-center text-[#00ff88]">
             <span className="text-[7.5px] font-black uppercase tracking-wider text-zinc-550">WINNER AVERAGE</span>
-            <TrendingUp className="w-3.5 h-3.5 text-[#00ff88]" />
+            <span className="text-[9px] font-black tracking-widest uppercase">[holding]</span>
           </div>
           <div className="my-2.5">
             <h3 className="text-xl font-black text-[#00ff88]">
@@ -909,7 +909,7 @@ export function QuantAuditView({
         <div className="bg-[#050508] border border-zinc-900 p-4 rounded-lg flex flex-col justify-between hover:border-zinc-800 transition-all">
           <div className="flex justify-between items-center text-rose-500">
             <span className="text-[7.5px] font-black uppercase tracking-wider text-zinc-550">LOSER AVERAGE</span>
-            <TrendingDown className="w-3.5 h-3.5 text-[#ff453a]" />
+            <span className="text-[9px] font-black tracking-widest uppercase">[failing]</span>
           </div>
           <div className="my-2.5">
             <h3 className="text-xl font-black text-rose-500">
@@ -964,7 +964,7 @@ export function QuantAuditView({
             </span>
           )}
           <span className="text-[7.5px] bg-[#0c0c0d] border border-zinc-800 text-zinc-550 px-1.5 py-0.5 rounded font-bold">
-            CMD+K
+            {useContractStore(s => s.keybinds).prismMenu?.replace('cmd', typeof window !== 'undefined' && navigator.userAgent.includes('Mac') ? '⌘' : 'Ctrl').toUpperCase()}
           </span>
         </div>
       </button>
@@ -1009,7 +1009,7 @@ export function QuantAuditView({
                     <div className="flex items-center gap-3">
                       {/* Left icon arrow inside grid box */}
                       <div className="w-8 h-8 rounded border border-emerald-500/25 bg-emerald-500/5 flex items-center justify-center text-[#00ff88]">
-                        <ArrowUpRight className="w-4 h-4" />
+                        <span className="text-[7px] uppercase font-black tracking-widest text-[#00ff88] -rotate-90 block" style={{writingMode: 'vertical-rl'}}>holding</span>
                       </div>
                       <div>
                         {/* Title line */}
@@ -1275,7 +1275,7 @@ export function QuantAuditView({
                     <div className="flex items-center gap-3">
                       {/* Left icon arrow inside grid box */}
                       <div className="w-8 h-8 rounded border border-rose-500/25 bg-rose-500/5 flex items-center justify-center text-rose-450">
-                        <ArrowDownRight className="w-4 h-4" />
+                        <span className="text-[7px] uppercase font-black tracking-widest text-rose-450 -rotate-90 block" style={{writingMode: 'vertical-rl'}}>failing</span>
                       </div>
                       <div>
                         {/* Title line */}

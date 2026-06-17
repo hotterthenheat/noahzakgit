@@ -7,7 +7,6 @@ import { useState } from 'react';
 import {
   CheckCircle2,
   AlertOctagon,
-  TrendingUp,
   Cpu,
   Layers,
   Search,

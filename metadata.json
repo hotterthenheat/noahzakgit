@@ -1,8 +1,8 @@
 {
-  "name": "Remix: Arbors Capital",
-  "description": "SkyVision V11 - Institutional Quantitative Decision Engine Workstation",
-  "requestFramePermissions": [],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
+  "name": "Slayer Trade",
+  "description": "The custom high-performance options intelligence platform.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

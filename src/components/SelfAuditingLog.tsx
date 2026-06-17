@@ -7,7 +7,6 @@ import { useState, useMemo } from 'react';
 import { V8TradeRecord, SystemScore, CalibrationBucket, TargetReliability, StrategyInsight } from '../types';
 import { 
   Database, 
-  TrendingUp, 
   AlertTriangle, 
   CheckCircle2, 
   HelpCircle, 

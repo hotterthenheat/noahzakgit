@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { TrendingUp, ShieldAlert, Zap, Timer } from 'lucide-react';
+import { ShieldAlert, Zap, Timer } from 'lucide-react';
 import { SystemScore } from '../types';
 
 interface MarketRegimeProps {
@@ -43,8 +43,7 @@ export function MarketRegimeCard({ score, assetTicker }: MarketRegimeProps) {
         {/* Regime State */}
         <div className="bg-[#0A0A0B] p-3 border-l border-[#2A2A2D]">
           <div className="flex items-center gap-1.5 text-[#888888] text-[9px] uppercase tracking-wider mb-1">
-            <TrendingUp className="w-3 text-emerald-400" />
-            <span>Market Regime</span>
+            <span className="text-[9px] font-bold">[TREND]</span> Market Regime
           </div>
           <span className={`text-sm font-bold tracking-tight uppercase ${isBullish ? 'text-emerald-400' : 'text-rose-450'}`}>
             {regimeStr}

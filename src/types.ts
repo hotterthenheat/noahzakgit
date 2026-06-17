@@ -202,11 +202,19 @@ export interface GexStrikeDetail {
   putOi: number;
   callVolume: number;
   putVolume: number;
+  callDex?: number;
+  putDex?: number;
+  netDex?: number;
+  callVex?: number;
+  putVex?: number;
+  netVex?: number;
 }
 
 export interface GexProfileData {
   spot?: number;
   netGex?: number;
+  netDex?: number;
+  netVex?: number;
   callWall?: number;
   putWall?: number;
   gammaFlip?: number;

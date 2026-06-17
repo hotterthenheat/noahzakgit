@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Target, TrendingUp, TrendingDown, ArrowRight, Activity, Percent, Sparkles, DollarSign } from 'lucide-react';
+import { Target, ArrowRight, Activity, Percent, Sparkles, DollarSign } from 'lucide-react';
 
 export interface ContractOpportunity {
   id: string;
@@ -120,7 +120,7 @@ export function OpportunitiesDashboard({
           <div className="text-center md:text-left">
             <span className="text-[9px] text-zinc-500 uppercase font-mono block">Regime Trend</span>
             <span className="text-sm font-mono text-emerald-400 font-bold uppercase flex items-center gap-1">
-              <TrendingUp className="w-3.5 inline text-emerald-400" /> BULLISH
+              [holding] BULLISH
             </span>
           </div>
           <div className="text-center md:text-left">
@@ -134,7 +134,7 @@ export function OpportunitiesDashboard({
           <div className="text-center md:text-left">
             <span className="text-[9px] text-zinc-500 uppercase font-mono block">Momentum Acceleration</span>
             <span className="text-sm font-mono text-emerald-400 font-bold uppercase flex items-center gap-1 animate-pulse">
-              ↑ Increasing
+              [testing] Increasing
             </span>
           </div>
         </div>
@@ -208,7 +208,7 @@ export function OpportunitiesDashboard({
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between border-b border-zinc-805 pb-1">
             <span className="text-xs font-semibold font-mono tracking-wider text-emerald-400 flex items-center gap-1.5 uppercase">
-              <TrendingUp className="w-4 text-emerald-500" /> Top 10 Call Opportunities
+              [holding] Top 10 Call Opportunities
             </span>
             <span className="text-[9px] font-mono text-zinc-605">ACCELERATIVE HIGH IMPULSE</span>
           </div>
@@ -259,7 +259,7 @@ export function OpportunitiesDashboard({
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between border-b border-zinc-805 pb-1">
             <span className="text-xs font-semibold font-mono tracking-wider text-rose-400 flex items-center gap-1.5 uppercase">
-              <TrendingDown className="w-4 text-rose-500" /> Top 10 Put Opportunities
+              [failing] Top 10 Put Opportunities
             </span>
             <span className="text-[9px] font-mono text-zinc-605">ACCELERATIVE DOWN SHIFT</span>
           </div>
