@@ -396,7 +396,7 @@ const bootstrappedAssets: Record<string, boolean> = {};
 
 let sandboxTimeShift = 0; // Accelerates time in sandbox mode
 
-let dynamicTickInterval = 6000; // 6s poll rate default for live mode
+let dynamicTickInterval = 15000; // 15s poll rate default for live mode
 let forceSandboxMode = false;
 const lastBackgroundSpotTimes: Record<string, number> = {};
 

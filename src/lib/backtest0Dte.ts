@@ -8,19 +8,26 @@ import { buildGexProfile } from './gexEngine';
 import { calculateAnalyticGreeks } from './v11Math';
 import { LiveOptionContract } from './marketDataProvider';
 
-// Backtester configuration
+// Helper to parse CLI arguments (e.g., --step=900)
+const args = process.argv.slice(2);
+const getArg = (name: string, fallback: string): string => {
+  const match = args.find(a => a.startsWith(`--${name}=`));
+  return match ? match.split('=')[1] : fallback;
+};
+
+// Dynamic Backtester configuration
 const CONFIG = {
-  ticker: 'SPX',
+  ticker: getArg('ticker', 'SPX'),
   // Historical dates range format YYYYMMDD
-  startDate: '20260601',
-  endDate: '20260605',
+  startDate: getArg('start', '20260601'),
+  endDate: getArg('end', '20260605'),
   
-  // Resolution of GEX recalculation (60 seconds = 1 minute)
-  stepSeconds: 60,
+  // Resolution of GEX recalculation in seconds (60 = 1 minute, 900 = 15 minutes)
+  stepSeconds: Number(getArg('step', '60')),
   
   // Trading Strategy thresholds
-  takeProfitPct: 0.008,  // 0.8% underlying price move for profit exit
-  stopLossPct: 0.004,    // 0.4% underlying price move for stop-loss exit
+  takeProfitPct: Number(getArg('tp', '0.008')),  // 0.8% underlying price move for profit exit
+  stopLossPct: Number(getArg('sl', '0.004')),    // 0.4% underlying price move for stop-loss exit
   
   // Hours of trading session in seconds since midnight (9:35 AM to 3:59 PM EST)
   marketOpenSec: 34500,  // 09:35 AM
