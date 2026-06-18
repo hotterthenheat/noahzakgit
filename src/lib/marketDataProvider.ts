@@ -5,30 +5,8 @@
 
 import { ASSET_LIST } from '../data.js';
 import { AssetInfo } from '../types.js';
-import { recordApiTelemetry } from './telemetry';
 
 const CACHE_TTL_MS = 6000; // 6-second caching to prevent rate-limit exhaustion during active SSE ticks
-
-async function polygonFetch(url: string, endpointDescription: string): Promise<any> {
-  const startTime = Date.now();
-  try {
-    const response = await fetch(url);
-    const duration = Date.now() - startTime;
-    if (!response.ok) {
-      const errMsg = `HTTP ${response.status} ${response.statusText}`;
-      recordApiTelemetry('polygon', endpointDescription, 'ERROR', duration, errMsg);
-      throw new Error(`Polygon API Error: ${errMsg}`);
-    }
-    const data = await response.json();
-    recordApiTelemetry('polygon', endpointDescription, 'SUCCESS', duration);
-    return data;
-  } catch (error: any) {
-    const duration = Date.now() - startTime;
-    const msg = error?.message || String(error);
-    recordApiTelemetry('polygon', endpointDescription, 'ERROR', duration, msg);
-    throw error;
-  }
-}
 
 interface CachedData<T> {
   data: T;
@@ -82,7 +60,11 @@ export async function fetchLiveSpotPrice(ticker: string, defaultFallbackPrice: n
       try {
         // Query correct V3 indices snapshot endpoint
         const url = `https://api.polygon.io/v3/snapshot/indices?tickers=${polyTicker}&apiKey=${apiKey}`;
-        const json = await polygonFetch(url, '/v3/snapshot/indices');
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const json = await response.json();
         if (json?.results && json.results.length > 0 && json.results[0].value) {
           price = json.results[0].value;
         } else {
@@ -106,7 +88,11 @@ export async function fetchLiveSpotPrice(ticker: string, defaultFallbackPrice: n
     } else {
       // Correct V2 stocks snapshot endpoint for ETFs & Equities
       const url = `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${polyTicker}?apiKey=${apiKey}`;
-      const json = await polygonFetch(url, '/v2/snapshot/stocks');
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const json = await response.json();
       price = json?.ticker?.lastTrade?.p || json?.ticker?.min?.c || json?.ticker?.day?.c || json?.ticker?.prevDay?.c || defaultFallbackPrice;
     }
 
@@ -163,7 +149,12 @@ export async function fetchLiveOptionChain(asset: AssetInfo, spotPrice: number):
     // Removed unsupported limit=400 parameter causing HTTP 400 errors
     const url = `https://api.polygon.io/v3/snapshot/options/${queryUnderlying}?apiKey=${apiKey}`;
     
-    const resJson = await polygonFetch(url, `/v3/snapshot/options-chain/${queryUnderlying}`);
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const resJson = await response.json();
     if (!resJson.results || !Array.isArray(resJson.results)) {
       throw new Error(`No active results formatted by Polygon snapshot`);
     }
@@ -171,11 +162,36 @@ export async function fetchLiveOptionChain(asset: AssetInfo, spotPrice: number):
     // Limit contract processing array size to prevent thread blocking
     const activeResults = resJson.results.slice(0, 400);
 
+    // When proxying an index off its ETF (SPX→SPY, NDX→QQQ) the ETF strikes must be
+    // rescaled to the index by the LIVE spot ratio (indexSpot / proxySpot), mirroring
+    // tradierProvider's scaleEtfChainToIndex. A hardcoded multiplier (the old ×10 for
+    // SPX, and none for NDX) drifts from the true ratio and is flat-out wrong for NDX.
+    let strikeRatio = 1;
+    if (queryUnderlying !== underlying && (underlying === 'SPX' || underlying === 'NDX')) {
+      const proxyAsset = ASSET_LIST.find(a => a.ticker === queryUnderlying);
+      const proxyDefault = proxyAsset?.defaultPrice || 0;
+      let proxySpot = 0;
+      try {
+        const proxyRes = await fetchLiveSpotPrice(queryUnderlying, proxyDefault || 1);
+        proxySpot = proxyRes.price;
+      } catch {
+        proxySpot = proxyDefault;
+      }
+      // Guard divide-by-zero: prefer live index/proxy spot, else default/default, else 1.
+      if (spotPrice > 0 && proxySpot > 0) {
+        strikeRatio = spotPrice / proxySpot;
+      } else if ((asset.defaultPrice || 0) > 0 && proxyDefault > 0) {
+        strikeRatio = asset.defaultPrice / proxyDefault;
+      } else {
+        strikeRatio = 1;
+      }
+    }
+
     const contracts: LiveOptionContract[] = activeResults.map((item: any) => {
       const details = item.details || {};
       const greeks = item.greeks || {};
       const day = item.day || {};
-      
+
       const parsedStrike = details.strike_price || 0;
       const type = details.contract_type === 'call' ? 'C' : 'P';
       const parsedOi = item.open_interest || 0;
@@ -183,8 +199,8 @@ export async function fetchLiveOptionChain(asset: AssetInfo, spotPrice: number):
       const parsedIv = item.implied_volatility || 0.15;
 
       return {
-        contract: item.ticker.replace('O:', ''),
-        strike: underlying === 'SPX' && queryUnderlying === 'SPY' ? parsedStrike * 10 : parsedStrike, // Scaling factor if matching index
+        contract: typeof item.ticker === 'string' ? item.ticker.replace('O:', '') : '',
+        strike: strikeRatio !== 1 ? Number((parsedStrike * strikeRatio).toFixed(2)) : parsedStrike, // Scale ETF→index strikes by live spot ratio
         type,
         oi: parsedOi,
         volume: parsedVol,
@@ -227,7 +243,10 @@ export async function collectLiveFlows(ticker: string, currentSpot: number): Pro
     const queryUnderlying = (ticker === 'SPX') ? 'SPY' : (ticker === 'NDX' ? 'QQQ' : ticker);
     // Removed unsupported limit=50 parameter causing HTTP 400 errors
     const url = `https://api.polygon.io/v3/snapshot/options/${queryUnderlying}?apiKey=${apiKey}`;
-    const resJson = await polygonFetch(url, `/v3/snapshot/options-flows/${queryUnderlying}`);
+    const response = await fetch(url);
+    if (!response.ok) return [];
+
+    const resJson = await response.json();
     if (!resJson.results || !Array.isArray(resJson.results)) return [];
 
     const flowBlocks: any[] = [];
@@ -249,7 +268,7 @@ export async function collectLiveFlows(ticker: string, currentSpot: number): Pro
           asset: ticker,
           type: typeStr,
           contract: `${vol.toLocaleString()} ${ticker} ${strike}${type}`,
-          desc: `${type === 'C' ? 'Bought at Ask' : 'Sold at Bid'} • Vol ${vol.toLocaleString()} • IV ${(item.implied_volatility * 100).toFixed(1)}%`,
+          desc: `${type === 'C' ? 'Bought at Ask' : 'Sold at Bid'} • Vol ${vol.toLocaleString()} • IV ${((Number(item.implied_volatility) || 0) * 100).toFixed(1)}%`,
           side: type
         });
       }

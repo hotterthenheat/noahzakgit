@@ -115,19 +115,21 @@ export interface ContractStore {
 }
 
 // Global NY/CBOE Market State check function (Bug #8)
-export function getMarketState(currentTime = new Date()): MarketState {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York',
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: 'numeric',
-    second: 'numeric',
-    hour12: false
-  });
+// Hoisted to module scope: building an Intl.DateTimeFormat is expensive and
+// getMarketState runs every second from the market-state ticker.
+const NY_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York',
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: 'numeric',
+  second: 'numeric',
+  hour12: false
+});
 
-  const parts = formatter.formatToParts(currentTime);
+export function getMarketState(currentTime = new Date()): MarketState {
+  const parts = NY_TIME_FORMATTER.formatToParts(currentTime);
   const getPart = (type: string) => parseInt(parts.find(p => p.type === type)!.value, 10);
 
   const year = getPart('year');
@@ -201,7 +203,7 @@ export function useTierValidation() {
   useEffect(() => {
     // 1. Instantly force sync from local drift before network
     if (typeof window !== 'undefined') {
-      const localSync = Number(localStorage.getItem('slayer_tier') || '1');
+      const localSync = Number(localStorage.getItem('slayer_tier') || '0');
       const authSync = localStorage.getItem('slayer_auth') === 'true';
       setPurchasedTier(localSync);
       setIsAuthenticated(authSync);
@@ -224,6 +226,7 @@ export function useTierValidation() {
         } else {
           setIsAuthenticated(false);
           localStorage.setItem('slayer_auth', 'false');
+          setPurchasedTier(0);
         }
       })
       .catch(err => console.error("Tier sync failed", err));
@@ -279,7 +282,7 @@ export const useContractStore = create<ContractStore>((set, get) => ({
   isAuthenticated: false,
   setIsAuthenticated: (auth) => set({ isAuthenticated: auth }),
 
-  purchasedTier: typeof window !== 'undefined' ? Number(localStorage.getItem('slayer_tier') || '1') : 1,
+  purchasedTier: typeof window !== 'undefined' ? Number(localStorage.getItem('slayer_tier') || '0') : 0,
   setPurchasedTier: (tier) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('slayer_tier', String(tier));

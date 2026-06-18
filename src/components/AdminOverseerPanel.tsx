@@ -35,9 +35,9 @@ export function AdminOverseerPanel({ session, onSimulateTier }: AdminPanelProps)
 
   if (!session?.is_super_admin) {
     return (
-      <div className="p-8 text-center bg-[#050505] border border-rose-500/30 rounded-sm max-w-xl mx-auto mt-10">
+      <div className="p-8 text-center bg-black border border-rose-500/30 rounded-sm max-w-xl mx-auto mt-10">
         <ShieldAlert className="w-12 h-12 text-rose-500 mx-auto mb-4" />
-        <h2 className="text-xl font-black text-white uppercase tracking-widest">Unauthorized Access Logged</h2>
+        <h2 className="text-xl font-black text-[#E5E5E5] uppercase tracking-widest">Unauthorized Access Logged</h2>
         <p className="text-[11px] text-zinc-500 mt-2 uppercase tracking-widest">This incident has been recorded to the immutable audit trail.</p>
       </div>
     );
@@ -52,23 +52,23 @@ export function AdminOverseerPanel({ session, onSimulateTier }: AdminPanelProps)
   ];
 
   return (
-    <div className="w-full max-w-7xl mx-auto font-mono text-zinc-300 p-4 md:p-6">
-      <div className="border-b border-zinc-900 pb-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="w-full max-w-7xl mx-auto font-mono text-[#4ADE80] p-4 md:p-6">
+      <div className="border-b border-black pb-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black tracking-widest text-white uppercase flex items-center gap-3">
+          <h2 className="text-xl font-black tracking-widest text-[#E5E5E5] uppercase flex items-center gap-3">
             <Key className="w-6 h-6 text-rose-500" /> Overseer Command Center
           </h2>
           <p className="text-xs text-zinc-500 uppercase tracking-widest mt-1">
             Role: <span className="text-amber-400 font-bold">{overview?.admin_role || session.admin_role || 'super_admin'}</span>
             <span className="mx-2 text-zinc-700">|</span>
-            <span className="text-emerald-400">● MFA ENFORCED</span>
+            <span className="text-[#4ADE80]">● MFA ENFORCED</span>
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-[#0a0a0c] border border-zinc-900 rounded-lg px-4 py-2">
-          <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
+        <div className="flex items-center gap-2 bg-black border border-black rounded-lg px-4 py-2">
+          <Radio className="w-4 h-4 text-[#4ADE80] animate-pulse" />
           <div>
             <div className="text-[8px] text-zinc-500 uppercase tracking-widest font-black">Live Connections</div>
-            <div className="text-lg font-black text-white leading-none">{live}</div>
+            <div className="text-lg font-black text-[#E5E5E5] leading-none">{live}</div>
           </div>
         </div>
       </div>
@@ -80,7 +80,7 @@ export function AdminOverseerPanel({ session, onSimulateTier }: AdminPanelProps)
           return (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`px-3 py-2 text-[10.5px] font-bold uppercase tracking-widest rounded-md border flex items-center gap-1.5 transition-all ${
-                tab === t.id ? 'bg-zinc-900 border-zinc-700 text-white' : 'border-zinc-900 text-zinc-500 hover:text-zinc-300'
+                tab === t.id ? 'bg-black border-black text-[#E5E5E5]' : 'border-black text-zinc-500 hover:text-[#4ADE80]'
               }`}>
               <Icon className="w-3.5 h-3.5" /> {t.label}
             </button>
@@ -97,9 +97,9 @@ export function AdminOverseerPanel({ session, onSimulateTier }: AdminPanelProps)
   );
 }
 
-function StatCard({ label, value, color = 'text-white' }: { label: string; value: any; color?: string }) {
+function StatCard({ label, value, color = 'text-[#E5E5E5]' }: { label: string; value: any; color?: string }) {
   return (
-    <div className="bg-[#0a0a0c] border border-zinc-900 rounded-lg p-3">
+    <div className="bg-black border border-black rounded-lg p-3">
       <div className="text-[8px] text-zinc-500 uppercase font-black tracking-widest">{label}</div>
       <div className={`text-2xl font-black mt-1 ${color}`}>{value}</div>
     </div>
@@ -121,49 +121,49 @@ function OverviewTab({ overview, reload, onSimulateTier }: { overview: any; relo
     <div className="space-y-6 animate-fadeIn">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="Total Users" value={overview?.total_users ?? '—'} />
-        <StatCard label="Live Connections" value={overview?.live_connections ?? '—'} color="text-emerald-400" />
+        <StatCard label="Live Connections" value={overview?.live_connections ?? '—'} color="text-[#4ADE80]" />
         <StatCard label="Suspended" value={overview?.suspended ?? '—'} color="text-amber-400" />
-        <StatCard label="Banned" value={overview?.banned ?? '—'} color="text-rose-400" />
+        <StatCard label="Banned" value={overview?.banned ?? '—'} color="text-[#F87171]" />
       </div>
 
       {/* Maintenance */}
-      <div className="bg-[#0a0a0c] border border-zinc-900 rounded-lg p-5">
+      <div className="bg-black border border-black rounded-lg p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Power className={`w-4 h-4 ${overview?.maintenance_mode ? 'text-rose-400' : 'text-zinc-500'}`} />
-            <span className="text-sm font-bold text-white">Maintenance Mode</span>
-            {overview?.maintenance_mode && <span className="text-[8px] bg-rose-500/15 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded uppercase font-black tracking-widest">503 Active</span>}
+            <Power className={`w-4 h-4 ${overview?.maintenance_mode ? 'text-[#F87171]' : 'text-zinc-500'}`} />
+            <span className="text-sm font-bold text-[#E5E5E5]">Maintenance Mode</span>
+            {overview?.maintenance_mode && <span className="text-[8px] bg-rose-500/15 text-[#F87171] border border-rose-500/30 px-2 py-0.5 rounded uppercase font-black tracking-widest">503 Active</span>}
           </div>
-          <button onClick={toggleMaintenance} disabled={busy} className="text-zinc-300">
-            {overview?.maintenance_mode ? <ToggleRight className="w-9 h-9 text-rose-400" /> : <ToggleLeft className="w-9 h-9 text-zinc-600" />}
+          <button onClick={toggleMaintenance} disabled={busy} className="text-[#4ADE80]">
+            {overview?.maintenance_mode ? <ToggleRight className="w-9 h-9 text-[#F87171]" /> : <ToggleLeft className="w-9 h-9 text-zinc-600" />}
           </button>
         </div>
         <p className="text-[10px] text-zinc-500 mt-2 uppercase tracking-widest">Returns 503 Service Unavailable to all non-admin traffic while active.</p>
       </div>
 
       {/* Feature flags */}
-      <div className="bg-[#0a0a0c] border border-zinc-900 rounded-lg p-5">
-        <div className="text-sm font-bold text-white mb-3">Feature Toggles</div>
+      <div className="bg-black border border-black rounded-lg p-5">
+        <div className="text-sm font-bold text-[#E5E5E5] mb-3">Feature Toggles</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {Object.keys(flags).map((k) => (
             <button key={k} onClick={() => toggleFlag(k, !flags[k])}
-              className="flex items-center justify-between bg-black/40 border border-zinc-900 rounded-md px-3 py-2 hover:border-zinc-700">
-              <span className="text-[11px] text-zinc-300">{k.replace(/_/g, ' ')}</span>
-              {flags[k] ? <ToggleRight className="w-7 h-7 text-emerald-400" /> : <ToggleLeft className="w-7 h-7 text-zinc-600" />}
+              className="flex items-center justify-between bg-black/40 border border-black rounded-md px-3 py-2 hover:border-black">
+              <span className="text-[11px] text-[#4ADE80]">{k.replace(/_/g, ' ')}</span>
+              {flags[k] ? <ToggleRight className="w-7 h-7 text-[#4ADE80]" /> : <ToggleLeft className="w-7 h-7 text-zinc-600" />}
             </button>
           ))}
         </div>
       </div>
 
       {/* QA viewport simulation (retained) */}
-      <div className="bg-[#0a0a0c] border border-zinc-900 rounded-lg p-5">
-        <div className="flex items-center gap-2 text-sm font-bold text-white mb-3">
+      <div className="bg-black border border-black rounded-lg p-5">
+        <div className="flex items-center gap-2 text-sm font-bold text-[#E5E5E5] mb-3">
           <MonitorPlay className="w-4 h-4 text-sky-500" /> QA Viewport Simulation
         </div>
         <div className="flex flex-wrap gap-2">
           {[['Guest', 0], ['SkyVision', 2], ['Pinpoint', 3], ['Quant', 4], ['Lifetime', 5]].map(([label, n]) => (
             <button key={label as string} onClick={() => onSimulateTier(label as string, n as number)}
-              className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-black/40 border border-zinc-800 rounded text-zinc-300 hover:border-sky-500/50 hover:text-white">
+              className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-black/40 border border-black rounded text-[#4ADE80] hover:border-sky-500/50 hover:text-[#E5E5E5]">
               {label}
             </button>
           ))}
@@ -174,27 +174,32 @@ function OverviewTab({ overview, reload, onSimulateTier }: { overview: any; relo
 }
 
 function UsersTab() {
-  const [data, setData] = useState<any>({ rows: [], total: 0, page: 1, totalPages: 1 });
-  const [page, setPage] = useState(1);
+  const [data, setData] = useState<any>({ rows: [], total: 0, nextCursor: null });
+  const [cursors, setCursors] = useState<{ current: string | null; history: (string | null)[] }>({ current: null, history: [] });
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const load = useCallback(() => {
+  const load = useCallback((c: string | null) => {
     setLoading(true);
-    api(`/api/admin/users?page=${page}&perPage=10&q=${encodeURIComponent(q)}`).then(setData).catch(() => {}).finally(() => setLoading(false));
-  }, [page, q]);
-  useEffect(() => { load(); }, [load]);
+    api(`/api/admin/users?perPage=10&q=${encodeURIComponent(q)}${c ? `&cursor=${encodeURIComponent(c)}` : ''}`).then(setData).catch(() => {}).finally(() => setLoading(false));
+  }, [q]);
+
+  useEffect(() => { load(cursors.current); }, [cursors.current, load]);
 
   const act = async (email: string, action: string) => {
     if (action === 'ban' && !confirm(`Permanently BAN ${email}?`)) return;
     await api(`/api/admin/users/${encodeURIComponent(email)}/${action}`, { method: 'POST' }).catch((e) => alert(e.message));
     if (action === 'impersonate') { window.location.reload(); return; }
-    load();
+    load(cursors.current);
   };
   const impersonate = async (email: string) => {
     if (!confirm(`Impersonate ${email}? You'll view the app as this user (read-only).`)) return;
     await api(`/api/admin/impersonate/${encodeURIComponent(email)}`, { method: 'POST' }).catch((e) => alert(e.message));
     window.location.reload();
+  };
+  const changeTier = async (email: string, tier: string) => {
+    await api(`/api/admin/users/${encodeURIComponent(email)}/tier`, { method: 'PATCH', body: JSON.stringify({ access_tier: tier }) }).catch((e) => alert(e.message));
+    load(cursors.current);
   };
 
   return (
@@ -202,38 +207,47 @@ function UsersTab() {
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
-          <input value={q} onChange={(e) => { setPage(1); setQ(e.target.value); }} placeholder="Search by email, username, name…"
-            className="w-full bg-black/50 border border-zinc-900 rounded-lg pl-9 pr-3 py-2.5 text-[11px] text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700" />
+          <input value={q} onChange={(e) => { setCursors({ current: null, history: [] }); setQ(e.target.value); }} placeholder="Search by email, username, name…"
+            className="w-full bg-black/50 border border-black rounded-lg pl-9 pr-3 py-2.5 text-[11px] text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-black" />
         </div>
-        <button onClick={load} className="p-2.5 bg-black/50 border border-zinc-900 rounded-lg text-zinc-400 hover:text-white"><RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /></button>
+        <button onClick={() => load(cursors.current)} className="p-2.5 bg-black/50 border border-black rounded-lg text-zinc-400 hover:text-[#E5E5E5]"><RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /></button>
       </div>
 
-      <div className="bg-[#0a0a0c] border border-zinc-900 rounded-lg overflow-x-auto">
+      <div className="bg-black border border-black rounded-lg overflow-x-auto">
         <table className="w-full text-[10.5px]">
           <thead>
-            <tr className="text-zinc-600 uppercase tracking-widest text-[8.5px] border-b border-zinc-900">
+            <tr className="text-zinc-600 uppercase tracking-widest text-[8.5px] border-b border-black">
               <th className="text-left p-3">User</th><th className="text-left p-3">Tier</th>
               <th className="text-left p-3">Tokens</th><th className="text-left p-3">Status</th><th className="text-right p-3">Actions</th>
             </tr>
           </thead>
           <tbody>
             {data.rows.map((u: any) => (
-              <tr key={u.id} className="border-b border-zinc-950/80 hover:bg-white/[0.02]">
+              <tr key={u.id} className="border-b border-black hover:bg-white/[0.02]">
                 <td className="p-3">
-                  <div className="text-white font-bold">{u.name || u.username}</div>
+                  <div className="text-[#E5E5E5] font-bold">{u.name || u.username}</div>
                   <div className="text-zinc-600">{u.email}</div>
                 </td>
-                <td className="p-3 uppercase text-zinc-400">{u.access_tier}{u.role !== 'user' && <span className="ml-1 text-amber-400">★</span>}</td>
-                <td className="p-3 text-zinc-300">{u.referral_tokens_pool}</td>
+                <td className="p-3 uppercase text-zinc-400">
+                  <select value={u.access_tier} onChange={(e) => changeTier(u.email, e.target.value)} className="bg-black border border-black text-[#E5E5E5] px-2 py-1 rounded outline-none focus:border-zinc-700">
+                    {['guest', 'discord', 'intraday', 'quant', 'enterprise', 'lifetime'].map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  {u.role !== 'user' && <span className="ml-1 text-amber-400">★</span>}
+                </td>
+                <td className="p-3 text-[#4ADE80]">{u.referral_tokens_pool}</td>
                 <td className="p-3">
-                  {u.banned ? <span className="text-rose-400 font-bold">BANNED</span> : u.suspended ? <span className="text-amber-400 font-bold">SUSPENDED</span> : <span className="text-emerald-400">Active</span>}
+                  <div className="flex items-center gap-1.5">
+                    {u.online ? <span className="w-2 h-2 rounded-full bg-[#4ADE80] animate-pulse"></span> : <span className="w-2 h-2 rounded-full bg-zinc-600"></span>}
+                    <span className={`font-bold ${u.online ? 'text-[#4ADE80]' : 'text-zinc-500'}`}>{u.online ? 'ONLINE' : 'OFFLINE'}</span>
+                  </div>
+                  {u.banned ? <span className="text-[#F87171] font-bold block mt-1 text-[9px]">BANNED</span> : u.suspended ? <span className="text-amber-400 font-bold block mt-1 text-[9px]">SUSPENDED</span> : null}
                 </td>
                 <td className="p-3">
                   <div className="flex items-center justify-end gap-1.5">
                     <button title="Impersonate" onClick={() => impersonate(u.email)} className="p-1.5 rounded hover:bg-sky-500/15 text-sky-400"><Eye className="w-3.5 h-3.5" /></button>
                     <button title={u.suspended ? 'Unsuspend' : 'Suspend'} onClick={() => act(u.email, u.suspended ? 'unsuspend' : 'suspend')} className="p-1.5 rounded hover:bg-amber-500/15 text-amber-400"><UserX className="w-3.5 h-3.5" /></button>
-                    <button title="Force Logout" onClick={() => act(u.email, 'force-logout')} className="p-1.5 rounded hover:bg-zinc-500/15 text-zinc-400"><LogOut className="w-3.5 h-3.5" /></button>
-                    <button title={u.banned ? 'Unban' : 'Ban'} onClick={() => act(u.email, u.banned ? 'unban' : 'ban')} className="p-1.5 rounded hover:bg-rose-500/15 text-rose-400"><Ban className="w-3.5 h-3.5" /></button>
+                    <button title="Force Logout" onClick={() => act(u.email, 'force-logout')} className="p-1.5 rounded hover:bg-black text-zinc-400"><LogOut className="w-3.5 h-3.5" /></button>
+                    <button title={u.banned ? 'Unban' : 'Ban'} onClick={() => act(u.email, u.banned ? 'unban' : 'ban')} className="p-1.5 rounded hover:bg-rose-500/15 text-[#F87171]"><Ban className="w-3.5 h-3.5" /></button>
                   </div>
                 </td>
               </tr>
@@ -244,10 +258,10 @@ function UsersTab() {
       </div>
 
       <div className="flex items-center justify-between text-[10px] text-zinc-500 uppercase tracking-widest">
-        <span>{data.total} users · page {data.page}/{data.totalPages}</span>
+        <span>{data.total} users</span>
         <div className="flex gap-2">
-          <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="px-3 py-1.5 bg-black/50 border border-zinc-900 rounded disabled:opacity-40">Prev</button>
-          <button disabled={page >= data.totalPages} onClick={() => setPage((p) => p + 1)} className="px-3 py-1.5 bg-black/50 border border-zinc-900 rounded disabled:opacity-40">Next</button>
+          <button disabled={cursors.history.length === 0} onClick={() => setCursors(prev => { const h = [...prev.history]; const c = h.pop() || null; return { history: h, current: c }; })} className="px-3 py-1.5 bg-black/50 border border-black rounded disabled:opacity-40">Prev</button>
+          <button disabled={!data.nextCursor} onClick={() => setCursors(prev => ({ history: [...prev.history, prev.current], current: data.nextCursor }))} className="px-3 py-1.5 bg-black/50 border border-black rounded disabled:opacity-40">Next</button>
         </div>
       </div>
     </div>
@@ -258,10 +272,10 @@ function AuditTab() {
   const [entries, setEntries] = useState<any[]>([]);
   useEffect(() => { api('/api/admin/audit').then((d) => setEntries(d.entries || [])).catch(() => {}); }, []);
   return (
-    <div className="bg-[#0a0a0c] border border-zinc-900 rounded-lg overflow-x-auto animate-fadeIn">
+    <div className="bg-black border border-black rounded-lg overflow-x-auto animate-fadeIn">
       <table className="w-full text-[10.5px]">
         <thead>
-          <tr className="text-zinc-600 uppercase tracking-widest text-[8.5px] border-b border-zinc-900">
+          <tr className="text-zinc-600 uppercase tracking-widest text-[8.5px] border-b border-black">
             <th className="text-left p-3">Timestamp</th><th className="text-left p-3">Admin</th>
             <th className="text-left p-3">Action</th><th className="text-left p-3">Target</th>
             <th className="text-left p-3">Method</th><th className="text-left p-3">IP</th>
@@ -269,9 +283,9 @@ function AuditTab() {
         </thead>
         <tbody>
           {entries.map((e) => (
-            <tr key={e.id} className="border-b border-zinc-950/80">
+            <tr key={e.id} className="border-b border-black">
               <td className="p-3 text-zinc-500">{new Date(e.timestamp).toLocaleString()}</td>
-              <td className="p-3 text-zinc-300">{e.admin_email}</td>
+              <td className="p-3 text-[#4ADE80]">{e.admin_email}</td>
               <td className="p-3 text-amber-400 font-bold">{e.action_taken}</td>
               <td className="p-3 text-zinc-400">{e.target_id}</td>
               <td className="p-3 text-zinc-500">{e.method}</td>
@@ -298,40 +312,40 @@ function CouponsTab() {
   };
   return (
     <div className="space-y-4 animate-fadeIn">
-      <div className="bg-[#0a0a0c] border border-zinc-900 rounded-lg p-5 space-y-3">
-        <div className="text-sm font-bold text-white">Generate Coupon</div>
+      <div className="bg-black border border-black rounded-lg p-5 space-y-3">
+        <div className="text-sm font-bold text-[#E5E5E5]">Generate Coupon</div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <input placeholder="CODE (A-Z 0-9)" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
-            className="bg-black/50 border border-zinc-900 rounded-md px-3 py-2 text-[11px] text-white uppercase placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700" />
+            className="bg-black/50 border border-black rounded-md px-3 py-2 text-[11px] text-[#E5E5E5] uppercase placeholder:text-zinc-600 focus:outline-none focus:border-black" />
           <select value={form.discount_type} onChange={(e) => setForm({ ...form, discount_type: e.target.value })}
-            className="bg-black/50 border border-zinc-900 rounded-md px-3 py-2 text-[11px] text-white focus:outline-none">
+            className="bg-black/50 border border-black rounded-md px-3 py-2 text-[11px] text-[#E5E5E5] focus:outline-none">
             <option value="PERCENT">Percent %</option><option value="FIXED">Fixed $</option>
           </select>
           <input type="number" placeholder="Value" value={form.discount_value} onChange={(e) => setForm({ ...form, discount_value: Number(e.target.value) })}
-            className="bg-black/50 border border-zinc-900 rounded-md px-3 py-2 text-[11px] text-white focus:outline-none focus:border-zinc-700" />
+            className="bg-black/50 border border-black rounded-md px-3 py-2 text-[11px] text-[#E5E5E5] focus:outline-none focus:border-black" />
           <input type="number" placeholder="Redemption limit" value={form.redemption_limit} onChange={(e) => setForm({ ...form, redemption_limit: Number(e.target.value) })}
-            className="bg-black/50 border border-zinc-900 rounded-md px-3 py-2 text-[11px] text-white focus:outline-none focus:border-zinc-700" />
+            className="bg-black/50 border border-black rounded-md px-3 py-2 text-[11px] text-[#E5E5E5] focus:outline-none focus:border-black" />
           <input placeholder="User restriction (email, optional)" value={form.user_restriction} onChange={(e) => setForm({ ...form, user_restriction: e.target.value })}
-            className="bg-black/50 border border-zinc-900 rounded-md px-3 py-2 text-[11px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700" />
+            className="bg-black/50 border border-black rounded-md px-3 py-2 text-[11px] text-[#E5E5E5] placeholder:text-zinc-600 focus:outline-none focus:border-black" />
           <input type="date" value={form.expires_at} onChange={(e) => setForm({ ...form, expires_at: e.target.value })}
-            className="bg-black/50 border border-zinc-900 rounded-md px-3 py-2 text-[11px] text-white focus:outline-none focus:border-zinc-700" />
+            className="bg-black/50 border border-black rounded-md px-3 py-2 text-[11px] text-[#E5E5E5] focus:outline-none focus:border-black" />
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={create} className="px-4 py-2 bg-emerald-600/15 border border-emerald-500/30 text-emerald-400 rounded-md text-[11px] font-bold uppercase tracking-widest hover:bg-emerald-600/25">Generate</button>
+          <button onClick={create} className="px-4 py-2 bg-black/40 border border-black text-[#4ADE80] rounded-md text-[11px] font-bold uppercase tracking-widest hover:bg-black/40">Generate</button>
           {msg && <span className="text-[10px] text-zinc-400">{msg}</span>}
         </div>
       </div>
 
-      <div className="bg-[#0a0a0c] border border-zinc-900 rounded-lg overflow-x-auto">
+      <div className="bg-black border border-black rounded-lg overflow-x-auto">
         <table className="w-full text-[10.5px]">
-          <thead><tr className="text-zinc-600 uppercase tracking-widest text-[8.5px] border-b border-zinc-900">
+          <thead><tr className="text-zinc-600 uppercase tracking-widest text-[8.5px] border-b border-black">
             <th className="text-left p-3">Code</th><th className="text-left p-3">Discount</th><th className="text-left p-3">Limit</th><th className="text-left p-3">Restriction</th><th className="text-left p-3">Expires</th>
           </tr></thead>
           <tbody>
             {coupons.map((c) => (
-              <tr key={c.code} className="border-b border-zinc-950/80">
-                <td className="p-3 text-white font-bold">{c.code}</td>
-                <td className="p-3 text-emerald-400">{c.discount_type === 'PERCENT' ? `${c.discount_value}%` : `$${c.discount_value}`}</td>
+              <tr key={c.code} className="border-b border-black">
+                <td className="p-3 text-[#E5E5E5] font-bold">{c.code}</td>
+                <td className="p-3 text-[#4ADE80]">{c.discount_type === 'PERCENT' ? `${c.discount_value}%` : `$${c.discount_value}`}</td>
                 <td className="p-3 text-zinc-400">{c.redemptions}/{c.redemption_limit || '∞'}</td>
                 <td className="p-3 text-zinc-500">{c.user_restriction || 'any'}</td>
                 <td className="p-3 text-zinc-500">{c.expires_at || 'never'}</td>
@@ -390,34 +404,34 @@ function TelemetryTab() {
   return (
     <div className="space-y-6 animate-fadeIn text-[11px]">
       {/* Configuration Control Panel */}
-      <div className="bg-[#0a0a0c] border border-zinc-900 rounded-lg p-5 space-y-4">
-        <div className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+      <div className="bg-black border border-black rounded-lg p-5 space-y-4">
+        <div className="text-sm font-bold text-[#E5E5E5] uppercase tracking-widest flex items-center gap-2">
           <Radio className="w-4 h-4 text-rose-500 animate-pulse" /> Live Telemetry Configuration
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Polling Interval Throttle */}
           <div className="space-y-2">
-            <label className="block text-zinc-400 font-bold uppercase tracking-wider">Dynamic Telemetry Polling Rate</label>
+            <label className="block text-zinc-500 font-bold uppercase tracking-wider">Dynamic Telemetry Polling Rate</label>
             <div className="flex items-center gap-3">
               <input type="range" min="1000" max="30000" step="1000" value={intervalVal}
                 onChange={(e) => setIntervalVal(Number(e.target.value))}
                 onMouseUp={() => updateThrottle(intervalVal, sandboxVal)}
                 onTouchEnd={() => updateThrottle(intervalVal, sandboxVal)}
                 className="flex-1 accent-rose-500 cursor-ew-resize" />
-              <span className="text-white font-bold w-16 text-right">{(intervalVal / 1000).toFixed(1)}s</span>
+              <span className="text-[#E5E5E5] font-bold w-16 text-right">{(intervalVal / 1000).toFixed(1)}s</span>
             </div>
             <p className="text-[9px] text-zinc-500 uppercase tracking-widest">Adjusts how frequently the server checks spot prices and option chains for active workspace sessions.</p>
           </div>
 
           {/* Force Sandbox override */}
-          <div className="flex items-center justify-between border-l border-zinc-900 pl-6">
+          <div className="flex items-center justify-between border-l border-black pl-6">
             <div>
-              <span className="text-zinc-400 font-bold uppercase tracking-wider block">Admin Override: Sandbox Mode</span>
+              <span className="text-zinc-500 font-bold uppercase tracking-wider block">Admin Override: Sandbox Mode</span>
               <p className="text-[9px] text-zinc-500 uppercase tracking-widest mt-1">Forces server to run simulation data even if live Polygon/Tradier keys are configured.</p>
             </div>
             <button onClick={() => updateThrottle(intervalVal, !sandboxVal)} className="text-zinc-300">
-              {sandboxVal ? <ToggleRight className="w-9 h-9 text-rose-400" /> : <ToggleLeft className="w-9 h-9 text-zinc-600" />}
+              {sandboxVal ? <ToggleRight className="w-9 h-9 text-[#F87171]" /> : <ToggleLeft className="w-9 h-9 text-zinc-600" />}
             </button>
           </div>
         </div>
@@ -429,9 +443,9 @@ function TelemetryTab() {
           const isRateLimited = stat.rateLimitedUntil > Date.now();
           const hasError = stat.errorCalls > 0;
           return (
-            <div key={prov} className="bg-[#0a0a0c] border border-zinc-900 rounded-lg p-4 space-y-3">
+            <div key={prov} className="bg-black border border-black rounded-lg p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-white font-black uppercase tracking-widest">{prov} API Engine</span>
+                <span className="text-[#E5E5E5] font-black uppercase tracking-widest">{prov} API Engine</span>
                 <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-widest uppercase border ${
                   isRateLimited ? 'bg-rose-950/20 border-rose-500/30 text-rose-400' :
                   hasError ? 'bg-amber-950/20 border-amber-500/30 text-amber-400' : 'bg-emerald-950/20 border-emerald-500/30 text-emerald-400'
@@ -441,24 +455,24 @@ function TelemetryTab() {
               </div>
 
               <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
-                <div className="bg-black/30 border border-zinc-950 p-2 rounded">
+                <div className="bg-black/30 border border-black p-2 rounded">
                   <div className="text-zinc-500 uppercase tracking-wider text-[8px]">Total Calls</div>
-                  <div className="text-white font-bold mt-1">{stat.totalCalls}</div>
+                  <div className="text-[#E5E5E5] font-bold mt-1">{stat.totalCalls}</div>
                 </div>
-                <div className="bg-black/30 border border-zinc-950 p-2 rounded">
+                <div className="bg-black/30 border border-black p-2 rounded">
                   <div className="text-zinc-500 uppercase tracking-wider text-[8px]">Error Calls</div>
                   <div className={`font-bold mt-1 ${stat.errorCalls > 0 ? 'text-amber-400' : 'text-zinc-500'}`}>{stat.errorCalls}</div>
                 </div>
-                <div className="bg-black/30 border border-zinc-950 p-2 rounded">
+                <div className="bg-black/30 border border-black p-2 rounded">
                   <div className="text-zinc-500 uppercase tracking-wider text-[8px]">Avg Latency</div>
-                  <div className="text-white font-bold mt-1">
+                  <div className="text-[#E5E5E5] font-bold mt-1">
                     {stat.totalCalls > 0 ? `${Math.round(stat.sumResponseTime / stat.totalCalls)}ms` : '—'}
                   </div>
                 </div>
               </div>
 
               {isRateLimited && (
-                <div className="text-[9px] text-rose-400 uppercase tracking-widest font-bold">
+                <div className="text-[9px] text-[#F87171] uppercase tracking-widest font-bold">
                   ⚠️ API rate limit cooling down. Re-enabling in {Math.round((stat.rateLimitedUntil - Date.now()) / 1000)}s
                 </div>
               )}
@@ -468,8 +482,8 @@ function TelemetryTab() {
       </div>
 
       {/* SQL Logging Ledger */}
-      <div className="bg-[#0a0a0c] border border-zinc-900 rounded-lg p-5">
-        <div className="text-sm font-bold text-white uppercase tracking-widest mb-3 flex items-center justify-between">
+      <div className="bg-black border border-black rounded-lg p-5">
+        <div className="text-sm font-bold text-[#E5E5E5] uppercase tracking-widest mb-3 flex items-center justify-between">
           <span>Database Telemetry Logs (SQLite)</span>
           <span className="text-[9px] text-zinc-500 lowercase">showing last 20 queries</span>
         </div>
@@ -477,7 +491,7 @@ function TelemetryTab() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[10.5px]">
             <thead>
-              <tr className="text-zinc-600 uppercase tracking-widest text-[8px] border-b border-zinc-900 pb-2">
+              <tr className="text-zinc-500 uppercase tracking-widest text-[8px] border-b border-black pb-2">
                 <th className="py-2">Timestamp</th>
                 <th className="py-2">Provider</th>
                 <th className="py-2">Endpoint</th>
@@ -488,18 +502,18 @@ function TelemetryTab() {
             </thead>
             <tbody>
               {data.logs.map((log: any) => (
-                <tr key={log.id} className="border-b border-zinc-950/50 hover:bg-white/[0.01]">
+                <tr key={log.id} className="border-b border-black/40 hover:bg-white/[0.01]">
                   <td className="py-2 text-zinc-500">{new Date(log.timestamp).toLocaleTimeString()}</td>
                   <td className="py-2 uppercase font-bold text-zinc-400">{log.provider}</td>
                   <td className="py-2 text-zinc-400 max-w-[200px] truncate" title={log.endpoint}>{log.endpoint}</td>
                   <td className="py-2 text-center">
                     <span className={`px-1.5 py-0.5 rounded text-[8px] font-black ${
-                      log.status === 'SUCCESS' ? 'text-emerald-400 bg-emerald-950/10' : 'text-rose-400 bg-rose-950/10'
+                      log.status === 'SUCCESS' ? 'text-[#4ADE80] bg-emerald-950/10' : 'text-[#F87171] bg-rose-950/10'
                     }`}>
                       {log.status}
                     </span>
                   </td>
-                  <td className="py-2 text-right text-zinc-300 font-mono">{log.response_time}ms</td>
+                  <td className="py-2 text-right text-[#E5E5E5] font-mono">{log.response_time}ms</td>
                   <td className="py-2 text-right pr-4 text-zinc-500 max-w-[250px] truncate" title={log.error_message || 'OK'}>
                     {log.error_message || <span className="text-emerald-600">● OK</span>}
                   </td>

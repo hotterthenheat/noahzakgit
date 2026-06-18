@@ -8,7 +8,6 @@ import { ASSET_LIST } from '../data';
 import { AssetInfo, Candle } from '../types';
 import { calculateAnalyticGreeks } from './v11Math';
 import { LiveOptionContract } from './marketDataProvider';
-import { recordApiTelemetry } from './telemetry';
 
 const CACHE_TTL_MS = 6000; // 6-second cache for spots/chains
 const CANDLE_CACHE_TTL_MS = 60000; // 60-second cache for candles
@@ -70,6 +69,9 @@ export function isTradierConfigured(): boolean {
   return !!process.env.TRADIER_API_KEY;
 }
 
+/**
+ * Helper to fetch with Bearer credentials and JSON headers
+ */
 async function tradierFetch(endpoint: string): Promise<any> {
   const apiKey = process.env.TRADIER_API_KEY;
   if (!apiKey) {
@@ -78,7 +80,6 @@ async function tradierFetch(endpoint: string): Promise<any> {
 
   const baseUrl = getTradierBaseUrl();
   const url = `${baseUrl}${endpoint}`;
-  const startTime = Date.now();
 
   try {
     const response = await fetch(url, {
@@ -88,21 +89,13 @@ async function tradierFetch(endpoint: string): Promise<any> {
       }
     });
 
-    const duration = Date.now() - startTime;
     if (!response.ok) {
-      const errMsg = `HTTP ${response.status} ${response.statusText}`;
-      recordApiTelemetry('tradier', endpoint, 'ERROR', duration, errMsg);
-      throw new Error(`Tradier API Error: ${errMsg}`);
+      throw new Error(`Tradier API Error: HTTP ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
-    recordApiTelemetry('tradier', endpoint, 'SUCCESS', duration);
-    return data;
+    return response.json();
   } catch (error: any) {
-    const duration = Date.now() - startTime;
-    const msg = error?.message || String(error);
-    recordApiTelemetry('tradier', endpoint, 'ERROR', duration, msg);
-    lastTradierErrors.push(msg);
+    lastTradierErrors.push(error?.message || String(error));
     if (lastTradierErrors.length > 10) lastTradierErrors.shift();
     throw error;
   }
@@ -547,7 +540,10 @@ export async function fetchTradierCandles(ticker: string, tf: string, count = 12
         const l = Number(item.low) || Number(item.l) || 0;
         const c = Number(item.close) || Number(item.c) || 0;
         const v = Number(item.volume) || Number(item.v) || 0;
-        const ts = item.timestamp ? Number(item.timestamp) * 1000 : (item.date ? new Date(item.date).getTime() : Date.now());
+        // Guard against NaN timestamps: an unparseable date would later throw in
+        // annotateCandles' Date#toISOString and silently discard the whole batch.
+        let ts = item.timestamp ? Number(item.timestamp) * 1000 : (item.date ? new Date(item.date).getTime() : Date.now());
+        if (!Number.isFinite(ts)) ts = Date.now();
         return {
           timestamp: ts,
           open: o,
@@ -592,7 +588,10 @@ export async function fetchTradierCandles(ticker: string, tf: string, count = 12
     if (proxyCandles && proxyCandles.length > 0) {
       const indexSpot = await fetchTradierSpotPrice(ticker) || ASSET_LIST.find(a => a.ticker === ticker)?.defaultPrice || 1;
       const lastProxyClose = proxyCandles[proxyCandles.length - 1].close;
-      const liveRatio = indexSpot / lastProxyClose;
+      // Guard against a zero/invalid proxy close to avoid Infinity/NaN candle scaling.
+      const indexDefault = ASSET_LIST.find(a => a.ticker === ticker)?.defaultPrice || 1;
+      const proxyDefault = ASSET_LIST.find(a => a.ticker === proxyTicker)?.defaultPrice || 1;
+      const liveRatio = lastProxyClose > 0 ? indexSpot / lastProxyClose : indexDefault / proxyDefault;
 
       const scaledCandles = proxyCandles.map(bar => ({
         ...bar,

@@ -131,10 +131,9 @@ export function calculateAnalyticGreeks(
   isCall: boolean,
   r = 0.05
 ) {
-  const spotClamped = Math.max(0.01, spot);
   const T = Math.max(0.0001, dteDays / 365);
   const sigma = Math.max(0.01, iv);
-  const d1 = (Math.log(spotClamped / strike) + (r + (sigma * sigma) / 2) * T) / (sigma * Math.sqrt(T));
+  const d1 = (Math.log(spot / strike) + (r + (sigma * sigma) / 2) * T) / (sigma * Math.sqrt(T));
   const d2 = d1 - sigma * Math.sqrt(T);
 
   const nd1 = stdNormalPDF(d1);
@@ -142,16 +141,16 @@ export function calculateAnalyticGreeks(
   const Nd2 = stdNormalCDF(d2);
 
   let delta = 0;
-  let gamma = nd1 / (spotClamped * sigma * Math.sqrt(T));
-  let vega = spotClamped * Math.sqrt(T) * nd1;
+  let gamma = nd1 / (spot * sigma * Math.sqrt(T));
+  let vega = spot * Math.sqrt(T) * nd1;
   let theta = 0;
 
   if (isCall) {
     delta = Nd1;
-    theta = -(spotClamped * nd1 * sigma) / (2 * Math.sqrt(T)) - r * strike * Math.exp(-r * T) * Nd2;
+    theta = -(spot * nd1 * sigma) / (2 * Math.sqrt(T)) - r * strike * Math.exp(-r * T) * Nd2;
   } else {
     delta = Nd1 - 1;
-    theta = -(spotClamped * nd1 * sigma) / (2 * Math.sqrt(T)) + r * strike * Math.exp(-r * T) * stdNormalCDF(-d2);
+    theta = -(spot * nd1 * sigma) / (2 * Math.sqrt(T)) + r * strike * Math.exp(-r * T) * stdNormalCDF(-d2);
   }
 
   // Convert theta to daily (÷365) to represent standard options daily decay rate
@@ -163,7 +162,7 @@ export function calculateAnalyticGreeks(
   // Correct Charm: put charm equals call charm in dividend-free BSM
   const charm = -nd1 * (r / (sigma * Math.sqrt(T)) - d2 / (2 * Math.max(0.0001, T)));
   // Speed (∂³V/∂S³) — V5.1 §3.4. Third derivative of value wrt spot.
-  const speed = -(gamma / Math.max(spotClamped, 1e-9)) * (d1 / (sigma * Math.sqrt(T)) + 1);
+  const speed = -(gamma / Math.max(spot, 1e-9)) * (d1 / (sigma * Math.sqrt(T)) + 1);
 
   return { delta, gamma, vega, theta: dailyTheta, vanna, charm, speed };
 }
@@ -378,6 +377,7 @@ export function computeVWAP01(
   d_peak = 0.5,
   sigma_v = 0.6
 ): number {
+  if (!(atr > 0)) return 0; // no volatility scale ⇒ no VWAP-alignment signal (guard ÷0 → NaN)
   const d = dir * (close - vwap) / atr;
   if (d <= 0) return 0;
   const term = Math.log(d / d_peak);
@@ -412,7 +412,7 @@ export function calculateSystemScoreFromCandles(
 
   // 2. Compute Wilder Slopes & Velocities
   const rsiSlope = dir * (currentRSI - rsi_5);
-  const momVel = dir * (last.close - close_10) / currentATR;
+  const momVel = dir * (last.close - close_10) / (currentATR || 1);
 
   // 3. RVOL (excludes current, unfinished tick candle n-1 from baseline)
   let rvolSum = 0;
@@ -433,7 +433,7 @@ export function calculateSystemScoreFromCandles(
   // 6. VWAP01
   const currentVWAP = last.vwap || last.close;
   const vwap01_kernel = computeVWAP01(last.close, currentVWAP, currentATR, dir);
-  const vwap_slope = dir * (currentVWAP - (n >= 6 ? (candles[n - 6].vwap || candles[n - 6].close) : currentVWAP)) / currentATR;
+  const vwap_slope = dir * (currentVWAP - (n >= 6 ? (candles[n - 6].vwap || candles[n - 6].close) : currentVWAP)) / (currentATR || 1);
 
   const crossedBefore = n >= 4 ? (dir > 0 ? (candles[n - 2].close <= (candles[n-2].vwap || candles[n-2].close)) : (candles[n - 2].close >= (candles[n-2].vwap || candles[n-2].close))) : false;
   const crossedBackNow = dir > 0 ? (last.close > currentVWAP) : (last.close < currentVWAP);
@@ -783,32 +783,40 @@ export function calibrateIsotonicLoss(pHat: number, history: { pred: number; win
   const yVals = activeBuckets.map(b => b.wins / b.count);
   const weights = activeBuckets.map(b => b.count);
 
-  // PAV routine
+  // PAV routine — pool x in lockstep with values/weights so the interpolation
+  // anchors stay aligned. (Previously only values/weights were spliced while
+  // xVals kept its original length, so after any pooling the loop read
+  // values[i+1] past the shortened array → undefined → NaN.)
   const values = [...yVals];
+  const xPooled = [...xVals];
   let pooled = true;
   while (pooled) {
     pooled = false;
     for (let i = 0; i < weights.length - 1; i++) {
       if (values[i] > values[i + 1]) {
         const pooledVal = (values[i] * weights[i] + values[i + 1] * weights[i + 1]) / (weights[i] + weights[i + 1]);
+        const pooledX = (xPooled[i] * weights[i] + xPooled[i + 1] * weights[i + 1]) / (weights[i] + weights[i + 1]);
         values[i] = pooledVal;
+        xPooled[i] = pooledX;
         weights[i] += weights[i + 1];
         weights.splice(i + 1, 1);
         values.splice(i + 1, 1);
+        xPooled.splice(i + 1, 1);
         pooled = true;
         break;
       }
     }
   }
 
-  // Linear interpolate
-  if (xVals.length === 0) return pHat;
-  if (pHat <= xVals[0]) return values[0];
-  if (pHat >= xVals[xVals.length - 1]) return values[values.length - 1];
+  // Linear interpolate (xPooled and values are now the same length)
+  if (xPooled.length === 0) return pHat;
+  if (pHat <= xPooled[0]) return values[0];
+  if (pHat >= xPooled[xPooled.length - 1]) return values[values.length - 1];
 
-  for (let i = 0; i < xVals.length - 1; i++) {
-    if (pHat >= xVals[i] && pHat <= xVals[i+1]) {
-      const t = (pHat - xVals[i]) / (xVals[i+1] - xVals[i]);
+  for (let i = 0; i < xPooled.length - 1; i++) {
+    if (pHat >= xPooled[i] && pHat <= xPooled[i+1]) {
+      const denom = xPooled[i+1] - xPooled[i];
+      const t = denom !== 0 ? (pHat - xPooled[i]) / denom : 0;
       return values[i] + t * (values[i+1] - values[i]);
     }
   }
@@ -855,7 +863,11 @@ export function calculateBrierScore(history: { pred: number; win: number }[]): n
 export function calculatePercentile(values: number[], pct: number): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
-  const index = (pct / 100) * (sorted.length - 1);
+  // Clamp pct to [0,100] then the interpolation index to valid [0, len-1] so an
+  // out-of-range percentile can never index past the array (→ undefined → NaN).
+  // In-range percentiles are unaffected.
+  const clampedPct = Math.min(100, Math.max(0, pct));
+  const index = Math.min(sorted.length - 1, Math.max(0, (clampedPct / 100) * (sorted.length - 1)));
   const low = Math.floor(index);
   const high = Math.ceil(index);
   const t = index - low;
